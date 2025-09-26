@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fdfaf2;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-dm-serif-text);
+  --font-display: var(--font-dm-serif-display);
+  --font-waitlist: var(--font-instrument-serif);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #fdfaf2;
+    --foreground: #171717;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* Phone mockup entrance animations */
+@keyframes fly-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fly-in-right {
+  animation: fly-in-right 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+/* Content cards fly-in animations */
+@keyframes fly-in-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fly-in-left {
+  animation: fly-in-left 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animate-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animate-delay-600 {
+  animation-delay: 0.6s;
+}
+
+.animate-delay-800 {
+  animation-delay: 0.8s;
+}
+
+/* Analyzing message animations */
+@keyframes slide-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-fade-in {
+  animation: slide-fade-in 0.5s ease-out forwards;
+}
+
+/* Animated ellipses */
+@keyframes ellipses {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
+}
+
+.animate-ellipses::after {
+  content: '';
+  animation: ellipses 1.5s infinite;
+}

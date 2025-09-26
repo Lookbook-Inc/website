@@ -32,10 +32,13 @@ export default function Home() {
         {/* Central Text Overlay */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/20">
           <div className="text-center">
-            <h1 className="text-6xl md:text-8xl font-display text-white drop-shadow-2xl mb-4">
+            <p className="text-xl md:text-2xl font-waitlist text-white drop-shadow-lg">
+              Studio Maven Presents
+            </p>
+            <h1 className="text-6xl md:text-9xl font-display text-white drop-shadow-2xl mb-4">
               LOOKBOOK
             </h1>
-            <p className="text-xl md:text-2xl font-serif text-white drop-shadow-lg">
+            <p className="text-xl md:text-xl font-serif text-white drop-shadow-lg">
               AI powered, frictionless fashion
             </p>
           </div>

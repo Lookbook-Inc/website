@@ -38,11 +38,11 @@ export default function About() {
       <div className="py-16">
         <main>
         {/* Intro Blurb Section */}
-        <div className="max-w-4xl mx-auto px-4 mb-20 text-center">
+        <div className="max-w-6xl mx-auto px-4 mb-20 text-center">
           {/* <p className="text-xl md:text-2xl font-serif text-gray-700 leading-relaxed mb-6">
             We're two technical founders with a keen eye for the consumer. Follow with us as we go about our journey!
           </p> */}
-          <p className="text-lg font-sans text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg font-sans text-gray-600 max-w-4xl mx-auto">
             Based in SF, we're two technical founders with a keen eye for the consumer space. We want to build products that will
             revolutionize tech, fashion, and design.
           </p>

@@ -42,7 +42,7 @@ export default function WaitlistForm() {
           message: data.error || 'Failed to join waitlist. Please try again.'
         });
       }
-    } catch (error) {
+    } catch {
       setStatus({
         type: 'error',
         message: 'Network error. Please check your connection and try again.'

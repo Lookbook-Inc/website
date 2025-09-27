@@ -43,7 +43,7 @@ export default function About() {
             We're two technical founders with a keen eye for the consumer. Follow with us as we go about our journey!
           </p> */}
           <p className="text-lg font-sans text-gray-600 max-w-4xl mx-auto">
-            Based in SF, we're two technical founders with a keen eye for the consumer space. We want to build products that will
+            Based in SF, we&apos;re two technical founders with a keen eye for the consumer space. We want to build products that will
             revolutionize tech, fashion, and design.
           </p>
         </div>
@@ -112,11 +112,11 @@ export default function About() {
             <div className="lg:pl-8">
               <p className="text-gray-700 font-sans leading-relaxed mb-6">
               A former collegiate golfer, Avery counts his successful college golf career among his proudest achievements. 
-              These days, you'll find him staying active and competitve on the driving range or the basketball court.
+              These days, you&apos;ll find him staying active and competitve on the driving range or the basketball court.
               </p>
               <p className="text-gray-700 font-sans leading-relaxed">
               Alongside his passion for technology, Avery thrives on artistic and intellectual pursuits. 
-              Don't be afraid to bother him for a thoughtful conversation—whether it's philosophy, politics, or a deep dive into music.
+              Don&apos;t be afraid to bother him for a thoughtful conversation—whether it&apos;s philosophy, politics, or a deep dive into music.
               </p>
             </div>
           </div>

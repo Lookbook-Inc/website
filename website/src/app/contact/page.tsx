@@ -1,6 +1,5 @@
 'use client';
 
-import { Metadata } from "next";
 import { useState } from "react";
 
 interface FormData {
@@ -62,7 +61,7 @@ export default function Contact() {
           message: data.error || 'Failed to send message. Please try again.'
         });
       }
-    } catch (error) {
+    } catch {
       setStatus({
         type: 'error',
         message: 'Network error. Please check your connection and try again.'

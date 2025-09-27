@@ -56,7 +56,7 @@ export default function Home() {
               <h2 className="text-3xl font-display mb-4 text-left">What do Lookbook do?</h2>
               <p className="text-gray-700 font-sans leading-relaxed text-left">
                 Ever wanted a centralized place to organize and catalog your closet, your outfit photos, and your style?
-                So have we. We're here to provide that for you.
+                So have we. We&apos;re here to provide that for you.
               </p>
             </div>
 
@@ -73,7 +73,7 @@ export default function Home() {
             <div className="bg-white/50 p-8 rounded-lg shadow-sm border border-white/20 animate-fly-in-left animate-delay-400">
               <h2 className="text-3xl font-display mb-4 text-left">Why choose us?</h2>
               <p className="text-gray-700 font-sans leading-relaxed text-left">
-                Unlike most shopping apps, we focus on your personal style evolution. We're not here to sell you clothes, we're here
+                Unlike most shopping apps, we focus on your personal style evolution. We&apos;re not here to sell you clothes, we&apos;re here
                 to actually understand your taste.
               </p>
             </div>
@@ -99,7 +99,7 @@ export default function Home() {
             WAITLIST
           </h2>
           <p className="text-lg md:text-xl font-sans text-gray-700 mb-8 max-w-2xl mx-auto">
-            We're currently in beta testing with early users.
+            We&apos;re currently in beta testing with early users.
             Join our waitlist to become a part of this select group.
           </p>
 

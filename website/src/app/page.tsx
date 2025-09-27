@@ -1,6 +1,7 @@
 import Image from "next/image";
 import PhoneMockupGroup from "./components/PhoneMockupGroup";
 import OutfitAnalyzer from "./components/OutfitAnalyzer";
+import WaitlistForm from "./components/WaitlistForm";
 
 export default function Home() {
   return (
@@ -102,22 +103,7 @@ export default function Home() {
             Join our waitlist to become a part of this select group.
           </p>
 
-          <form className="max-w-md mx-auto">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                placeholder="Enter your email address"
-                className="flex-1 px-4 py-3 rounded-lg border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-800"
-                required
-              />
-              <button
-                type="submit"
-                className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-sans"
-              >
-                Join Waitlist
-              </button>
-            </div>
-          </form>
+          <WaitlistForm />
         </div>
       </section>
 
@@ -162,36 +148,59 @@ export default function Home() {
 
           {/* Image Preview Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 max-w-4xl mx-auto">
-            {/* Placeholder Images - Replace with actual social media content */}
             <div className="aspect-square bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-xs">Post 1</span>
-              </div>
+              <Image
+                src="/images/post-previews/max-and-avery.jpg"
+                alt="Max and Avery"
+                width={200}
+                height={200}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="aspect-square bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-xs">Post 2</span>
-              </div>
+              <Image
+                src="/images/post-previews/pen-flipping.jpg"
+                alt="Pen flipping"
+                width={200}
+                height={200}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="aspect-square bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-xs">Post 3</span>
-              </div>
+              <Image
+                src="/images/post-previews/running-app.jpg"
+                alt="Running app"
+                width={200}
+                height={200}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="aspect-square bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-xs">Post 4</span>
-              </div>
+              <Image
+                src="/images/post-previews/sf-fits.jpg"
+                alt="SF fits"
+                width={200}
+                height={200}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="aspect-square bg-white rounded-lg shadow-sm overflow-hidden hidden md:block">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-xs">Post 5</span>
-              </div>
+              <Image
+                src="/images/post-previews/silver-lining.jpg"
+                alt="Silver lining"
+                width={200}
+                height={200}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="aspect-square bg-white rounded-lg shadow-sm overflow-hidden hidden lg:block">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-xs">Post 6</span>
-              </div>
+              <Image
+                src="/images/post-previews/the-interval.jpg"
+                alt="The interval"
+                width={200}
+                height={200}
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>

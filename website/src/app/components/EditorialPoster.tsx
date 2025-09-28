@@ -39,16 +39,16 @@ export default function EditorialPoster() {
           </span>
   
           {/* Line 5 */}
-          <span className="col-start-1 col-end-101 row-start-95 self-end
+          <span className="col-start-1 col-end-101 row-start-97 self-end
                            font-sans leading-[0.95]
-                           text-[5cqw]">
+                           text-lg">
             It&apos;s simple.
           </span>
   
           {/* Line 6 */}
           <span className="col-start-1 col-end-101 row-start-119 self-end
                            font-sans leading-[1.3]
-                           text-[5cqw]">
+                           text-lg">
             We help you organize your pictures the same way your Photos app does for your friends&apos;s faces. Effortlessly.
           </span>
 

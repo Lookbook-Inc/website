@@ -100,7 +100,7 @@ export default function About() {
             <div className="relative">
               <PhotoCarousel
                 photos={[
-                  "/images/team/avery/avery-1.jpg",
+                  "/images/team/avery/avery-1.JPG",
                   "/images/team/avery/avery-coding.jpg",
                   "/images/team/avery/avery-golf.jpg"
                 ]}

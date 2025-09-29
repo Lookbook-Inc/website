@@ -11,7 +11,7 @@ export default function About() {
   return (
     <>
       {/* Full-width Hero Section */}
-      <section className="relative w-full h-[60vh]">
+      <section className="relative w-full h-[30vh] md:h-[60vh]">
         <div className="relative w-full h-full">
           <Image
             src="/images/SF.jpg"
@@ -23,9 +23,10 @@ export default function About() {
         </div>
 
         {/* Central Text Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <div className="text-center">
-            <h1 className="text-6xl md:text-8xl font-display font-black text-white drop-shadow-2xl mb-4">
+            {/* <h1 className="text-6xl md:text-8xl font-display font-black text-white drop-shadow-2xl mb-4"> */}
+            <h1 className="text-6xl md:text-9xl font-display text-white drop-shadow-2xl mix-blend-exclusion">
               ABOUT US
             </h1>
             {/* <p className="text-xl md:text-2xl font-serif text-white drop-shadow-lg">
@@ -42,9 +43,13 @@ export default function About() {
           {/* <p className="text-xl md:text-2xl font-serif text-gray-700 leading-relaxed mb-6">
             We're two technical founders with a keen eye for the consumer. Follow with us as we go about our journey!
           </p> */}
-          <p className="text-lg font-sans text-gray-600 max-w-4xl mx-auto">
-            Based in SF, we&apos;re two technical founders with a keen eye for the consumer space. We want to build products that will
+          <p className="text-lg font-sans text-gray-600 max-w-4xl mx-auto mb-6">
+            Based in SF, we&apos;re two technical founders with liberal arts backgrounds and a keen eye for the consumer space. We want to build products that will
             revolutionize tech, fashion, and design.
+          </p>
+          <p className="text-lg font-sans text-gray-600 max-w-4xl mx-auto mb-6">
+            We originally met through our college <a href="https://open.spotify.com/artist/0jXr3CLA2HMJ3E7rVoPqGY?si=uT3OY6ReSnK_yn_Bt6fPGg" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">a cappella group</a> (shoutout Mood Swing), and have since worked together professionally before launching into this app.
+            We've got a unique blend of technical depth and social insight that guides us to build true value for our users.
           </p>
         </div>
 
@@ -53,14 +58,18 @@ export default function About() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-end">
             {/* Left Text */}
             <div className="lg:pr-8">
-              <h2 className="text-sm font-sans text-gray-500 uppercase tracking-wider mb-2">
+              <h2 className="text-sm font-mono text-gray-500 uppercase tracking-wider mb-2">
                 CO-FOUNDER
               </h2>
-              <h3 className="text-2xl font-display mb-6">Avery Chen</h3>
+              <h3 className="text-2xl font-display mb-2">Avery Chen</h3>
+              <h4 className="text-sm font-mono font-light text-gray-500 mb-6">
+                Pomona College '24
+              </h4>
               <p className="text-gray-700 font-sans leading-relaxed mb-6">
               Avery is a full-stack engineer and product strategist passionate about designing applications that matter. 
-              With experience ranging from global tech firms to nimble startups, 
+              With industry experience ranging from big tech to pre-seed startups, 
               he blends technical depth, design sensibility, and product vision to deliver impactful solutions.
+              With Lookbook, Avery works across the full stack and drives technical implementation.
               </p>
 
               {/* Social Media Links */}
@@ -111,10 +120,10 @@ export default function About() {
             {/* Right Text */}
             <div className="lg:pl-8">
               <p className="text-gray-700 font-sans leading-relaxed mb-6">
-              A former collegiate golfer, Avery counts his successful college golf career among his proudest achievements. 
+              A former collegiate golfer, Avery counts his successful athletic career among his proudest achievements. 
               These days, you&apos;ll find him staying active and competitve on the driving range or the basketball court.
               </p>
-              <p className="text-gray-700 font-sans leading-relaxed">
+              <p className="text-gray-700 font-sans leading-relaxed mb-10">
               Alongside his passion for technology, Avery thrives on artistic and intellectual pursuits. 
               Don&apos;t be afraid to bother him for a thoughtful conversation—whether it&apos;s philosophy, politics, or a deep dive into music.
               </p>
@@ -123,18 +132,25 @@ export default function About() {
         </section>
 
         {/* Person 2 */}
-        <section className="max-w-7xl mx-auto px-4">
+        <section className="max-w-7xl mx-auto px-4 mb-30">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-end">
             {/* Left Text */}
             <div className="lg:pr-8">
-              <h2 className="text-sm font-sans text-gray-500 uppercase tracking-wider mb-2">
+              <h2 className="text-sm font-mono text-gray-500 uppercase tracking-wider mb-2">
                 CO-FOUNDER
               </h2>
-              <h3 className="text-2xl font-display mb-6">Max Hui</h3>
+              <h3 className="text-2xl font-display mb-2">Max Hui</h3>
+              <h4 className="text-sm font-mono font-light text-gray-500 mb-6">
+                Harvey Mudd College '23
+              </h4>
               <p className="text-gray-700 font-sans leading-relaxed mb-6">
-                Marcus brings deep technical expertise in AI and machine learning to the fashion
-                industry. Previously a senior engineer at Meta, he has built scalable systems
-                serving millions of users worldwide.
+                Max is a product engineer that dives deep into the technical, business, and human-centric aspects of product development.
+                He's previously worked on ML research pipelines and led operational and business development teams at engineering firms.
+              </p>
+              <p className="text-gray-700 font-sans leading-relaxed mb-6">
+                Having dealt with the hassle of managing his own outfit pictures for the past 5 years, Max recently realized the state of technology was at last
+                ready to help address this problem.
+                With Avery, he decided to create Lookbook, where he builds specific product features and oversees non-technical operations.
               </p>
 
               {/* Social Media Links */}
@@ -174,9 +190,9 @@ export default function About() {
             <div className="relative">
               <PhotoCarousel
                 photos={[
-                  "/images/team/max/max-1.png",
-                  "/images/team/max/max-2.png",
-                  "/images/team/max/max-3.png"
+                  "/images/team/max/max-1.jpeg",
+                  "/images/team/max/max-lookbook.jpg",
+                  "/images/team/max/max-3.jpeg"
                 ]}
                 alt="Max Hui - Co-Founder"
               />
@@ -185,17 +201,27 @@ export default function About() {
             {/* Right Text */}
             <div className="lg:pl-8">
               <p className="text-gray-700 font-sans leading-relaxed mb-6">
-                His passion for the intersection of technology and creative expression led him
-                to co-found Studio Maven, where he oversees all technical architecture and
-                AI-powered features.
+                Max loves cars (and things that go vroom in general).
+                Outside of his work, some of his favorite accomplishments stem from this—
+                from pitching his concept car <a href="https://www.linkedin.com/in/mmax-hui/details/honors/" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">design</a> to BMW's executive panel, to being awarded a <a href="https://uspto.report/patent/app/20200124442" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">patent</a> for an aviation heads-up-display interface at age 17.
               </p>
-              <p className="text-gray-700 font-sans leading-relaxed">
-                Marcus holds a Computer Science degree from Stanford and has published research
-                on computer vision applications in fashion and style recommendation systems.
+              <p className="text-gray-700 font-sans leading-relaxed mb-10">
+                A couple things will always make Max's day—a good acai bowl, a song that hits just the right spot, or a sunset drive with the roof down.
               </p>
             </div>
           </div>
         </section>
+        
+        {/* <div className="max-w-6xl mx-auto px-4 text-center">
+          <p className="text-sm font-sans text-gray-400 max-w-4xl mx-auto">
+            <em>Where's your fashion background?</em>
+            <br />
+            That&apos;s exactly the point— we're not "fashion people". Most users aren&apos;t, either. <br />
+            Like us, they don&apos;t want to spend time manually inventorying their closet. <br />
+            However, also like us, many people <em>do</em> already have outfit pictures that can do this for them. <br />
+            We're delivering a zero-friction experience that even we would use.
+          </p>
+        </div> */}
         </main>
       </div>
     </>

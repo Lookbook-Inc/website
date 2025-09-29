@@ -28,7 +28,7 @@ export default function EditorialPoster() {
           <span className="col-start-1 col-end-101 row-start-67 self-end
                            font-waitlist leading-[0.95]
                            text-[18.4cqw] text-justify">
-            then we've built
+            then we&apos;ve built
           </span>
 
           {/* Line 4 */}

@@ -93,8 +93,8 @@ export default function Home() {
                 OUR BETA
               </h2>
               <p className="text-lg md:text-xl font-sans text-gray-700 mb-8 max-w-2xl">
-                We&apos;re currently testing with early users on Apple's Testflight program.
-                If you're interested in being a part of this select group, sign up below.
+                We&apos;re currently testing with early users on Apple&apos;s Testflight program.
+                If you&apos;re interested in being a part of this select group, sign up below.
               </p>
 
               <WaitlistForm />

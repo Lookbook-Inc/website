@@ -199,5 +199,37 @@ export const outfitExamples: OutfitExample[] = [
         confidence: 92
       }
     ]
+  },
+  {
+    id: "outfit-6",
+    name: "Smart Casual Ensemble",
+    description: "Classic business casual look with modern touches",
+    outfitImage: "/images/generation-graphics/outfit-6/outfit-7.jpg",
+    items: [
+      {
+        id: "outfit-6-shirt",
+        name: "Cropped White Top",
+        category: "Top",
+        color: "Crisp White",
+        imageSrc: "/images/generation-graphics/outfit-6/outfit-7-shirt.webp",
+        confidence: 94
+      },
+      {
+        id: "outfit-6-pants",
+        name: "Green Relaxed Sweatpants",
+        category: "Bottoms",
+        color: "Satin Moss",
+        imageSrc: "/images/generation-graphics/outfit-6/outfit-7-pants.webp",
+        confidence: 92
+      },
+      {
+        id: "outfit-6-shoes",
+        name: "Low Top Skate Shoes",
+        category: "Footwear",
+        color: "White",
+        imageSrc: "/images/generation-graphics/outfit-6/outfit-7-shoes.webp",
+        confidence: 90
+      }
+    ]
   }
 ];

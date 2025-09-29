@@ -1,83 +1,50 @@
 import Image from "next/image";
+import appIcon from "./icon.png";
 import PhoneMockupGroup from "./components/PhoneMockupGroup";
 import OutfitAnalyzer from "./components/OutfitAnalyzer";
 import WaitlistForm from "./components/WaitlistForm";
+// import EditorialBlock from "./components/EditorialBlock";
+import EditorialPoster from "./components/EditorialPoster";
 
 export default function Home() {
   return (
     <>
       {/* Full-width Hero Section */}
-      <section className="relative w-full h-[60vh] grid grid-cols-1 md:grid-cols-2">
-        {/* Left Hero Image */}
+      <section className="relative w-full h-[30vh] md:h-[60vh] grid grid-cols-3">
+        {/* Images */}
         <div className="relative">
-          <Image
-            src="/images/hero-1.jpg"
-            alt="Hero image 1"
-            fill
-            className="object-cover"
-            priority
-          />
+          <Image src="/images/man-tunnel.avif" alt="Hero image 1" fill className="object-cover" priority />
         </div>
-
-        {/* Right Hero Image */}
         <div className="relative">
-          <Image
-            src="/images/hero-2.jpg"
-            alt="Hero image 2"
-            fill
-            className="object-cover"
-            priority
-          />
+          <Image src="/images/grey-girl.jpg" alt="Hero image 2" fill className="object-cover" priority />
+        </div>
+        <div className="relative">
+          <Image src="/images/green-girl.jpg" alt="Hero image 3" fill className="object-cover" priority />
         </div>
 
         {/* Central Text Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <div className="text-center">
-            <p className="text-xl md:text-2xl font-waitlist text-white drop-shadow-lg">
+            <p className="text-xl md:text-4xl font-waitlist text-white drop-shadow-lg md:mb-4">
               Studio Maven Presents
             </p>
-            <h1 className="text-6xl md:text-9xl font-display text-white drop-shadow-2xl mb-4">
-              LOOKBOOK
+            <h1 className="text-6xl md:text-[10cqw] font-display text-white drop-shadow-2xl mix-blend-exclusion">
+              Lookbook
             </h1>
-            <p className="text-xl md:text-xl font-serif text-white drop-shadow-lg">
-              AI powered, frictionless fashion
+            <p className="text-xl md:text-4xl font-mono font-thin text-white drop-shadow-lg">
+              Your Style Anthology
             </p>
           </div>
         </div>
       </section>
 
+
       {/* Content Section */}
       <div className="py-16">
-        <div className="grid lg:grid-cols-2 items-start">
+        <div className="max-w-6xl mx-auto px-4 grid lg:grid-cols-2 items-center gap-12">
           {/* Left: Content Cards - Full width with left padding */}
-          <div className="order-1 lg:order-1 pl-4 md:pl-8 lg:pl-16 space-y-8">
-            {/* First Card */}
-            <div className="bg-white/50 p-8 rounded-lg shadow-sm border border-white/20 animate-fly-in-left">
-              <h2 className="text-3xl font-display mb-4 text-left">What do Lookbook do?</h2>
-              <p className="text-gray-700 font-sans leading-relaxed text-left">
-                Ever wanted a centralized place to organize and catalog your closet, your outfit photos, and your style?
-                So have we. We&apos;re here to provide that for you.
-              </p>
-            </div>
+          <EditorialPoster />
 
-            {/* Second Card */}
-            <div className="bg-white/50 p-8 rounded-lg shadow-sm border border-white/20 animate-fly-in-left animate-delay-200">
-              <h2 className="text-3xl font-display mb-4 text-left">How it works.</h2>
-              <p className="text-gray-700 font-sans leading-relaxed text-left">
-                Simply upload photos of your outfits. Our AI-powered system automatically categorizes
-                and organizes everything, making it easy to discover new style combinations and track your fashion journey.
-              </p>
-            </div>
-
-            {/* Third Card */}
-            <div className="bg-white/50 p-8 rounded-lg shadow-sm border border-white/20 animate-fly-in-left animate-delay-400">
-              <h2 className="text-3xl font-display mb-4 text-left">Why choose us?</h2>
-              <p className="text-gray-700 font-sans leading-relaxed text-left">
-                Unlike most shopping apps, we focus on your personal style evolution. We&apos;re not here to sell you clothes, we&apos;re here
-                to actually understand your taste.
-              </p>
-            </div>
-          </div>
 
           {/* Right: Phone Mockup - I added manual right margin padding to try and center it cause i could not figure out
           why it was not centering and i wanted to break my computer but its fine its fine */}
@@ -94,16 +61,45 @@ export default function Home() {
 
       {/* Waitlist Section */}
       <section className="w-full py-20" style={{ backgroundColor: '#E7DCCA' }}>
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-6xl md:text-8xl font-waitlist mb-6 text-gray-800">
-            WAITLIST
-          </h2>
-          <p className="text-lg md:text-xl font-sans text-gray-700 mb-8 max-w-2xl mx-auto">
-            We&apos;re currently in beta testing with early users.
-            Join our waitlist to become a part of this select group.
-          </p>
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-10">
+            {/* Left: Logos (diagonal layout) */}
+            <div className="relative flex justify-center md:justify-start">
+              <div className="relative w-[240px] h-[240px] md:w-[300px] md:h-[300px]">
+                <div className="absolute bottom-0 left-0 w-[65%] h-[65%]">
+                  <Image
+                    src="/images/testflight-logo.webp"
+                    alt="TestFlight logo"
+                    fill
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                <div className="absolute top-0 right-0 w-[55%] h-[55%]">
+                  <Image
+                    src={appIcon}
+                    alt="Lookbook app icon"
+                    fill
+                    className="object-contain rounded-2xl shadow-md"
+                    priority
+                  />
+                </div>
+              </div>
+            </div>
 
-          <WaitlistForm />
+            {/* Right: Copy + Form */}
+            <div>
+              <h2 className="text-6xl md:text-8xl font-waitlist mb-6 text-gray-800">
+                OUR BETA
+              </h2>
+              <p className="text-lg md:text-xl font-sans text-gray-700 mb-8 max-w-2xl">
+                We&apos;re currently testing with early users on Apple&apos;s Testflight program.
+                If you&apos;re interested in being a part of this select group, sign up below.
+              </p>
+
+              <WaitlistForm />
+            </div>
+          </div>
         </div>
       </section>
 

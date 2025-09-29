@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, DM_Serif_Text, Inter, Instrument_Serif } from "next/font/google";
+import { DM_Serif_Display, DM_Serif_Text, Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Navigation from "./components/Navigation";
 
@@ -26,9 +26,14 @@ const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
 });
 
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Lookbook - Home",
-  description: "Welcome to Your Company. Learn about what we do and meet our team.",
+  description: "Studio Maven Inc. presents - Lookbook: Your Style Anthology.",
 };
 
 export default function RootLayout({
@@ -39,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dmSerifDisplay.variable} ${dmSerifText.variable} ${inter.variable} ${instrumentSerif.variable} antialiased`}
+        className={`${dmSerifDisplay.variable} ${dmSerifText.variable} ${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <Navigation />
         {children}

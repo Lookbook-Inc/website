@@ -66,7 +66,7 @@ export default function Home() {
             {/* Left: Logos (diagonal layout) */}
             <div className="relative flex justify-center md:justify-start">
               <div className="relative w-[240px] h-[240px] md:w-[300px] md:h-[300px]">
-                <div className="absolute bottom-0 left-0 w-[65%] h-[65%]">
+                <div className="absolute bottom-0 left-0 w-[80%] h-[80%]">
                   <Image
                     src="/images/testflight-logo.webp"
                     alt="TestFlight logo"

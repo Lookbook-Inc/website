@@ -49,7 +49,7 @@ export default function About() {
           </p>
           <p className="text-lg font-sans text-gray-600 max-w-4xl mx-auto mb-6">
             We originally met through our college <a href="https://open.spotify.com/artist/0jXr3CLA2HMJ3E7rVoPqGY?si=uT3OY6ReSnK_yn_Bt6fPGg" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">a cappella group</a> (shoutout Mood Swing), and have since worked together professionally before launching into this app.
-            We've got a unique blend of technical depth and social insight that guides us to build true value for our users.
+            We&apos;ve got a unique blend of technical depth and social insight that guides us to build true value for our users.
           </p>
         </div>
 
@@ -63,7 +63,7 @@ export default function About() {
               </h2>
               <h3 className="text-2xl font-display mb-2">Avery Chen</h3>
               <h4 className="text-sm font-mono font-light text-gray-500 mb-6">
-                Pomona College '24
+                Pomona College &apos;24
               </h4>
               <p className="text-gray-700 font-sans leading-relaxed mb-6">
               Avery is a full-stack engineer and product strategist passionate about designing applications that matter. 
@@ -141,11 +141,11 @@ export default function About() {
               </h2>
               <h3 className="text-2xl font-display mb-2">Max Hui</h3>
               <h4 className="text-sm font-mono font-light text-gray-500 mb-6">
-                Harvey Mudd College '23
+                Harvey Mudd College &apos;23
               </h4>
               <p className="text-gray-700 font-sans leading-relaxed mb-6">
                 Max is a product engineer that dives deep into the technical, business, and human-centric aspects of product development.
-                He's previously worked on ML research pipelines and led operational and business development teams at engineering firms.
+                He&apos;s previously worked on ML research pipelines and led operational and business development teams at engineering firms.
               </p>
               <p className="text-gray-700 font-sans leading-relaxed mb-6">
                 Having dealt with the hassle of managing his own outfit pictures for the past 5 years, Max recently realized the state of technology was at last
@@ -203,10 +203,10 @@ export default function About() {
               <p className="text-gray-700 font-sans leading-relaxed mb-6">
                 Max loves cars (and things that go vroom in general).
                 Outside of his work, some of his favorite accomplishments stem from this—
-                from pitching his concept car <a href="https://www.linkedin.com/in/mmax-hui/details/honors/" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">design</a> to BMW's executive panel, to being awarded a <a href="https://uspto.report/patent/app/20200124442" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">patent</a> for an aviation heads-up-display interface at age 17.
+                from pitching his concept car <a href="https://www.linkedin.com/in/mmax-hui/details/honors/" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">design</a> to BMW&apos;s executive panel, to being awarded a <a href="https://uspto.report/patent/app/20200124442" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">patent</a> for an aviation heads-up-display interface at age 17.
               </p>
               <p className="text-gray-700 font-sans leading-relaxed mb-10">
-                A couple things will always make Max's day—a good acai bowl, a song that hits just the right spot, or a sunset drive with the roof down.
+                A couple things will always make Max&apos;s day—a good acai bowl, a song that hits just the right spot, or a sunset drive with the roof down.
               </p>
             </div>
           </div>

@@ -102,7 +102,7 @@ export default function OutfitAnalyzer() {
             Aesthetic Intelligence.
           </h2>
           <p className="text-lg md:text-xl font-sans text-gray-700 max-w-2xl mx-auto">
-            No, you won't need to individually photograph each item you own for us to know. See it in action:
+            No, you won&apos;t need to individually photograph each item you own for us to know. See it in action:
           </p>
         </div>
 

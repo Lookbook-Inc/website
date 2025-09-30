@@ -2,14 +2,14 @@ export default function EditorialPoster() {
     return (
       <section
         className="
-          mx-auto max-w-md w-full aspect-[4/5]
+          mx-auto max-w-sm w-full aspect-[4/6]
           relative p-6
           [container-type:inline-size]  /* enables cqw units inside */
           bg-transparent text-neutral-900
         "
         aria-label="Lookbook pitch"
       >
-        <div className="grid grid-cols-100 grid-rows-125 h-full">
+        <div className="grid grid-cols-100 grid-rows-150 h-full">
           {/* Line 1 */}
           <span className="col-start-1 col-end-101 self-start row-end-2
                            font-waitlist font-medium leading-[0.95] tracking-[-0.01em]
@@ -39,17 +39,17 @@ export default function EditorialPoster() {
           </span>
   
           {/* Line 5 */}
-          <span className="col-start-1 col-end-101 row-start-97 self-end
+          <span className="col-start-1 col-end-101 row-start-100 self-end
                            font-sans leading-[0.95]
                            text-lg">
             It&apos;s simple.
           </span>
   
           {/* Line 6 */}
-          <span className="col-start-1 col-end-101 row-start-119 self-end
+          <span className="col-start-1 col-end-101 self-start row-end-105
                            font-sans leading-[1.3]
                            text-lg">
-            We help you organize your pictures the same way your Photos app does for your friends&apos;s faces. Effortlessly.
+            We organize your outfit pics the same way Photos organizes faces, helping you build a library of the clothes you own. No manual tagging, no extra steps.
           </span>
 
         </div>

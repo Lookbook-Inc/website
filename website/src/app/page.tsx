@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <>
       {/* Full-width Hero Section */}
-      <section className="relative w-full h-[30vh] md:h-[60vh] grid grid-cols-3">
+      <section className="relative w-full h-[50vh] md:h-[60vh] grid grid-cols-3">
         {/* Images */}
         <div className="relative">
           <Image src="/images/man-tunnel.avif" alt="Hero image 1" fill className="object-cover" priority />
@@ -42,8 +42,10 @@ export default function Home() {
       {/* Content Section */}
       <div className="py-16">
         <div className="max-w-6xl mx-auto px-4 grid lg:grid-cols-2 items-center gap-12">
-          {/* Left: Content Cards - Full width with left padding */}
-          <EditorialPoster />
+          {/* Left: Editorial Poster with padded column to avoid viewport edges */}
+          <div className="px-8 md:px-4">
+            <EditorialPoster />
+          </div>
 
 
           {/* Right: Phone Mockup - I added manual right margin padding to try and center it cause i could not figure out
@@ -61,10 +63,10 @@ export default function Home() {
 
       {/* Waitlist Section */}
       <section className="w-full py-20" style={{ backgroundColor: '#E7DCCA' }}>
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-10">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 items-center gap-10">
             {/* Left: Logos (diagonal layout) */}
-            <div className="relative flex justify-center md:justify-start">
+            <div className="relative flex justify-center md:justify-center md:order-1 md:col-span-3">
               <div className="relative w-[240px] h-[240px] md:w-[300px] md:h-[300px]">
                 <div className="absolute bottom-0 left-0 w-[80%] h-[80%]">
                   <Image
@@ -87,17 +89,30 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Copy + Form */}
-            <div>
+            {/* Center: Copy + Form */}
+            <div className="md:order-2 md:col-span-6 text-center flex flex-col items-center">
               <h2 className="text-6xl md:text-8xl font-waitlist mb-6 text-gray-800">
                 OUR BETA
               </h2>
-              <p className="text-lg md:text-xl font-sans text-gray-700 mb-8 max-w-2xl">
+              <p className="text-lg md:text-xl font-sans text-gray-700 mb-8 max-w-2xl mx-auto">
                 We&apos;re currently testing with early users on Apple&apos;s Testflight program.
-                If you&apos;re interested in being a part of this select group, sign up below.
+                If you&apos;re interested in being a part of this select group, let us know below.
               </p>
 
               <WaitlistForm />
+            </div>
+
+            {/* Right: TestFlight Screen */}
+            <div className="flex justify-center md:justify-center md:order-3 md:col-span-3">
+              <div className="relative w-[143] h-[300px] md:w-[190px] md:h-[400px] rounded-[27px] md:rounded-[36px] overflow-hidden shadow-2xl border-4 border-black/10 bg-black">
+                <Image
+                  src="/images/testflight-screen.jpeg"
+                  alt="Lookbook TestFlight screen"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
             </div>
           </div>
         </div>

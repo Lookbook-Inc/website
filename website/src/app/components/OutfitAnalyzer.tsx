@@ -101,17 +101,17 @@ export default function OutfitAnalyzer() {
           <h2 className="text-4xl md:text-6xl font-display mb-4 text-gray-800">
             Aesthetic Intelligence.
           </h2>
-          <p className="text-lg md:text-xl font-sans text-gray-700 max-w-2xl mx-auto">
-            No, you won&apos;t need to individually photograph each item you own for us to know. See it in action:
+          <p className="text-lg md:text-lg font-sans text-gray-700 max-w-2xl mx-auto">
+            No need to dig up and photograph each individual item you own - we'll take care it for you. See it in action:
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-30 items-start mb-16">
+        <div className="grid lg:grid-cols-[1fr_auto_1fr] gap-30 items-start mb-16">
           {/* Left Side - Gallery */}
           <div className={`space-y-6 ${isVisible ? 'animate-fly-in-left' : 'opacity-0'}`}>
             {/* Your Gallery Title */}
             <div className="text-center">
-              <h3 className="text-2xl md:text-4xl font-display text-gray-800 mb-6">Your Gallery</h3>
+              <h3 className="text-2xl md:text-4xl font-display text-gray-800 mb-6">From your gallery...</h3>
             </div>
 
             {/* Gallery Grid */}
@@ -140,31 +140,48 @@ export default function OutfitAnalyzer() {
               ))}
             </div>
 
-            {/* Analyze Button */}
-            <div className="text-center mt-8">
-              <button
-                onClick={analyzeOutfit}
-                disabled={isAnalyzing}
-                className="px-8 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-sans disabled:opacity-50"
-              >
-                {isAnalyzing ? 'Analyzing...' : 'Analyze This Outfit'}
-              </button>
-            </div>
+          </div>
+
+          {/* Middle - Analyze Action */}
+          <div className={`flex flex-col items-center justify-start md:mt-50 ${isVisible ? 'animate-fly-in-left' : 'opacity-0'}`}>
+            <button
+              onClick={analyzeOutfit}
+              disabled={isAnalyzing}
+              aria-label="Analyze This Outfit"
+              className="w-20 h-20 bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors duration-200 font-sans disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
+            >
+              {isAnalyzing ? (
+                <div className="animate-spin w-6 h-6 border-4 border-white/30 border-t-white rounded-full mx-auto" />
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  <span className="text-base">Go!</span>
+                  <svg className="mt-1 w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 5l7 7-7 7" />
+                  </svg>
+                </div>
+              )}
+            </button>
           </div>
 
           {/* Right Side - Results */}
           <div className="space-y-6 min-h-[1100px]">
+            {/* Analyzed Title */}
+            <div className={`text-center ${isVisible ? 'animate-fly-in-left' : 'opacity-0'}`}>
+              <h3 className="text-2xl md:text-4xl font-display text-gray-800 mb-6">... to organized outfits</h3>
+            </div>
             {!showResults && !isAnalyzing && (
               <div className="space-y-6">
                 {/* Placeholder Main Photo */}
                 <div className={`${isVisible ? 'animate-fly-in-left animate-delay-200' : 'opacity-0'}`}>
                   <div className="relative aspect-[3/4] max-w-sm mx-auto bg-gray-200 rounded-lg overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+                      {/* <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2"/>
                         <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2"/>
                         <polyline points="21,15 16,10 5,21" strokeWidth="2"/>
-                      </svg>
+                      </svg> */}
+                      <p className="font-sans text-gray-700">Select a photo from your gallery to get started.</p>
+                      <p className="font-sans text-gray-500 text-sm">(Then tap "Go!")</p>
                     </div>
                   </div>
                 </div>
@@ -259,7 +276,7 @@ export default function OutfitAnalyzer() {
         <div className={`text-center`}>
 
           <p className="text-sm font-mono font-light text-gray-700 max-w-2xl mx-auto">
-            (Above samples are generated by our production deployment; True to our current capabilities).
+            (Above samples generated in-app and representatively capture our performance).
           </p>
         </div>
       </div>

@@ -106,16 +106,16 @@ export default function OutfitAnalyzer() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_auto_1fr] gap-30 items-start mb-16">
+        <div className="grid lg:grid-cols-[1fr_5rem_1fr] gap-8 md:gap-12 xl:gap-16 items-start mb-16">
           {/* Left Side - Gallery */}
-          <div className={`space-y-6 ${isVisible ? 'animate-fly-in-left' : 'opacity-0'}`}>
+          <div className={`space-y-6 lg:justify-self-end ${isVisible ? 'animate-fly-in-left' : 'opacity-0'}`}>
             {/* Your Gallery Title */}
             <div className="text-center">
               <h3 className="text-2xl md:text-4xl font-display text-gray-800 mb-6">From your gallery...</h3>
             </div>
 
             {/* Gallery Grid */}
-            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto lg:mx-0">
               {outfitExamples.map((outfit, index) => (
                 <button
                   key={outfit.id}
@@ -164,7 +164,7 @@ export default function OutfitAnalyzer() {
           </div>
 
           {/* Right Side - Results */}
-          <div className="space-y-6 min-h-[1100px]">
+          <div className="space-y-6 min-h-[1100px] lg:justify-self-start">
             {/* Analyzed Title */}
             <div className={`text-center ${isVisible ? 'animate-fly-in-left' : 'opacity-0'}`}>
               <h3 className="text-2xl md:text-4xl font-display text-gray-800 mb-6">... to organized outfits</h3>
@@ -173,7 +173,7 @@ export default function OutfitAnalyzer() {
               <div className="space-y-6">
                 {/* Placeholder Main Photo */}
                 <div className={`${isVisible ? 'animate-fly-in-left animate-delay-200' : 'opacity-0'}`}>
-                  <div className="relative aspect-[3/4] max-w-sm mx-auto bg-gray-200 rounded-lg overflow-hidden">
+                  <div className="relative aspect-[3/4] max-w-sm mx-auto lg:mx-0 bg-gray-200 rounded-lg overflow-hidden">
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
                       {/* <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2"/>
@@ -229,7 +229,7 @@ export default function OutfitAnalyzer() {
               <div className="space-y-6">
                 {/* Main Outfit Photo */}
                 <div className={`${isVisible ? 'animate-fly-in-left' : 'opacity-0'}`}>
-                  <div className="relative aspect-[3/4] max-w-sm mx-auto bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="relative aspect-[3/4] max-w-sm mx-auto lg:mx-0 bg-gray-100 rounded-lg overflow-hidden">
                     <Image
                       src={analyzedOutfit.outfitImage}
                       alt={analyzedOutfit.name}

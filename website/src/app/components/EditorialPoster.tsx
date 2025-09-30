@@ -3,7 +3,7 @@ export default function EditorialPoster() {
       <section
         className="
           mx-auto max-w-sm w-full aspect-[4/6]
-          relative p-6
+          relative px-6
           [container-type:inline-size]  /* enables cqw units inside */
           bg-transparent text-neutral-900
         "
@@ -18,37 +18,37 @@ export default function EditorialPoster() {
           </span>
 
           {/* Line 2 */}
-          <span className="col-start-1 col-end-101 row-start-48 self-end
+          <span className="col-start-1 col-end-101 row-start-45 self-end
                            font-waitlist font-medium leading-[0.95] tracking-[-0.01em]
                            text-[21.7cqw] text-justify">
             outfit pictures
           </span>
   
           {/* Line 3 */}
-          <span className="col-start-1 col-end-101 row-start-67 self-end
+          <span className="col-start-1 col-end-101 row-start-64 self-end
                            font-waitlist leading-[0.95]
                            text-[18.4cqw] text-justify">
             then we&apos;ve built
           </span>
 
           {/* Line 4 */}
-          <span className="col-start-1 col-end-101 row-start-82 self-end
+          <span className="col-start-1 col-end-101 row-start-79 self-end
                            font-waitlist leading-[0.95]
                            text-[13.7cqw] text-justify">
             just the thing for you.
           </span>
   
           {/* Line 5 */}
-          <span className="col-start-1 col-end-101 row-start-100 self-end
+          <span className="col-start-1 col-end-101 row-start-95 self-end
                            font-sans leading-[0.95]
-                           text-lg">
+                           text-sm md:text-lg">
             It&apos;s simple.
           </span>
   
           {/* Line 6 */}
-          <span className="col-start-1 col-end-101 self-start row-end-105
+          <span className="col-start-1 col-end-101 self-start row-end-103
                            font-sans leading-[1.3]
-                           text-lg">
+                           text-sm md:text-lg">
             We organize your outfit pics the same way Photos organizes faces, helping you build a library of the clothes you own. No manual tagging, no extra steps.
           </span>
 

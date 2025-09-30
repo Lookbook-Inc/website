@@ -102,7 +102,7 @@ export default function OutfitAnalyzer() {
             Aesthetic Intelligence.
           </h2>
           <p className="text-lg md:text-lg font-sans text-gray-700 max-w-2xl mx-auto">
-            No need to dig up and photograph each individual item you own - we'll take care it for you. See it in action:
+            No need to dig up and photograph each individual item you own - we&apos;ll take care it for you. See it in action:
           </p>
         </div>
 
@@ -181,7 +181,7 @@ export default function OutfitAnalyzer() {
                         <polyline points="21,15 16,10 5,21" strokeWidth="2"/>
                       </svg> */}
                       <p className="font-sans text-gray-700">Select a photo from your gallery to get started.</p>
-                      <p className="font-sans text-gray-500 text-sm">(Then tap "Go!")</p>
+                      <p className="font-sans text-gray-500 text-sm">(Then tap &quot;Go!&quot;)</p>
                     </div>
                   </div>
                 </div>

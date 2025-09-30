@@ -40,10 +40,10 @@ export default function Home() {
 
 
       {/* Content Section */}
-      <div className="py-16">
+      <div className="py-12 md:py-16">
         <div className="max-w-6xl mx-auto px-4 grid lg:grid-cols-2 items-center gap-12">
           {/* Left: Editorial Poster with padded column to avoid viewport edges */}
-          <div className="px-8 md:px-4">
+          <div className="px-8">
             <EditorialPoster />
           </div>
 

@@ -1,0 +1,450 @@
+'use client';
+
+import { useState, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import Image from 'next/image';
+
+type Step = 'landing' | 'verify' | 'name' | 'city' | 'upload' | 'processing' | 'done';
+
+export default function WrappedWizard() {
+  const supabase = createClient();
+  
+  // Step management
+  const [step, setStep] = useState<Step>('landing');
+  
+  // Form data
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [name, setName] = useState('');
+  const [city, setCity] = useState('');
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
+  
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- Auth handlers ---
+  const handleSendOTP = async () => {
+    if (!email) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true },
+      });
+      if (error) throw error;
+      setStep('verify');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to send verification code';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otp.length !== 6) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'email',
+      });
+      if (error) throw error;
+      setStep('name');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Invalid verification code';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Photo handlers ---
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    // Limit to 20 photos total
+    const newPhotos = [...photos, ...files].slice(0, 20);
+    setPhotos(newPhotos);
+    
+    // Generate preview URLs
+    const newUrls = newPhotos.map(file => URL.createObjectURL(file));
+    // Cleanup old URLs
+    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    setPhotoPreviewUrls(newUrls);
+  };
+
+  const removePhoto = (index: number) => {
+    URL.revokeObjectURL(photoPreviewUrls[index]);
+    setPhotos(photos.filter((_, i) => i !== index));
+    setPhotoPreviewUrls(photoPreviewUrls.filter((_, i) => i !== index));
+  };
+
+  const handleUpload = async () => {
+    if (photos.length < 1) return;
+    setLoading(true);
+    setError(null);
+    setStep('processing');
+    
+    // TODO: Implement actual upload to Supabase Storage
+    // For now, simulate processing
+    setTimeout(() => {
+      setStep('done');
+      setLoading(false);
+    }, 3000);
+  };
+
+  // --- Render helpers ---
+  const renderLanding = () => (
+    <div className="flex flex-col min-h-screen p-4">
+      {/* Media placeholder */}
+      <div className="flex-1 bg-[#F7EFE5] rounded-xl mb-8 relative overflow-hidden min-h-[400px]">
+        {/* Placeholder for video/image */}
+      </div>
+      
+      <div className="px-2 pb-6">
+        <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-8">
+          Your 2025 Styles,<br />Wrapped.
+        </h1>
+        
+        <div className="space-y-4 mb-16">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="What's your email?"
+            className="w-full bg-[#F7EFE5] rounded-lg px-4 py-3 text-gray-900 text-md placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 transition-all"
+            disabled={loading}
+          />
+          
+          {error && (
+            <p className="text-red-600 text-sm px-1">{error}</p>
+          )}
+        </div>
+        
+        <div className="flex items-end justify-between font-display">
+          <div className="flex items-center gap-4">
+            <span className="text-gray-400 text-xl mb-1">Lookbook</span>
+          </div>
+          
+          <button
+            onClick={handleSendOTP}
+            disabled={loading || !email}
+            className="text-gray-900 text-xl disabled:opacity-40 transition-opacity mb-1"
+          >
+            {loading ? 'Sending...' : 'enter →'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderVerify = () => (
+    <div className="flex flex-col min-h-screen p-4">
+      <div className="flex-1 flex flex-col justify-center px-2">
+        <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
+          Check your email
+        </h1>
+        <p className="text-gray-500 text-md mb-8">
+          We sent a 6-digit code to<br />
+          <span className="text-gray-900 font-medium">{email}</span>
+        </p>
+        
+        <input
+          type="text"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          placeholder="000000"
+          maxLength={6}
+          className="w-full bg-[#F7EFE5] rounded-lg px-4 py-4 text-gray-900 text-3xl tracking-[0.3em] text-center placeholder:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900 transition-all font-mono"
+          disabled={loading}
+        />
+        
+        {error && (
+          <p className="text-red-600 text-sm mt-4">{error}</p>
+        )}
+      </div>
+      
+      <div className="px-2 pb-6 mt-8">
+        <div className="flex items-end justify-between font-display">
+          <button
+            onClick={() => { setStep('landing'); setOtp(''); setError(null); }}
+            className="text-gray-400 text-xl mb-1 disabled:opacity-40 transition-opacity"
+            disabled={loading}
+          >
+            ← back
+          </button>
+          
+          <button
+            onClick={handleVerifyOTP}
+            disabled={loading || otp.length !== 6}
+            className="text-gray-900 text-xl disabled:opacity-40 transition-opacity mb-1"
+          >
+            {loading ? 'Verifying...' : 'continue →'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderName = () => (
+    <div className="flex flex-col min-h-screen p-4">
+      <div className="flex-1 flex flex-col justify-center px-2">
+        <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
+          Welcome to Lookbook Wrapped.
+        </h1>
+        <p className="text-gray-500 text-md mb-8">
+          What should we call you?
+        </p>
+        
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Name"
+          className="w-full bg-[#F7EFE5] rounded-lg px-4 py-3 text-gray-900 text-md placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 transition-all"
+        />
+      </div>
+      
+      <div className="px-2 pb-6 mt-8">
+        <div className="flex items-end justify-between font-display">
+          <button
+            onClick={() => setStep('verify')}
+            className="text-gray-400 text-xl mb-1 disabled:opacity-40 transition-opacity"
+          >
+            ← back
+          </button>
+          
+          <button
+            onClick={() => setStep('city')}
+            disabled={!name.trim()}
+            className="text-gray-900 text-xl disabled:opacity-40 transition-opacity mb-1"
+          >
+            continue →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderCity = () => (
+    <div className="flex flex-col min-h-screen p-4">
+      <div className="flex-1 flex flex-col justify-center px-2">
+        <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
+          Which city are you based in?
+        </h1>
+        <p className="text-gray-500 text-md mb-4">
+          We will only use this to help personalize your Lookbook wrapped for 2025 :)
+        </p>
+        
+        <input
+          type="text"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          placeholder="City"
+          className="w-full bg-[#F7EFE5] rounded-lg px-4 py-3 text-gray-900 text-md placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 transition-all"
+        />
+      </div>
+      
+      <div className="px-2 pb-6 mt-8">
+        <div className="flex items-end justify-between font-display">
+          <button
+            onClick={() => setStep('name')}
+            className="text-gray-400 text-xl mb-1 disabled:opacity-40 transition-opacity"
+          >
+            ← back
+          </button>
+          
+          <button
+            onClick={() => setStep('upload')}
+            disabled={!city.trim()}
+            className="text-gray-900 text-xl disabled:opacity-40 transition-opacity mb-1"
+          >
+            continue →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderUpload = () => (
+    <div className="flex flex-col min-h-screen px-6 pt-24 pb-6">
+      <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
+        Upload pics of you from this year!
+      </h1>
+      <p className="text-gray-500 text-md mb-8">
+        We want to see your favorite looks from this year. Pick <strong>between 10 and 30</strong> pictures for us to analyze.
+      </p>
+      
+      {/* Tips */}
+      <div className="space-y-3 mb-8">
+        <div className="flex gap-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
+          <div>
+            <p className="font-display text-gray-900 text-md">Prefer pictures that get your full outfit.</p>
+            <p className="text-gray-500 text-sm">The more of your outfit we can see, the better - but we'll manage with partials, too.</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
+          <div>
+            <p className="font-display text-gray-900 text-md">Prefer solo pictures.</p>
+            <p className="text-gray-500 text-sm">If you want to use a group photo, we'll let you crop out other people once you've selected your pictures.</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Upload area */}
+      <div 
+        onClick={() => fileInputRef.current?.click()}
+        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors mb-4"
+      >
+        <div className="text-gray-400 mb-2">
+          <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <p className="text-gray-500 text-sm">Choose Outfit Pictures</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+      </div>
+      
+      {/* Photo preview grid */}
+      {photos.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {photoPreviewUrls.map((url, index) => (
+            <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+              <Image
+                src={url}
+                alt={`Outfit ${index + 1}`}
+                fill
+                className="object-cover"
+              />
+              <button
+                onClick={(e) => { e.stopPropagation(); removePhoto(index); }}
+                className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white text-xs"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Upload button */}
+      <div className="mt-auto pt-6">
+        <button
+          onClick={handleUpload}
+          disabled={photos.length < 1}
+          className={`w-full py-4 rounded-lg font-medium transition-colors ${
+            photos.length >= 1
+              ? 'bg-gray-900 text-white'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          Upload fits
+        </button>
+        <p className="text-center text-gray-400 text-xs mt-2">
+          {photos.length} of 10-50 photos selected
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderProcessing = () => (
+    <div className="flex flex-col min-h-screen px-6 pt-12 pb-12">
+      {/* User card with pulse */}
+      <div className="bg-white rounded-2xl shadow-sm p-4 mb-8 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
+          <span className="text-green-600 font-semibold text-lg">{name.charAt(0).toUpperCase()}</span>
+        </div>
+        <div>
+          <p className="font-medium text-gray-900">{name}</p>
+          <p className="text-gray-500 text-sm">Processing your style...</p>
+        </div>
+      </div>
+      
+      <h1 className="font-display text-2xl text-gray-900 leading-tight mb-6">
+        Analyzing... we will send you an email when we're done
+      </h1>
+      
+      {/* Checklist */}
+      <div className="space-y-3">
+        {[
+          'Analyzing your outfits',
+          'Sampling your colour palettes',
+          'Finding your celebrity look-alike',
+        ].map((item, index) => (
+          <div key={index} className="flex items-center gap-3">
+            <div className={`w-4 h-4 rounded-full border-2 ${
+              index === 0 ? 'border-gray-400 bg-gray-100 animate-pulse' : 'border-gray-200'
+            }`} />
+            <span className="text-gray-600 text-sm">{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderDone = () => (
+    <div className="flex flex-col min-h-screen">
+      {/* Blue gradient header */}
+      <div className="h-48 bg-gradient-to-b from-blue-400 to-blue-600 relative overflow-hidden flex items-end p-6">
+        <div className="text-white">
+          <p className="text-xs opacity-70 mb-1">(not a screen)</p>
+          <h2 className="font-display text-xl leading-tight">
+            User receives an email with a unique link.
+          </h2>
+          <p className="text-sm opacity-80 mt-2">Click to open next screen</p>
+        </div>
+      </div>
+      
+      <div className="flex-1 px-6 pt-8 pb-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        
+        <h1 className="font-display text-2xl text-gray-900 mb-4">
+          You're all set, {name}!
+        </h1>
+        <p className="text-gray-500">
+          We'll send your Lookbook Wrapped to<br />
+          <span className="text-gray-900 font-medium">{email}</span>
+        </p>
+      </div>
+    </div>
+  );
+
+  // --- Main render ---
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: '#FFFAF4' }}>
+      <div className="max-w-sm mx-auto bg-[#FFFAF4] min-h-screen">
+        {step === 'landing' && renderLanding()}
+        {step === 'verify' && renderVerify()}
+        {step === 'name' && renderName()}
+        {step === 'city' && renderCity()}
+        {step === 'upload' && renderUpload()}
+        {step === 'processing' && renderProcessing()}
+        {step === 'done' && renderDone()}
+      </div>
+    </div>
+  );
+}

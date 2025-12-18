@@ -1,10 +1,10 @@
 import Image from "next/image";
-import appIcon from "./icon.png";
-import PhoneMockupGroup from "./components/PhoneMockupGroup";
-import OutfitAnalyzer from "./components/OutfitAnalyzer";
-import WaitlistForm from "./components/WaitlistForm";
-// import EditorialBlock from "./components/EditorialBlock";
-import EditorialPoster from "./components/EditorialPoster";
+import appIcon from "../icon.png";
+import PhoneMockupGroup from "../components/PhoneMockupGroup";
+import OutfitAnalyzer from "../components/OutfitAnalyzer";
+import WaitlistForm from "../components/WaitlistForm";
+// import EditorialBlock from "../components/EditorialBlock";
+import EditorialPoster from "../components/EditorialPoster";
 
 export default function Home() {
   return (

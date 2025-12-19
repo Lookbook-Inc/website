@@ -2,6 +2,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.87.1",
+    "framer-motion": "^12.23.26",
     "resend": "^6.6.0"
   }
 }

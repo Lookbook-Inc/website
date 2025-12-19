@@ -112,7 +112,7 @@ export default function WrappedWizard() {
         {/* Placeholder for video/image */}
       </div>
       
-      <div className="px-2 pb-6">
+      <div className="px-6 pb-6">
         <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-8">
           Your 2025 Styles,<br />Wrapped.
         </h1>
@@ -151,7 +151,7 @@ export default function WrappedWizard() {
 
   const renderVerify = () => (
     <div className="flex flex-col min-h-screen p-4">
-      <div className="flex-1 flex flex-col justify-center px-2">
+      <div className="flex-1 flex flex-col justify-center px-6">
         <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
           Check your email
         </h1>
@@ -175,7 +175,7 @@ export default function WrappedWizard() {
         )}
       </div>
       
-      <div className="px-2 pb-6 mt-8">
+      <div className="px-6 pb-6 mt-8">
         <div className="flex items-end justify-between font-display">
           <button
             onClick={() => { setStep('landing'); setOtp(''); setError(null); }}
@@ -199,7 +199,7 @@ export default function WrappedWizard() {
 
   const renderName = () => (
     <div className="flex flex-col min-h-screen p-4">
-      <div className="flex-1 flex flex-col justify-center px-2">
+      <div className="flex-1 flex flex-col justify-center px-6">
         <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
           Welcome to Lookbook Wrapped.
         </h1>
@@ -216,7 +216,7 @@ export default function WrappedWizard() {
         />
       </div>
       
-      <div className="px-2 pb-6 mt-8">
+      <div className="px-6 pb-6 mt-8">
         <div className="flex items-end justify-between font-display">
           <button
             onClick={() => setStep('verify')}
@@ -239,7 +239,7 @@ export default function WrappedWizard() {
 
   const renderCity = () => (
     <div className="flex flex-col min-h-screen p-4">
-      <div className="flex-1 flex flex-col justify-center px-2">
+      <div className="flex-1 flex flex-col justify-center px-6">
         <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
           Which city are you based in?
         </h1>
@@ -256,7 +256,7 @@ export default function WrappedWizard() {
         />
       </div>
       
-      <div className="px-2 pb-6 mt-8">
+      <div className="px-6 pb-6 mt-8">
         <div className="flex items-end justify-between font-display">
           <button
             onClick={() => setStep('name')}
@@ -278,7 +278,7 @@ export default function WrappedWizard() {
   );
 
   const renderUpload = () => (
-    <div className="flex flex-col min-h-screen px-6 pt-24 pb-6">
+    <div className="flex flex-col min-h-screen px-10 pt-24 pb-6">
       <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
         Upload pics of you from this year!
       </h1>
@@ -368,7 +368,7 @@ export default function WrappedWizard() {
   );
 
   const renderProcessing = () => (
-    <div className="flex flex-col min-h-screen px-6 pt-12 pb-12">
+    <div className="flex flex-col min-h-screen px-10 pt-12 pb-12">
       {/* User card with pulse */}
       <div className="bg-white rounded-2xl shadow-sm p-4 mb-8 flex items-center gap-4">
         <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
@@ -415,7 +415,7 @@ export default function WrappedWizard() {
         </div>
       </div>
       
-      <div className="flex-1 px-6 pt-8 pb-12 text-center">
+      <div className="flex-1 px-10 pt-8 pb-12 text-center">
         <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
           <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -436,7 +436,7 @@ export default function WrappedWizard() {
   // --- Main render ---
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FFFAF4' }}>
-      <div className="max-w-sm mx-auto bg-[#FFFAF4] min-h-screen">
+      <div className="w-full max-w-md mx-auto bg-[#FFFAF4] min-h-screen">
         {step === 'landing' && renderLanding()}
         {step === 'verify' && renderVerify()}
         {step === 'name' && renderName()}

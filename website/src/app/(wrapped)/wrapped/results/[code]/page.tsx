@@ -186,6 +186,23 @@ export default function ResultsPage({ params }: Props) {
 
   const TOTAL_FLIP_PAGES = 10;
 
+  // Helper function to preload images
+  const preloadImages = (imagePaths: (string | null | undefined)[]): Promise<void> => {
+    // Filter out null/undefined paths
+    const validPaths = imagePaths.filter((path): path is string => !!path);
+
+    const promises = validPaths.map((src) => {
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve(); // Resolve even on error to not block
+        img.src = src;
+      });
+    });
+
+    return Promise.all(promises).then(() => undefined);
+  };
+
   // Fetch insights on mount
   useEffect(() => {
     async function fetchInsights() {
@@ -212,6 +229,27 @@ export default function ResultsPage({ params }: Props) {
 
         // Transform backend data to frontend format
         const transformed = transformWrappedInsights(backendData);
+
+        // Extract all image URLs for preloading
+        const imageUrls: (string | null | undefined)[] = [
+          // Top outfits (flip sequence)
+          ...transformed.top_outfits.map(o => o.path),
+          // Most worn item
+          transformed.most_worn_item.path,
+          // Best pairings
+          ...transformed.best_pairings.map(p => p.garment_path),
+          // Unworn pairings
+          ...transformed.unworn_pairings.map(p => p.garment_path),
+          // Celebrity photo
+          transformed.top_celeb_match.celeb_photo_url,
+          // City photo
+          transformed.city_photo_url,
+        ];
+
+        // Preload all images before showing results
+        await preloadImages(imageUrls);
+
+        // Set results and hide loading
         setResults(transformed);
         setLoading(false);
       } catch (err) {
@@ -1357,7 +1395,7 @@ export default function ResultsPage({ params }: Props) {
       <div className="flex flex-col h-[100dvh] items-center justify-center px-10 bg-[#FFFAF4]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin"></div>
-          <p className="text-gray-600 text-sm">Loading your insights...</p>
+          <p className="text-gray-600 text-sm">Loading your Wrapped...</p>
         </div>
       </div>
     );

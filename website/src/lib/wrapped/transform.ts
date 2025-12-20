@@ -22,9 +22,11 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
   return {
     // User info
     userName: backend.user_first_name || 'User',
+    userCity: backend.user_city || null,
 
     // City vibe
     city_vibe: backend.city_vibe,
+    city_photo_url: backend.city_photo_url || null,
 
     // Styles
     primary_style: backend.primary_style,
@@ -58,6 +60,7 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
     // Celebrity match
     top_celeb_match: {
       celeb_name: backend.top_celeb_match.celeb_name,
+      celeb_photo_url: backend.top_celeb_match.celeb_photo_url,
       description: backend.top_celeb_match.description || '',
       similarity_score: backend.top_celeb_match.similarity_score,
       categories: backend.top_celeb_match.categories || [],

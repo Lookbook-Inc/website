@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { v4 as uuidv4 } from 'uuid';
+import { uploadPhoto, getAuthToken } from '@/lib/api/wrapped';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type Step = 'landing' | 'verify' | 'name' | 'city' | 'upload' | 'processing' | 'done';
 
 export default function WrappedWizard() {
   const supabase = createClient();
-  
+
   // Step management
   const [step, setStep] = useState<Step>('landing');
-  
+
   // Form data
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -19,12 +22,66 @@ export default function WrappedWizard() {
   const [city, setCity] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
-  
+
+  // Upload state
+  const [batchId, setBatchId] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadTotal, setUploadTotal] = useState(0);
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [checklistStartIndex, setChecklistStartIndex] = useState(0);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Processing checklist items
+  const checklistItems = [
+    'Analyzing your outfits',
+    'Extracting clothing items',
+    'Sampling your colour palettes',
+    'Matching your style archetypes',
+    'Determining your city match',
+    'Referencing style database',
+    'Evaluating your clothing preferences',
+    'Inspecting your unique aura',
+    'Investigating worldly styles and colors'
+  ];
+
+  // Dev mode: Check URL params for direct step access (runs after hydration)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const devStep = params.get('step') as Step | null;
+    if (devStep) {
+      setStep(devStep);
+      if (devStep === 'processing' && !name) {
+        setName('Dev User');
+      }
+    }
+  }, []); // Run once on mount
+
+  // Generate batch ID when entering upload step
+  useEffect(() => {
+    if (step === 'upload' && !batchId) {
+      const newBatchId = uuidv4();
+      setBatchId(newBatchId);
+      console.log('[WRAPPED] Generated batch ID:', newBatchId);
+    }
+  }, [step, batchId]);
+
+  // Cycle through checklist items on processing screen (slide up animation)
+  useEffect(() => {
+    if (step === 'processing') {
+      const interval = setInterval(() => {
+        setChecklistStartIndex((prev) => (prev + 1) % checklistItems.length);
+      }, 3000); // Slide up every 3 seconds
+
+      return () => clearInterval(interval);
+    } else {
+      // Reset when leaving processing screen
+      setChecklistStartIndex(0);
+    }
+  }, [step, checklistItems.length]);
 
   // --- Auth handlers ---
   const handleSendOTP = async () => {
@@ -68,6 +125,38 @@ export default function WrappedWizard() {
     }
   };
 
+  // --- Profile handlers ---
+  const handleSaveProfile = async () => {
+    if (!name.trim() || !city.trim()) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      // Update profile with name and city
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: name.trim(),
+          city: city.trim(),
+        })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
+      // Move to upload step
+      setStep('upload');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save profile';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- Photo handlers ---
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -91,17 +180,64 @@ export default function WrappedWizard() {
   };
 
   const handleUpload = async () => {
-    if (photos.length < 1) return;
+    if (photos.length < 2) {
+      setError('Please upload at least 10 photos');
+      return;
+    }
+
+    if (!batchId) {
+      setError('Batch ID not generated. Please try again.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    setStep('processing');
-    
-    // TODO: Implement actual upload to Supabase Storage
-    // For now, simulate processing
-    setTimeout(() => {
-      setStep('done');
+    setUploadTotal(photos.length);
+    setUploadProgress(0);
+
+    try {
+      // Get auth token
+      const token = await getAuthToken(supabase);
+      if (!token) {
+        throw new Error('Not authenticated. Please log in again.');
+      }
+
+      console.log(`[WRAPPED] Starting upload: ${photos.length} photos, batch_id: ${batchId}`);
+
+      // Upload photos one by one
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        console.log(`[WRAPPED] Uploading photo ${i + 1}/${photos.length}`);
+
+        try {
+          await uploadPhoto(
+            photo,
+            null, // cropped_file (we don't have cropping yet)
+            token,
+            batchId,
+            photos.length
+          );
+
+          // Update progress
+          setUploadProgress(i + 1);
+          console.log(`[WRAPPED] Photo ${i + 1}/${photos.length} uploaded successfully`);
+        } catch (uploadError) {
+          console.error(`[WRAPPED] Failed to upload photo ${i + 1}:`, uploadError);
+          throw new Error(`Failed to upload photo ${i + 1}. Please try again.`);
+        }
+      }
+
+      console.log('[WRAPPED] All photos uploaded successfully!');
+
+      // Move to processing screen
+      setStep('processing');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Upload failed. Please try again.';
+      setError(message);
+      console.error('[WRAPPED] Upload error:', err);
+    } finally {
       setLoading(false);
-    }, 3000);
+    }
   };
 
   // --- Render helpers ---
@@ -266,11 +402,11 @@ export default function WrappedWizard() {
           </button>
           
           <button
-            onClick={() => setStep('upload')}
-            disabled={!city.trim()}
+            onClick={handleSaveProfile}
+            disabled={!city.trim() || loading}
             className="text-gray-900 text-xl disabled:opacity-40 transition-opacity mb-1"
           >
-            continue →
+            {loading ? 'Saving...' : 'continue →'}
           </button>
         </div>
       </div>
@@ -349,58 +485,92 @@ export default function WrappedWizard() {
       
       {/* Upload button */}
       <div className="mt-auto pt-6">
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
         <button
           onClick={handleUpload}
-          disabled={photos.length < 1}
+          disabled={photos.length < 2 || loading}
           className={`w-full py-4 rounded-lg font-medium transition-colors ${
-            photos.length >= 1
+            photos.length >= 2 && !loading
               ? 'bg-gray-900 text-white'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}
         >
-          Upload fits
+          {loading ? 'Uploading...' : 'Upload fits'}
         </button>
         <p className="text-center text-gray-400 text-xs mt-2">
-          {photos.length} of 10-50 photos selected
+          {photos.length} of 10-30 photos selected
         </p>
       </div>
     </div>
   );
 
-  const renderProcessing = () => (
-    <div className="flex flex-col min-h-screen px-10 pt-12 pb-12">
-      {/* User card with pulse */}
-      <div className="bg-white rounded-2xl shadow-sm p-4 mb-8 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
-          <span className="text-green-600 font-semibold text-lg">{name.charAt(0).toUpperCase()}</span>
-        </div>
-        <div>
-          <p className="font-medium text-gray-900">{name}</p>
-          <p className="text-gray-500 text-sm">Processing your style...</p>
-        </div>
-      </div>
-      
-      <h1 className="font-display text-2xl text-gray-900 leading-tight mb-6">
-        Analyzing... we will send you an email when we're done
-      </h1>
-      
-      {/* Checklist */}
-      <div className="space-y-3">
-        {[
-          'Analyzing your outfits',
-          'Sampling your colour palettes',
-          'Finding your celebrity look-alike',
-        ].map((item, index) => (
-          <div key={index} className="flex items-center gap-3">
-            <div className={`w-4 h-4 rounded-full border-2 ${
-              index === 0 ? 'border-gray-400 bg-gray-100 animate-pulse' : 'border-gray-200'
-            }`} />
-            <span className="text-gray-600 text-sm">{item}</span>
+  const renderProcessing = () => {
+    // Get the 3 visible items (wrapping around the array)
+    const visibleItems = [
+      checklistItems[checklistStartIndex % checklistItems.length],
+      checklistItems[(checklistStartIndex + 1) % checklistItems.length],
+      checklistItems[(checklistStartIndex + 2) % checklistItems.length],
+    ];
+
+    return (
+      <div className="flex flex-col min-h-screen px-10 pt-12 pb-12">
+        {/* User card with pulse */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 mb-8 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
+            <span className="text-green-600 font-semibold text-lg">{name.charAt(0).toUpperCase()}</span>
           </div>
-        ))}
+          <div>
+            <p className="font-medium text-gray-900">{name}</p>
+            <p className="text-gray-500 text-sm">Processing your style...</p>
+          </div>
+        </div>
+
+        <h1 className="font-display text-2xl text-gray-900 leading-tight mb-6">
+          Analyzing... we will send you an email when we're done
+        </h1>
+
+        {/* Checklist - Animated slide-up carousel */}
+        <div className="relative h-32 overflow-hidden">
+          <AnimatePresence initial={false}>
+            {visibleItems.map((item, index) => (
+              <motion.div
+                key={item}
+                layout
+                initial={{ y: 120, opacity: 0 }}
+                animate={{
+                  y: index * 40,
+                  opacity: index === 0 ? 1 : index === 1 ? 0.6 : 0.3,
+                }}
+                exit={{ y: -40, opacity: 0 }}
+                transition={{
+                  duration: 0.5,
+                  ease: "easeOut",
+                  layout: { duration: 0.5 }
+                }}
+                className="absolute w-full flex items-center gap-3"
+              >
+                <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${
+                  index === 0
+                    ? 'border-gray-400 bg-gray-100 animate-pulse'
+                    : 'border-gray-200'
+                }`} />
+                <span className={`text-sm transition-all duration-300 ${
+                  index === 0 ? 'text-gray-900 font-semibold' : 'text-gray-500'
+                }`}>
+                  {item}
+                </span>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderDone = () => (
     <div className="flex flex-col min-h-screen">

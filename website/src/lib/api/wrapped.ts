@@ -107,8 +107,6 @@ export async function getClothingItems(authToken: string): Promise<any> {
 
 /**
  * Get wrapped insights for the authenticated user
- * NOTE: This endpoint doesn't exist yet on the backend!
- * This is a placeholder for future implementation.
  *
  * @param authToken - Supabase JWT token
  */
@@ -118,6 +116,25 @@ export async function getWrappedInsights(authToken: string): Promise<any> {
     headers: {
       'Authorization': `Bearer ${authToken}`,
     },
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to fetch insights' }))
+    throw new Error(error.detail || 'Failed to fetch insights')
+  }
+
+  return response.json()
+}
+
+/**
+ * Get wrapped insights by shareable code (public access, no auth required)
+ * This is used when users share their results via the unique URL.
+ *
+ * @param shareCode - 6-character share code (e.g., "VTKZEY")
+ */
+export async function getInsightsByShareCode(shareCode: string): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/wrapped/insights/code/${shareCode.toUpperCase()}`, {
+    method: 'GET',
   })
 
   if (!response.ok) {

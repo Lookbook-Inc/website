@@ -4,6 +4,8 @@ import { useState, useEffect, ReactNode, useRef } from 'react';
 import { FlipPage } from '@/app/components/FlipPage';
 import { useFlip } from '@/hooks/useFlip';
 import html2canvas from 'html2canvas';
+import { getInsightsByShareCode } from '@/lib/api/wrapped';
+import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
 
 // --- Types ---
 
@@ -34,6 +36,7 @@ interface ColorResult {
 
 interface CelebMatch {
   celeb_name: string;
+  celeb_photo_url?: string;
   description: string;
   similarity_score: number;
   categories: string[];
@@ -67,7 +70,9 @@ interface UnwornPairing {
 
 interface WrappedResults {
   userName: string;
+  userCity: string | null;
   city_vibe: string;
+  city_photo_url: string | null;
   primary_style: string;
   top_styles: StyleResult[];
   total_outfits_analyzed: number;
@@ -88,7 +93,9 @@ interface WrappedResults {
 // Mock data populated from the provided CSV values
 const mockResults: WrappedResults = {
   userName: 'Anirudh',
+  userCity: 'San Francisco',
   city_vibe: 'San Francisco',
+  city_photo_url: null,
   primary_style: 'minimalist',
   top_styles: [
     { style_name: 'minimalist', points: 9, appearances: 3 },
@@ -161,9 +168,17 @@ type Props = {
   params: Promise<{ code: string }>
 }
 
+// Helper function to format style names (remove underscores, capitalize)
+const formatStyleName = (style: string): string => {
+  return style
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 // Wrapper for perspective context
 const FlipContainer = ({ children }: { children: ReactNode }) => (
-  <div 
+  <div
     className="absolute inset-0 overflow-hidden"
     style={{ perspective: '2500px' }}
   >
@@ -173,10 +188,87 @@ const FlipContainer = ({ children }: { children: ReactNode }) => (
 
 export default function ResultsPage({ params }: Props) {
   const [step, setStep] = useState<Step>('welcome');
-  
-  // For now, use mock data
-  const results = mockResults;
+  const [results, setResults] = useState<WrappedResults>(mockResults); // Start with mock data to avoid null checks
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const TOTAL_FLIP_PAGES = 10;
+
+  // Helper function to preload images
+  const preloadImages = (imagePaths: (string | null | undefined)[]): Promise<void> => {
+    // Filter out null/undefined paths
+    const validPaths = imagePaths.filter((path): path is string => !!path);
+
+    const promises = validPaths.map((src) => {
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve(); // Resolve even on error to not block
+        img.src = src;
+      });
+    });
+
+    return Promise.all(promises).then(() => undefined);
+  };
+
+  // Fetch insights on mount
+  useEffect(() => {
+    async function fetchInsights() {
+      try {
+        setLoading(true);
+
+        // Get the share code from params
+        const resolvedParams = await params;
+        const code = resolvedParams.code;
+
+        // Fetch insights from backend
+        const backendData = await getInsightsByShareCode(code);
+
+        // Check status
+        if (!isInsightsCompleted(backendData)) {
+          if (isInsightsProcessing(backendData)) {
+            setError('Your insights are still being generated. Please check back in a few minutes!');
+          } else {
+            setError('Insights not found or failed to generate.');
+          }
+          setLoading(false);
+          return;
+        }
+
+        // Transform backend data to frontend format
+        const transformed = transformWrappedInsights(backendData);
+
+        // Extract all image URLs for preloading
+        const imageUrls: (string | null | undefined)[] = [
+          // Top outfits (flip sequence)
+          ...transformed.top_outfits.map(o => o.path),
+          // Most worn item
+          transformed.most_worn_item.path,
+          // Best pairings
+          ...transformed.best_pairings.map(p => p.garment_path),
+          // Unworn pairings
+          ...transformed.unworn_pairings.map(p => p.garment_path),
+          // Celebrity photo
+          transformed.top_celeb_match.celeb_photo_url,
+          // City photo
+          transformed.city_photo_url,
+        ];
+
+        // Preload all images before showing results
+        await preloadImages(imageUrls);
+
+        // Set results and hide loading
+        setResults(transformed);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch insights:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load insights');
+        setLoading(false);
+      }
+    }
+
+    fetchInsights();
+  }, [params]);
 
   // Individual flip states for single-page transitions
   const welcomeFlip = useFlip(() => setStep('intro'));
@@ -367,11 +459,11 @@ export default function ResultsPage({ params }: Props) {
         
         <div className="flex-1 flex flex-col">
           <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm relative shrink-0">
-            <div className="absolute inset-0 flex items-center justify-center border-2 border-dashed border-gray-200">
-               <span className="text-[10px] text-gray-400 text-center px-4 uppercase tracking-widest">
-                 {results.most_worn_item.name}
-               </span>
-            </div>
+            <img
+              src={results.most_worn_item.path}
+              alt={results.most_worn_item.name}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
           </div>
         </div>
       </div>
@@ -389,11 +481,11 @@ export default function ResultsPage({ params }: Props) {
         <div className="space-y-4 flex-1">
           {results.best_pairings.map((pairing, i) => (
             <div key={i} className="w-full aspect-video rounded-xl overflow-hidden bg-[#F1EDE7] shadow-sm relative shrink-0">
-              <div className="absolute inset-0 flex items-center justify-center border-2 border-dashed border-gray-200">
-                 <span className="text-[10px] text-gray-400 text-center px-4 uppercase tracking-widest">
-                   {pairing.garment_name}
-                 </span>
-              </div>
+              <img
+                src={pairing.garment_path}
+                alt={pairing.garment_name}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
             </div>
           ))}
         </div>
@@ -411,15 +503,33 @@ export default function ResultsPage({ params }: Props) {
         
         <div className="relative flex-1 min-h-[300px]">
           {/* Staggered layout as seen in image */}
-          <div className="absolute top-0 right-0 w-2/3 aspect-[3/4] rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800 flex items-center justify-center">
-             <span className="text-[10px] text-zinc-500 text-center px-4 uppercase tracking-widest">Recommendation 1</span>
-          </div>
-          <div className="absolute top-1/4 left-0 w-2/3 aspect-video rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800 flex items-center justify-center z-10 opacity-60">
-             <span className="text-[10px] text-zinc-500 text-center px-4 uppercase tracking-widest">Recommendation 2</span>
-          </div>
-          <div className="absolute bottom-0 right-4 w-3/4 aspect-video rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800 flex items-center justify-center opacity-40">
-             <span className="text-[10px] text-zinc-500 text-center px-4 uppercase tracking-widest">Recommendation 3</span>
-          </div>
+          {results.unworn_pairings[0] && (
+            <div className="absolute top-0 right-0 w-2/3 aspect-[3/4] rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800">
+              <img
+                src={results.unworn_pairings[0].garment_path}
+                alt={results.unworn_pairings[0].garment_name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          {results.unworn_pairings[1] && (
+            <div className="absolute top-1/4 left-0 w-2/3 aspect-video rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800 z-10 opacity-60">
+              <img
+                src={results.unworn_pairings[1].garment_path}
+                alt={results.unworn_pairings[1].garment_name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          {results.unworn_pairings[2] && (
+            <div className="absolute bottom-0 right-4 w-3/4 aspect-video rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800 opacity-40">
+              <img
+                src={results.unworn_pairings[2].garment_path}
+                alt={results.unworn_pairings[2].garment_name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
         </div>
       </div>
       
@@ -459,7 +569,7 @@ export default function ResultsPage({ params }: Props) {
               <div className="flex items-baseline justify-between border-b border-gray-200 pb-1">
                 <span className="text-sm text-gray-400 font-display">0{i + 1}</span>
                 <span className="text-2xl font-display uppercase tracking-tight text-gray-900">
-                  {style.style_name}
+                  {formatStyleName(style.style_name)}
                 </span>
               </div>
               <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-gray-400">
@@ -469,10 +579,10 @@ export default function ResultsPage({ params }: Props) {
             </div>
           ))}
         </div>
-        
+
         <div className="mt-12 p-6 bg-[#F1EDE7] rounded-2xl shrink-0">
           <p className="text-sm text-gray-600 leading-relaxed italic">
-            "Your style blends {results.top_styles[0].style_name} with {results.top_styles[1].style_name} touches, 
+            "Your style blends {formatStyleName(results.top_styles[0].style_name)} with {formatStyleName(results.top_styles[1].style_name)} touches,
             creating a look that's uniquely yours."
           </p>
         </div>
@@ -511,17 +621,17 @@ export default function ResultsPage({ params }: Props) {
     <div className="flex flex-col h-full items-center justify-center p-8">
       <div className="w-full aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 shadow-xl relative">
         {outfit ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#FFFAF4] border-2 border-dashed border-gray-200">
-             <span className="text-xs text-gray-400 text-center px-4">
-               {outfit.path}
-             </span>
-          </div>
+          <img
+            src={outfit.path}
+            alt={`Top outfit ${pageNum}`}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-[#FFFAF4] border-2 border-dashed border-gray-200">
-        <span className="font-display text-8xl text-gray-200 select-none">
-          {pageNum}
-        </span>
-      </div>
+            <span className="font-display text-8xl text-gray-200 select-none">
+              {pageNum}
+            </span>
+          </div>
         )}
       </div>
       <p className="mt-4 font-display text-gray-400">
@@ -543,23 +653,31 @@ export default function ResultsPage({ params }: Props) {
           {/* Top Left - Outfit 1 */}
           <div className="absolute top-0 left-0 w-[28%] aspect-[3/4] z-5">
             <div className="absolute inset-0 bg-gray-200/30 rounded-lg transform translate-x-2 translate-y-2"></div>
-            <div className="relative w-full h-full bg-[#D1D5DB] rounded-lg shadow-xl border border-white/20 overflow-hidden flex items-center justify-center">
-              <span className="text-[8px] text-black/40 uppercase tracking-tighter text-center px-2">
-                {outfit1?.path || 'Outfit 1'}
-              </span>
+            <div className="relative w-full h-full bg-[#D1D5DB] rounded-lg shadow-xl border border-white/20 overflow-hidden">
+              {outfit1 && (
+                <img
+                  src={outfit1.path}
+                  alt="Your outfit"
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
           </div>
 
           {/* Top Right - Clothing 1 with color accents */}
           <div className="absolute top-0 right-0 w-[30%] aspect-square z-5">
-            <div className="absolute right-[-15%] top-[15%] w-[40%] h-[70%] rounded-lg opacity-60" 
+            <div className="absolute right-[-15%] top-[15%] w-[40%] h-[70%] rounded-lg opacity-60"
                  style={{ backgroundColor: results.top_colors[0]?.top_shade_hex || '#F3CD81' }}></div>
-            <div className="absolute left-[-15%] bottom-[-10%] w-[35%] h-[50%] rounded-lg opacity-70" 
+            <div className="absolute left-[-15%] bottom-[-10%] w-[35%] h-[50%] rounded-lg opacity-70"
                  style={{ backgroundColor: results.top_colors[1]?.top_shade_hex || '#4B5563' }}></div>
-            <div className="relative w-full h-full bg-white/80 rounded-lg shadow-2xl border border-white/30 overflow-hidden flex items-center justify-center p-2">
-              <span className="text-[7px] text-black/50 uppercase tracking-tighter text-center leading-tight">
-                {clothing1?.garment_name || 'Item 1'}
-              </span>
+            <div className="relative w-full h-full bg-white/80 rounded-lg shadow-2xl border border-white/30 overflow-hidden">
+              {clothing1 && (
+                <img
+                  src={clothing1.garment_path}
+                  alt={clothing1.garment_name}
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
           </div>
 
@@ -574,23 +692,31 @@ export default function ResultsPage({ params }: Props) {
 
           {/* Bottom Left - Clothing 2 with color accent */}
           <div className="absolute bottom-0 left-0 w-[35%] aspect-square z-5">
-            <div className="absolute right-[-10%] bottom-[-10%] w-[45%] h-[45%] rounded-lg opacity-75" 
+            <div className="absolute right-[-10%] bottom-[-10%] w-[45%] h-[45%] rounded-lg opacity-75"
                  style={{ backgroundColor: results.top_colors[2]?.top_shade_hex || '#6B7280' }}></div>
-            <div className="relative w-full h-full bg-white/80 rounded-lg shadow-xl border border-white/30 overflow-hidden flex items-center justify-center p-2">
-              <span className="text-[7px] text-black/50 uppercase tracking-tighter text-center leading-tight">
-                {clothing2?.garment_name || 'Item 2'}
-              </span>
+            <div className="relative w-full h-full bg-white/80 rounded-lg shadow-xl border border-white/30 overflow-hidden">
+              {clothing2 && (
+                <img
+                  src={clothing2.garment_path}
+                  alt={clothing2.garment_name}
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
           </div>
           
           {/* Bottom Right - Outfit 2 */}
           <div className="absolute bottom-0 right-0 w-[45%] aspect-[3/4] z-5">
-            <div className="absolute left-[-8%] top-[-5%] w-[30%] h-[25%] rounded-lg opacity-50" 
+            <div className="absolute left-[-8%] top-[-5%] w-[30%] h-[25%] rounded-lg opacity-50"
                  style={{ backgroundColor: results.top_colors[3]?.top_shade_hex || '#D1D5DB' }}></div>
-            <div className="relative w-full h-full bg-[#E5E7EB] rounded-lg shadow-2xl border border-white/20 overflow-hidden flex items-center justify-center">
-              <span className="text-[8px] text-black/40 uppercase tracking-tighter text-center px-2">
-                {outfit2?.path || 'Outfit 2'}
-              </span>
+            <div className="relative w-full h-full bg-[#E5E7EB] rounded-lg shadow-2xl border border-white/20 overflow-hidden">
+              {outfit2 && (
+                <img
+                  src={outfit2.path}
+                  alt="Your outfit"
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
           </div>
         </div>
@@ -735,8 +861,8 @@ export default function ResultsPage({ params }: Props) {
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
       <div className="flex-1 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <p className="text-gray-400 text-sm mb-2">Your Style Archetype</p>
-        <h1 className="font-display text-4xl text-gray-900 leading-tight mb-4 capitalize">
-          {results.primary_style}
+        <h1 className="font-display text-4xl text-gray-900 leading-tight mb-4">
+          {formatStyleName(results.primary_style)}
         </h1>
         
         <p className="text-gray-500 mb-8 leading-relaxed">
@@ -798,14 +924,22 @@ export default function ResultsPage({ params }: Props) {
           <span className="font-display text-2xl">...</span>
         </div>
         
-        {/* Celebrity Image Placeholder */}
+        {/* Celebrity Image */}
         <div className="flex-1 flex flex-col min-h-[350px]">
           <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-zinc-500 text-sm uppercase tracking-widest">
-                {results.top_celeb_match.celeb_name}
-              </span>
-            </div>
+            {results.top_celeb_match.celeb_photo_url ? (
+              <img
+                src={results.top_celeb_match.celeb_photo_url}
+                alt={results.top_celeb_match.celeb_name}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+                <span className="text-zinc-500 text-sm uppercase tracking-widest">
+                  {results.top_celeb_match.celeb_name}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -818,10 +952,10 @@ export default function ResultsPage({ params }: Props) {
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
       <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
         <h1 className="font-display text-3xl leading-[1.1] text-center">
-        You might be based in [city], but what do your outfits say?
+          You might be based in {results.userCity || 'your city'}, but what do your outfits say?
         </h1>
       </div>
-      
+
       <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
     </div>
   );
@@ -873,16 +1007,24 @@ export default function ResultsPage({ params }: Props) {
         <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
             We think you'll fit<br />
-            right in <span className="italic">[{city}]</span>.
+            right in <span className="italic">{city}</span>.
           </h1>
-          
-          {/* City Image Placeholder */}
+
+          {/* City Image */}
           <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative mb-8 shrink-0">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-zinc-500 text-sm uppercase tracking-widest">
-                {city}
-              </span>
-            </div>
+            {results.city_photo_url ? (
+              <img
+                src={results.city_photo_url}
+                alt={city}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-zinc-500 text-sm uppercase tracking-widest">
+                  {city}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Why this city? */}
@@ -1103,13 +1245,19 @@ export default function ResultsPage({ params }: Props) {
           
               {/* Main photo */}
               <div className="flex-1 bg-gray-100 rounded-2xl overflow-hidden mb-4 relative min-h-[280px]">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center px-4">
+                {results.top_outfits[0]?.path ? (
+                  <img
+                    src={results.top_outfits[0].path}
+                    alt="Your signature look"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-xs text-gray-400 uppercase tracking-wider">
-                      {results.top_outfits[0]?.path || 'Your signature look'}
+                      Your signature look
                     </span>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Info sections */}
@@ -1164,8 +1312,8 @@ export default function ResultsPage({ params }: Props) {
                         key={i}
                         className="bg-[#F5EFE7] px-3 py-2.5 rounded-lg text-right"
                       >
-                        <p className="text-sm font-display text-gray-900 capitalize leading-none">
-                          {style.style_name}
+                        <p className="text-sm font-display text-gray-900 leading-none">
+                          {formatStyleName(style.style_name)}
                         </p>
                       </div>
                     ))}
@@ -1249,6 +1397,37 @@ export default function ResultsPage({ params }: Props) {
     </FlipContainer>
   );
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col h-[100dvh] items-center justify-center px-10 bg-[#FFFAF4]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin"></div>
+          <p className="text-gray-600 text-sm">Loading your Wrapped...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex flex-col h-[100dvh] items-center justify-center px-10 bg-[#FFFAF4]">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="text-4xl">⚠️</div>
+          <h2 className="font-display text-xl text-gray-900">Oops!</h2>
+          <p className="text-gray-600 text-sm max-w-md">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-6 py-2 bg-gray-900 text-white rounded-lg text-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Render step with flip transitions
   const renderStep = () => {
     switch (step) {
@@ -1268,8 +1447,7 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              {/* Preview of photo flip - will auto-start */}
-              <IntroContent />
+              {/* Empty background - will transition to photo flip */}
             </div>
             <FlipPage key="intro" isFlipped={introFlip.isFlipped} zIndex={10}>
               <IntroContent onNext={introFlip.flip} />

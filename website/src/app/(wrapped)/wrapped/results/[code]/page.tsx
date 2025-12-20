@@ -168,9 +168,17 @@ type Props = {
   params: Promise<{ code: string }>
 }
 
+// Helper function to format style names (remove underscores, capitalize)
+const formatStyleName = (style: string): string => {
+  return style
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 // Wrapper for perspective context
 const FlipContainer = ({ children }: { children: ReactNode }) => (
-  <div 
+  <div
     className="absolute inset-0 overflow-hidden"
     style={{ perspective: '2500px' }}
   >
@@ -561,7 +569,7 @@ export default function ResultsPage({ params }: Props) {
               <div className="flex items-baseline justify-between border-b border-gray-200 pb-1">
                 <span className="text-sm text-gray-400 font-display">0{i + 1}</span>
                 <span className="text-2xl font-display uppercase tracking-tight text-gray-900">
-                  {style.style_name}
+                  {formatStyleName(style.style_name)}
                 </span>
               </div>
               <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-gray-400">
@@ -571,10 +579,10 @@ export default function ResultsPage({ params }: Props) {
             </div>
           ))}
         </div>
-        
+
         <div className="mt-12 p-6 bg-[#F1EDE7] rounded-2xl shrink-0">
           <p className="text-sm text-gray-600 leading-relaxed italic">
-            "Your style blends {results.top_styles[0].style_name} with {results.top_styles[1].style_name} touches, 
+            "Your style blends {formatStyleName(results.top_styles[0].style_name)} with {formatStyleName(results.top_styles[1].style_name)} touches,
             creating a look that's uniquely yours."
           </p>
         </div>
@@ -853,8 +861,8 @@ export default function ResultsPage({ params }: Props) {
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
       <div className="flex-1 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <p className="text-gray-400 text-sm mb-2">Your Style Archetype</p>
-        <h1 className="font-display text-4xl text-gray-900 leading-tight mb-4 capitalize">
-          {results.primary_style}
+        <h1 className="font-display text-4xl text-gray-900 leading-tight mb-4">
+          {formatStyleName(results.primary_style)}
         </h1>
         
         <p className="text-gray-500 mb-8 leading-relaxed">
@@ -1304,8 +1312,8 @@ export default function ResultsPage({ params }: Props) {
                         key={i}
                         className="bg-[#F5EFE7] px-3 py-2.5 rounded-lg text-right"
                       >
-                        <p className="text-sm font-display text-gray-900 capitalize leading-none">
-                          {style.style_name}
+                        <p className="text-sm font-display text-gray-900 leading-none">
+                          {formatStyleName(style.style_name)}
                         </p>
                       </div>
                     ))}

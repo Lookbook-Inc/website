@@ -1,7 +1,7 @@
 # Fashion Wrapped - Frontend Integration Progress
 
 **Last Updated:** 2025-12-19
-**Status:** Upload flow complete ✅ | Results page integration pending ⏳
+**Status:** Upload flow complete ✅ | Results page wired and displaying real data ✅ | Polish & refinement phase 🎨
 
 ---
 
@@ -74,120 +74,85 @@ npm install framer-motion html2canvas @supabase/supabase-js @supabase/ssr uuid @
 - Sends email with shareable link containing `shareable_code`
 - User clicks email link → navigates to `/wrapped/results/{shareable_code}`
 
-### **Results Page:** Mock data only (needs wiring)
+### **Results Page:** Fully integrated with backend ✅
 **File:** `src/app/(wrapped)/wrapped/results/[code]/page.tsx`
 
-- ✅ Beautiful UI with flip animations (fully built)
-- ✅ Mock data hardcoded
-- ❌ Not connected to backend yet
-- ❌ Needs to fetch insights via `GET /wrapped/insights` using shareable code
+- ✅ Beautiful UI with flip animations
+- ✅ Connected to backend via shareable code
+- ✅ Fetches insights from `GET /wrapped/insights/code/{share_code}`
+- ✅ All images displaying with signed URLs
+- ✅ Image preloading for smooth flip animations
+- ✅ Loading and error states implemented
+- ✅ Data transformation complete
+
+### 6. **Backend API Types**
+**File:** `src/types/wrapped-api.ts`
+
+- ✅ Complete TypeScript interfaces for backend response
+- ✅ Mirrors exact backend schema from `insights_response.json`
+- ✅ All nested types defined (clothing items, colors, styles, celebs, etc.)
+
+### 7. **Data Transformation**
+**File:** `src/lib/wrapped/transform.ts`
+
+- ✅ `transformWrappedInsights()` - Maps backend → frontend format
+- ✅ Field renaming handled:
+  - `total_photos` → `total_outfits_analyzed`
+  - `shade_name_result` → `shade_name`
+  - `co_occurrence_count` → `times_paired`
+  - `user_first_name` → `userName`
+- ✅ Uses signed URLs for all image paths
+- ✅ Default values for optional LLM descriptions
+- ✅ Helper functions for status checks
+
+### 8. **Image Rendering**
+- ✅ All photos displaying from signed URLs:
+  - Most worn item
+  - Best pairings (items worn together)
+  - Unworn pairings (suggested combos)
+  - Top outfits (flip sequence)
+  - Color aura page (outfit collage)
+  - Celebrity photo
+  - City photo
+  - Summary card main photo
+- ✅ Image preloading before flip sequence starts
+- ✅ Graceful fallbacks for missing images
+
+### 9. **UX Enhancements**
+- ✅ Style names formatted (remove underscores, capitalize)
+  - `basic_casual` → `Basic Casual`
+  - `contemporary_professional` → `Contemporary Professional`
+- ✅ User's actual city displayed in City Intro
+- ✅ City vibe match photo displayed
+- ✅ Fixed duplicate IntroContent issue
+- ✅ Loading state shows until all images preloaded
 
 ---
 
-## 📋 Next Steps: Wire Up Results Page
+## 📋 Next Steps: Polish & Refinement
 
-### **Step 1: Clarify Field Mapping Questions**
+### **Layout & Styling**
+- [ ] Review spacing and alignment across all pages
+- [ ] Ensure consistent typography hierarchy
+- [ ] Mobile responsiveness checks
+- [ ] Color consistency review
 
-The backend API returns insights with specific field names that differ from frontend types. Need to resolve:
+### **Animations & Transitions**
+- [ ] Fine-tune flip timing if needed
+- [ ] Review page transition smoothness
+- [ ] Test animation performance on slower devices
 
-#### **Question 1: User Name**
-- Frontend expects: `userName`
-- Backend doesn't return this in `/wrapped/insights`
-- **Options:**
-  - A) Fetch `first_name` from `profiles` table separately
-  - B) Pass as prop from upload flow
-  - C) Get from user metadata
+### **Edge Cases & Polish**
+- [ ] Handle missing data gracefully (no photos, no pairings, etc.)
+- [ ] Test with different data volumes (2 photos vs 50 photos)
+- [ ] Verify all text wraps properly
+- [ ] Check image aspect ratio handling
 
-#### **Question 2: Color Aura Description**
-- Frontend expects: `color_aura_description`
-- Backend returns: `color_aura` (name only, e.g., "Candlelit Dinner")
-- **Options:**
-  - A) Fetch description from `color_auras` table
-  - B) Backend should include description in response
-  - C) Use placeholder text
-
-#### **Question 3: LLM Descriptions Mapping**
-- Frontend expects: `clothing_items_description`, `style_description`
-- Backend returns: `most_worn_description`, `primary_style_description`
-- **Question:** Map these directly?
-  - `most_worn_description` → `clothing_items_description`
-  - `primary_style_description` → `style_description`
-
-#### **Question 4: Missing Shade Hex**
-- Frontend `most_worn_item` expects: `shade_hex_1`
-- Backend returns: `shade` (name only, e.g., "Jet Black")
-- **Question:** Is hex code available in backend response or fetch separately?
-
-#### **Question 5: Signed URLs in Types**
-- Backend includes `signed_url` for all photo references
-- Frontend types use `path` instead in some places (e.g., `Pairing.garment_path`)
-- **Question:** Add `signed_url` fields to frontend types and use those?
-
----
-
-### **Step 2: Field Mapping Reference**
-
-Once questions resolved, map backend → frontend:
-
-**Direct Matches:**
-```typescript
-primary_style → primary_style ✅
-city_vibe → city_vibe ✅
-top_styles → top_styles ✅ (same structure)
-top_colors → top_colors ✅ (same structure)
-color_aura → color_aura ✅
-```
-
-**Rename Fields:**
-```typescript
-// Statistics
-total_photos → total_outfits_analyzed
-total_items → total_clothing_items
-
-// Top Shades
-shade_name_result → shade_name
-color_result → color
-shade_hex_result → shade_hex
-photo_ids_result → photo_ids
-
-// Pairings
-co_occurrence_count → times_paired
-garment_* fields → keep as is (add signed_url)
-
-// Most Worn Item
-wear_count → outfit_count
-shade → shade_name_1
-```
-
----
-
-### **Step 3: Implementation Plan**
-
-1. **Create TypeScript types** for backend API response
-   - File: `src/types/wrapped.ts` (new file)
-   - Mirror backend schema exactly
-
-2. **Update results page** (`/wrapped/results/[code]/page.tsx`):
-   - Get `code` param from URL
-   - Fetch insights via `GET /wrapped/insights` (modify API wrapper to accept shareable_code)
-   - Handle loading state (show skeleton or processing screen)
-   - Handle status states:
-     - `not_started` → Redirect to upload
-     - `pending`/`processing` → Show processing screen (optional: poll every 10s)
-     - `completed` → Transform data and display results
-     - `failed` → Show error message
-   - Transform backend data to match frontend types
-   - Replace `mockResults` with real data
-
-3. **Data transformation function**:
-   - Create `transformBackendData(backendResponse)` helper
-   - Maps all field names correctly
-   - Handles missing/optional fields
-   - Returns data in frontend `WrappedResults` format
-
-4. **Update API wrapper** (`src/lib/api/wrapped.ts`):
-   - Modify `getWrappedInsights()` to accept optional `shareable_code` param
-   - If code provided, pass as query param or use different endpoint
+### **Final Testing**
+- [ ] End-to-end flow with real backend data
+- [ ] Test shareable link sharing
+- [ ] Verify download/share functionality on mobile
+- [ ] Browser compatibility testing
 
 ---
 
@@ -198,15 +163,18 @@ shade → shade_name_1
 website/website/
 ├── src/app/(wrapped)/
 │   ├── wrapped/
-│   │   └── page.tsx              # Upload wizard ✅ COMPLETE
+│   │   └── page.tsx                      # Upload wizard ✅ COMPLETE
 │   └── results/[code]/
-│       └── page.tsx               # Results display ⏳ NEEDS WIRING
+│       └── page.tsx                      # Results display ✅ COMPLETE
 ├── src/lib/
-│   ├── api/wrapped.ts             # API wrapper functions ✅
+│   ├── api/wrapped.ts                    # API wrapper functions ✅
+│   ├── wrapped/transform.ts              # Data transformation ✅
 │   └── supabase/
-│       ├── client.ts              # Supabase browser client ✅
-│       └── server.ts              # Supabase server client
-└── .env.local                     # Environment variables ✅
+│       ├── client.ts                     # Supabase browser client ✅
+│       └── server.ts                     # Supabase server client
+├── src/types/
+│   └── wrapped-api.ts                    # Backend API types ✅
+└── .env.local                            # Environment variables ✅
 ```
 
 ### Backend
@@ -230,10 +198,15 @@ mvp-backend/python-backend/
   - Query params: `batch_id` (UUID), `total_photos_in_batch` (int)
   - Auth: Bearer token (Supabase JWT)
 
-- **Insights:** `GET /wrapped/insights`
-  - Auth: Bearer token
+- **Insights (Authenticated):** `GET /wrapped/insights`
+  - Auth: Bearer token (Supabase JWT)
   - Returns: Complete insights with signed URLs (1 hour expiry)
   - Status field indicates processing state
+
+- **Insights (Public/Shareable):** `GET /wrapped/insights/code/{share_code}`
+  - No auth required - public access via 6-character share code
+  - Returns: Complete insights with signed URLs (1 hour expiry)
+  - Used for shareable results links
 
 ### **Batch Upload Flow**
 1. Frontend generates ONE `batch_id` (UUID) per session
@@ -279,56 +252,63 @@ http://localhost:3000/wrapped?step=processing
 - Cycles through 9 phrases
 - Smooth slide-up animations
 
-### **Results Page (Mock Data)**
+### **Results Page (Real Data)**
 ```
-http://localhost:3000/wrapped/results/test-code
+http://localhost:3000/wrapped/results/{share_code}
 ```
-- Shows full UI with mock data
-- Beautiful flip animations
-- Not connected to backend yet
+- Replace `{share_code}` with actual code from backend email (e.g., "VTKZEY")
+- Fetches real insights from backend
+- All images preloaded before display
+- Beautiful flip animations with real photos
+- Test different share codes to see different results
 
 ---
 
-## 🚧 Known Issues / Notes
+## 🚧 Technical Notes
 
-1. **Results page route:** Uses `[code]` param for shareable link - keep this approach
-2. **Upload progress:** Intentionally simple ("Uploading...") - don't show per-photo progress
-3. **Processing screen:** Shows indefinitely - user must wait for email
-4. **Dev mode:** Query params work for testing (`?step=processing`)
-5. **Hydration:** Fixed by using `useEffect` to read URL params (not during initial render)
-6. **Animations:** Using Framer Motion for smooth slide-up carousel effect
-
----
-
-## 💬 Outstanding Questions (Awaiting User Response)
-
-Before proceeding with results page integration, need clarification on:
-
-1. **userName** - Where to get it from?
-2. **color_aura_description** - How to fetch/generate it?
-3. **LLM descriptions** - Confirm mapping strategy
-4. **shade_hex_1** for most_worn_item - Available in backend?
-5. **signed_url** fields - Update frontend types to use these?
-
-**Next Session:** Once questions answered, proceed with Step 2-3 of implementation plan above.
+1. **Shareable Links:** Uses `[code]` dynamic route param for clean URLs
+2. **Image Preloading:** All images loaded before flip sequence starts for smooth UX
+3. **Upload Progress:** Intentionally simple ("Uploading...") to reduce perceived wait time
+4. **Processing Screen:** Shows indefinitely - users wait for email with results link
+5. **Dev Mode:** Query params work for testing (`?step=processing`)
+6. **Hydration:** Fixed by using `useEffect` to read URL params after mount
+7. **Animations:** Framer Motion powers all flip and slide transitions
+8. **Signed URLs:** 1 hour expiry - backend regenerates on each fetch
+9. **Style Formatting:** Underscores removed and capitalized for display
+10. **Error Handling:** Graceful fallbacks for missing images and data
 
 ---
 
 ## 📊 Progress Summary
 
-**Completed:** 5/10 tasks (50%)
+**Completed:** 10/10 core integration tasks (100%) ✅
 
 - [x] Install dependencies
 - [x] Wire up upload flow (photos → backend)
 - [x] Profile storage (name, city)
 - [x] Processing screen with animations
 - [x] Dev mode for testing
-- [ ] Resolve field mapping questions ← **CURRENT BLOCKER**
-- [ ] Create TypeScript types for backend response
-- [ ] Fetch insights in results page
-- [ ] Transform backend data for frontend
-- [ ] Replace mock data with real data
+- [x] Create TypeScript types for backend response
+- [x] Fetch insights in results page
+- [x] Transform backend data for frontend
+- [x] Replace mock data with real data
+- [x] Image rendering and preloading
+
+**Phase:** Core integration complete ✅ | Now in polish & refinement phase 🎨
 
 ---
 
-**Ready to continue once field mapping questions are resolved!** 🚀
+## 🎯 Session Summary (2025-12-19)
+
+**Major Accomplishments:**
+1. ✅ Created complete TypeScript types for backend API (`wrapped-api.ts`)
+2. ✅ Built data transformation layer (`transform.ts`)
+3. ✅ Wired results page to fetch from backend via share code
+4. ✅ Implemented image preloading for smooth animations
+5. ✅ All photos displaying with signed URLs
+6. ✅ Fixed duplicate IntroContent issue
+7. ✅ Added style name formatting (remove underscores)
+8. ✅ Integrated user city and city vibe photos
+9. ✅ Added loading/error states
+
+**Ready for:** Layout refinements, styling polish, animation tuning, and final testing! 🚀

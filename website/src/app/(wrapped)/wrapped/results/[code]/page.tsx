@@ -4,6 +4,8 @@ import { useState, useEffect, ReactNode, useRef } from 'react';
 import { FlipPage } from '@/app/components/FlipPage';
 import { useFlip } from '@/hooks/useFlip';
 import html2canvas from 'html2canvas';
+import { getInsightsByShareCode } from '@/lib/api/wrapped';
+import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
 
 // --- Types ---
 
@@ -173,10 +175,49 @@ const FlipContainer = ({ children }: { children: ReactNode }) => (
 
 export default function ResultsPage({ params }: Props) {
   const [step, setStep] = useState<Step>('welcome');
-  
-  // For now, use mock data
-  const results = mockResults;
+  const [results, setResults] = useState<WrappedResults>(mockResults); // Start with mock data to avoid null checks
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const TOTAL_FLIP_PAGES = 10;
+
+  // Fetch insights on mount
+  useEffect(() => {
+    async function fetchInsights() {
+      try {
+        setLoading(true);
+
+        // Get the share code from params
+        const resolvedParams = await params;
+        const code = resolvedParams.code;
+
+        // Fetch insights from backend
+        const backendData = await getInsightsByShareCode(code);
+
+        // Check status
+        if (!isInsightsCompleted(backendData)) {
+          if (isInsightsProcessing(backendData)) {
+            setError('Your insights are still being generated. Please check back in a few minutes!');
+          } else {
+            setError('Insights not found or failed to generate.');
+          }
+          setLoading(false);
+          return;
+        }
+
+        // Transform backend data to frontend format
+        const transformed = transformWrappedInsights(backendData);
+        setResults(transformed);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch insights:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load insights');
+        setLoading(false);
+      }
+    }
+
+    fetchInsights();
+  }, [params]);
 
   // Individual flip states for single-page transitions
   const welcomeFlip = useFlip(() => setStep('intro'));
@@ -1249,6 +1290,37 @@ export default function ResultsPage({ params }: Props) {
     </FlipContainer>
   );
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col h-[100dvh] items-center justify-center px-10 bg-[#FFFAF4]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin"></div>
+          <p className="text-gray-600 text-sm">Loading your insights...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex flex-col h-[100dvh] items-center justify-center px-10 bg-[#FFFAF4]">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="text-4xl">⚠️</div>
+          <h2 className="font-display text-xl text-gray-900">Oops!</h2>
+          <p className="text-gray-600 text-sm max-w-md">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-6 py-2 bg-gray-900 text-white rounded-lg text-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Render step with flip transitions
   const renderStep = () => {
     switch (step) {
@@ -1268,8 +1340,7 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              {/* Preview of photo flip - will auto-start */}
-              <IntroContent />
+              {/* Empty background - will transition to photo flip */}
             </div>
             <FlipPage key="intro" isFlipped={introFlip.isFlipped} zIndex={10}>
               <IntroContent onNext={introFlip.flip} />

@@ -3,9 +3,8 @@
 import { useState, useEffect, ReactNode, useRef } from 'react';
 import { FlipPage } from '@/app/components/FlipPage';
 import { useFlip } from '@/hooks/useFlip';
-import html2canvas from 'html2canvas';
-import { getInsightsByShareCode } from '@/lib/api/wrapped';
-import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
+import { domToPng } from 'modern-screenshot';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Types ---
 
@@ -88,6 +87,8 @@ interface WrappedResults {
   style_description: string;
   total_clothing_items: number;
   top_outfits: TopOutfit[];
+  top_decade: string;
+  decade_description: string;
 }
 
 // Mock data populated from the provided CSV values
@@ -159,10 +160,12 @@ const mockResults: WrappedResults = {
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
       similarity_score: 0.1974
     }
-  ]
+  ],
+  top_decade: '2020s',
+  decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.'
 };
 
-type Step = 'welcome' | 'intro' | 'photo-flip' | 'fav-item' | 'fav-pairings' | 'unworn-pairings' | 'top-styles' | 'colors' | 'shades' | 'color-aura' | 'style' | 'celebrity-intro' | 'celebrity' | 'city-intro' | 'city-reveal' | 'summary';
+type Step = 'welcome' | 'intro' | 'photo-flip' | 'fav-item' | 'fav-pairings' | 'unworn-pairings' | 'top-styles' | 'colors' | 'color-aura' | 'decade' | 'celebrity-intro' | 'celebrity' | 'city-intro' | 'city-reveal' | 'summary';
 
 type Props = {
   params: Promise<{ code: string }>
@@ -276,11 +279,12 @@ export default function ResultsPage({ params }: Props) {
   const favItemFlip = useFlip(() => setStep('fav-pairings'));
   const favPairingsFlip = useFlip(() => setStep('unworn-pairings'));
   const unwornPairingsFlip = useFlip(() => setStep('top-styles'));
-  const topStylesFlip = useFlip(() => setStep('colors'));
-  const colorsFlip = useFlip(() => setStep('shades'));
+  const topStylesFlip = useFlip(() => { setColorsView('colors'); setStep('colors'); });
+  // colorsFlip is no longer used - transition to shades is internal push animation
+  const colorsFlip = useFlip(() => {}); // Keep for back navigation compatibility
   const shadesFlip = useFlip(() => setStep('color-aura'));
-  const colorAuraFlip = useFlip(() => setStep('style'));
-  const styleFlip = useFlip(() => setStep('celebrity-intro'));
+  const colorAuraFlip = useFlip(() => setStep('decade'));
+  const decadeFlip = useFlip(() => setStep('celebrity-intro'));
   const celebrityIntroFlip = useFlip(() => setStep('celebrity'));
   const celebrityFlip = useFlip(() => setStep('city-intro'));
   const cityIntroFlip = useFlip(() => setStep('city-reveal'));
@@ -295,10 +299,10 @@ export default function ResultsPage({ params }: Props) {
     'unworn-pairings': () => { setPrevStep(step); setStep('fav-pairings'); },
     'top-styles': () => { setPrevStep(step); setStep('unworn-pairings'); },
     'colors': () => { setPrevStep(step); setStep('top-styles'); },
-    'shades': () => { setPrevStep(step); setStep('colors'); },
-    'color-aura': () => { setPrevStep(step); setStep('shades'); },
-    'style': () => { setPrevStep(step); setStep('color-aura'); },
-    'celebrity-intro': () => { setPrevStep(step); setStep('style'); },
+    // 'shades' is now internal to 'colors' - back is handled in ColorsShadesContent
+    'color-aura': () => { setPrevStep(step); setColorsView('shades'); setStep('colors'); },
+    'decade': () => { setPrevStep(step); setStep('color-aura'); },
+    'celebrity-intro': () => { setPrevStep(step); setStep('decade'); },
     'celebrity': () => { setPrevStep(step); setStep('celebrity-intro'); },
     'city-intro': () => { setPrevStep(step); setStep('celebrity'); },
     'city-reveal': () => { setPrevStep(step); setStep('city-intro'); },
@@ -309,16 +313,15 @@ export default function ResultsPage({ params }: Props) {
   useEffect(() => {
     if (!prevStep) return;
 
-    // Mapping of step to the flip hook that needs to be reset
+    // Mapping of step to the flip hook that needs to be reset (when going BACK to this step)
     const flipHooks: Record<string, any> = {
       'fav-item': favItemFlip,
       'fav-pairings': favPairingsFlip,
       'unworn-pairings': unwornPairingsFlip,
       'top-styles': topStylesFlip,
-      'colors': colorsFlip,
-      'shades': shadesFlip,
+      'colors': shadesFlip, // shadesFlip.flip() takes us to color-aura, so unflip it when going back
       'color-aura': colorAuraFlip,
-      'style': styleFlip,
+      'decade': decadeFlip,
       'celebrity-intro': celebrityIntroFlip,
       'celebrity': celebrityFlip,
       'city-intro': cityIntroFlip,
@@ -336,7 +339,7 @@ export default function ResultsPage({ params }: Props) {
     } else {
       setPrevStep(null);
     }
-  }, [step, prevStep, favItemFlip, favPairingsFlip, unwornPairingsFlip, topStylesFlip, colorsFlip, styleFlip, celebrityIntroFlip, celebrityFlip, cityIntroFlip, cityRevealFlip]);
+  }, [step, prevStep, favItemFlip, favPairingsFlip, unwornPairingsFlip, topStylesFlip, colorsFlip, shadesFlip, colorAuraFlip, decadeFlip, celebrityIntroFlip, celebrityFlip, cityIntroFlip, cityRevealFlip]);
   
   // Track which pages have been flipped for the photo sequence
   const [flippedPages, setFlippedPages] = useState<boolean[]>(
@@ -730,7 +733,7 @@ export default function ResultsPage({ params }: Props) {
   const ColorSidebar = ({ light = true }: { light?: boolean }) => (
     <div className="absolute left-0 top-0 bottom-0 w-24 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
       <div 
-        className={`whitespace-nowrap transform -rotate-270 translate-y-[-15vh] font-display text-8xl leading-none tracking-tighter flex gap-8 items-center ${
+        className={`whitespace-nowrap transform -rotate-270 translate-y-[15vh] font-display text-8xl leading-none tracking-tighter flex gap-8 items-center ${
           light ? 'text-black/5' : 'text-[#F7EFE5]/20'
         }`}
       >
@@ -747,7 +750,20 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const ColorsContent = ({ onNext, onBack, interactive = true }: { onNext?: () => void; onBack?: () => void; interactive?: boolean }) => {
+  // Combined Colors & Shades component with staggered push transition
+  const ColorsShadesContent = ({ 
+    view, 
+    onNext, 
+    onBack,
+    onViewChange,
+    isActive = true,
+  }: { 
+    view: 'colors' | 'shades';
+    onNext?: () => void; 
+    onBack?: () => void;
+    onViewChange: (view: 'colors' | 'shades') => void;
+    isActive?: boolean;
+  }) => {
     const isLightColor = (hex: string) => {
       const color = hex.replace('#', '');
       const r = parseInt(color.substring(0, 2), 16);
@@ -757,127 +773,248 @@ export default function ResultsPage({ params }: Props) {
       return brightness > 155;
     };
 
-    return (
-      <div className="flex flex-col h-[100dvh] pt-12 pb-4 relative bg-[#FFFAF4]">
-        <ColorSidebar />
-        <div className="flex-1 flex flex-col pt-4 relative z-10 overflow-hidden">
-          {/* Swatches container - removed flex-1 to let text follow colors */}
-          <div className="flex flex-col gap-3 mb-6 items-end">
-            {results.top_colors.slice(0, 5).map((c, i) => {
-              const light = isLightColor(c.top_shade_hex);
-              return (
-                <div
-                  key={i}
-                  className={`h-[12vh] w-[50vw] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
-                    light ? 'text-black' : 'text-white'
-                  }`}
-                  style={{ backgroundColor: c.top_shade_hex }}
-                >
-                  <div className="flex flex-col items-center transform -rotate-270 origin-center whitespace-nowrap">
-                    <span className="font-mono text-sm uppercase tracking-widest opacity-80 mb-1 leading-none font-bold">
-                      {c.color}
-                    </span>
-                    <span className="font-mono text-xs opacity-60 uppercase leading-none">
-                      {c.top_shade_hex}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          
-          {/* Text moved up right beneath the colors */}
-          <div className="pl-24 pr-10 text-right">
-            <h3 className="font-display text-xl text-gray-900 leading-tight">
-              The colors you wore the most of in 2025...
-            </h3>
-          </div>
-        </div>
-        
-        {/* Footer */}
-        <div className="px-10 shrink-0">
-          <NavigationFooter onNext={onNext} onBack={onBack} />
-        </div>
-      </div>
-    );
-  };
+    // Track direction for animation
+    const [direction, setDirection] = useState<'up' | 'down'>('up');
 
-  const ShadesContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
-    const isLightColor = (hex: string) => {
-      const color = hex.replace('#', '');
-      const r = parseInt(color.substring(0, 2), 16);
-      const g = parseInt(color.substring(2, 4), 16);
-      const b = parseInt(color.substring(4, 6), 16);
-      const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-      return brightness > 155;
+    const handleNext = () => {
+      if (view === 'colors') {
+        setDirection('up');
+        onViewChange('shades');
+      } else {
+        onNext?.();
+      }
     };
 
+    const handleBack = () => {
+      if (view === 'shades') {
+        setDirection('down');
+        onViewChange('colors');
+      } else {
+        onBack?.();
+      }
+    };
+
+    // Container variants for staggered children
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.08,
+          delayChildren: 0.1,
+        },
+      },
+      exit: {
+        transition: {
+          staggerChildren: 0.05,
+          staggerDirection: -1, // Reverse order on exit
+        },
+      },
+    };
+
+    // Individual item variants
+    const itemVariants = {
+      hidden: (dir: 'up' | 'down') => ({
+        y: dir === 'up' ? 60 : -60,
+        opacity: 0,
+      }),
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.4,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+      exit: (dir: 'up' | 'down') => ({
+        y: dir === 'up' ? -60 : 60,
+        opacity: 0,
+        transition: {
+          duration: 0.3,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      }),
+    };
+
+    // Text variants (animates after swatches)
+    const textVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+          duration: 0.4,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+      exit: {
+        opacity: 0,
+        y: -20,
+        transition: {
+          duration: 0.25,
+        },
+      },
+    };
+
+    // Colors inner content
+    const ColorsInner = () => (
+      <motion.div
+        className="flex-1 flex flex-col"
+        variants={containerVariants}
+        initial="hidden"
+        animate={isActive ? "visible" : "hidden"}
+        exit="exit"
+        custom={direction}
+      >
+        <div className="flex flex-col gap-3 mb-6 items-end">
+          {results.top_colors.slice(0, 5).map((c, i) => {
+            const light = isLightColor(c.top_shade_hex);
+            return (
+              <motion.div
+                key={i}
+                custom={direction}
+                variants={itemVariants}
+                className={`h-[12vh] w-[50vw] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
+                  light ? 'text-black' : 'text-white'
+                }`}
+                style={{ backgroundColor: c.top_shade_hex }}
+              >
+                <div className="flex flex-col items-center transform -rotate-270 origin-center whitespace-nowrap">
+                  <span className="font-mono text-sm uppercase tracking-widest opacity-80 mb-1 leading-none font-bold">
+                    {c.color}
+                  </span>
+                  <span className="font-mono text-xs opacity-60 uppercase leading-none">
+                    {c.top_shade_hex}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+        
+        <motion.div variants={textVariants} className="pl-24 pr-10 text-right">
+          <h3 className="font-display text-xl text-gray-900 leading-tight">
+            The colors you wore the most of in 2025...
+          </h3>
+        </motion.div>
+      </motion.div>
+    );
+
+    // Shades inner content
+    const ShadesInner = () => (
+      <motion.div
+        className="flex-1 flex flex-col"
+        variants={containerVariants}
+        initial="hidden"
+        animate={isActive ? "visible" : "hidden"}
+        exit="exit"
+        custom={direction}
+      >
+        <motion.div variants={textVariants} className="pl-24 pr-10 text-right mb-6">
+          <h3 className="font-display text-xl text-gray-900 leading-tight">
+            ... but one color in particular spoke to you:
+          </h3>
+          <p className="font-display text-5xl italic text-gray-900 mt-4 uppercase tracking-tighter">
+            {results.top_shades[0]?.color}.
+          </p>
+        </motion.div>
+
+        <div className="flex flex-col gap-3 items-end">
+          {results.top_shades.slice(0, 5).map((c, i) => {
+            const light = isLightColor(c.shade_hex);
+            return (
+              <motion.div
+                key={i}
+                custom={direction}
+                variants={itemVariants}
+                className={`h-[12vh] w-[50vw] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
+                  light ? 'text-black' : 'text-white'
+                }`}
+                style={{ backgroundColor: c.shade_hex }}
+              >
+                <div className="flex flex-col items-center transform -rotate-270 origin-center whitespace-nowrap">
+                  <span className="font-mono text-sm uppercase tracking-widest opacity-80 mb-1 leading-none font-bold">
+                    {c.shade_name}
+                  </span>
+                  <span className="font-mono text-xs opacity-60 uppercase leading-none">
+                    {c.shade_hex}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
+    );
+
     return (
       <div className="flex flex-col h-[100dvh] pt-12 pb-4 relative bg-[#FFFAF4]">
         <ColorSidebar />
+        
+        {/* Animated content area */}
         <div className="flex-1 flex flex-col pt-4 relative z-10 overflow-hidden">
-          <div className="pl-24 pr-10 text-right mb-6">
-            <h3 className="font-display text-xl text-gray-900 leading-tight">
-              ... but one color in particular spoke to you:
-            </h3>
-            <p className="font-display text-5xl italic text-gray-900 mt-4 uppercase tracking-tighter">
-              {results.top_shades[0]?.color}.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 items-end">
-            {results.top_shades.slice(0, 5).map((c, i) => {
-              const light = isLightColor(c.shade_hex);
-              return (
-                <div
-                  key={i}
-                  className={`h-[12vh] w-[50vw] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
-                    light ? 'text-black' : 'text-white'
-                  }`}
-                  style={{ backgroundColor: c.shade_hex }}
-                >
-                  <div className="flex flex-col items-center transform -rotate-270 origin-center whitespace-nowrap">
-                    <span className="font-mono text-sm uppercase tracking-widest opacity-80 mb-1 leading-none font-bold">
-                      {c.shade_name}
-                    </span>
-                    <span className="font-mono text-xs opacity-60 uppercase leading-none">
-                      {c.shade_hex}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <AnimatePresence mode="wait" custom={direction}>
+            {view === 'colors' ? (
+              <ColorsInner key="colors" />
+            ) : (
+              <ShadesInner key="shades" />
+            )}
+          </AnimatePresence>
         </div>
         
+        {/* Fixed footer */}
         <div className="px-10 shrink-0">
-          <NavigationFooter onNext={onNext} onBack={onBack} />
+          <NavigationFooter onNext={handleNext} onBack={handleBack} />
         </div>
       </div>
     );
   };
 
-  const StyleContent = ({ onNext, onBack, interactive = true }: { onNext?: () => void; onBack?: () => void; interactive?: boolean }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
-      <div className="flex-1 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <p className="text-gray-400 text-sm mb-2">Your Style Archetype</p>
-        <h1 className="font-display text-4xl text-gray-900 leading-tight mb-4">
-          {formatStyleName(results.primary_style)}
-        </h1>
-        
-        <p className="text-gray-500 mb-8 leading-relaxed">
-          {results.style_description}
-        </p>
-        
-        <div className="bg-[#F7EFE5] rounded-xl p-4 mb-8 shrink-0">
-          <p className="text-sm text-gray-500 mb-1">Most worn item</p>
-          <p className="font-display text-xl text-gray-900">{results.most_worn_item.name}</p>
-        </div>
-      </div>
-      
-      <NavigationFooter onNext={onNext} onBack={onBack} />
-    </div>
+  // Legacy wrappers for compatibility with existing flip system (inactive by default)
+  const ColorsContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
+    <ColorsShadesContent view="colors" onNext={onNext} onBack={onBack} onViewChange={() => {}} isActive={false} />
   );
+
+  const ShadesContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
+    <ColorsShadesContent view="shades" onNext={onNext} onBack={onBack} onViewChange={() => {}} isActive={false} />
+  );
+
+  const DecadeContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
+    // Decade styling information
+    const decadeStyles: Record<string, { vibe: string; icon: string; color: string }> = {
+      '1950s': { vibe: 'Classic elegance meets rebellion', icon: '🎸', color: '#E8D5B7' },
+      '1960s': { vibe: 'Mod culture and psychedelic dreams', icon: '✌️', color: '#F5A623' },
+      '1970s': { vibe: 'Disco nights and bohemian days', icon: '🪩', color: '#D4A574' },
+      '1980s': { vibe: 'Power shoulders and neon lights', icon: '📼', color: '#FF6B9D' },
+      '1990s': { vibe: 'Grunge meets minimalism', icon: '📟', color: '#7B8D8E' },
+      '2000s': { vibe: 'Y2K dreams and low-rise everything', icon: '💿', color: '#C0C0C0' },
+      '2010s': { vibe: 'Athleisure and Instagram aesthetics', icon: '📱', color: '#4A90A4' },
+      '2020s': { vibe: 'Quiet luxury meets bold individuality', icon: '✨', color: '#2C3E50' },
+    };
+
+    const decade = results.top_decade || '2020s';
+    const style = decadeStyles[decade] || decadeStyles['2020s'];
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
+        <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
+          <p className="text-zinc-500 text-sm mb-4 uppercase tracking-widest">Your decade is</p>
+          
+          <div className="text-center mb-8">
+            <span className="text-8xl mb-4 block">{style.icon}</span>
+            <h1 className="font-display text-7xl leading-none tracking-tight">
+              {decade}
+        </h1>
+          </div>
+        
+          <p className="text-zinc-400 text-center text-lg italic max-w-[280px] leading-relaxed">
+            {results.decade_description || style.vibe}
+        </p>
+        </div>
+        
+        <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+        </div>
+    );
+  };
 
   const CelebrityIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
     const [isAnimating, setIsAnimating] = useState(false);
@@ -905,11 +1042,11 @@ export default function ResultsPage({ params }: Props) {
             Lookalike
           </h1>
           <span className="font-display text-4xl mt-2">...</span>
-        </div>
-        
-        <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
       </div>
-    );
+      
+        <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+    </div>
+  );
   };
 
   const CelebrityContent = ({ onNext, onBack, interactive = true }: { onNext?: () => void; onBack?: () => void; interactive?: boolean }) => (
@@ -920,9 +1057,9 @@ export default function ResultsPage({ params }: Props) {
             Your<br />
             Celebrity<br />
             Lookalike
-          </h1>
+        </h1>
           <span className="font-display text-2xl">...</span>
-        </div>
+            </div>
         
         {/* Celebrity Image */}
         <div className="flex-1 flex flex-col min-h-[350px]">
@@ -952,12 +1089,12 @@ export default function ResultsPage({ params }: Props) {
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
       <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
         <h1 className="font-display text-3xl leading-[1.1] text-center">
-          You might be based in {results.userCity || 'your city'}, but what do your outfits say?
-        </h1>
+        You're based in [San Francisco]—but what do your outfits say?
+      </h1>
       </div>
 
       <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-    </div>
+          </div>
   );
 
   const CityRevealContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
@@ -1006,8 +1143,7 @@ export default function ResultsPage({ params }: Props) {
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
         <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
-            We think you'll fit<br />
-            right in <span className="italic">{city}</span>.
+            Your look would fit right into <span className="italic">[{city}]</span>.
           </h1>
 
           {/* City Image */}
@@ -1026,7 +1162,7 @@ export default function ResultsPage({ params }: Props) {
               </div>
             )}
           </div>
-
+          
           {/* Why this city? */}
           <div className="mb-6 shrink-0">
             <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Why {city}?</h3>
@@ -1044,9 +1180,9 @@ export default function ResultsPage({ params }: Props) {
             <div>
               <p className="font-display text-sm text-[#F7EFE5] mb-1">Date</p>
               <p className="text-xs text-zinc-500">{dateStr}</p>
-            </div>
-          </div>
-
+        </div>
+      </div>
+      
           {/* Disclaimer */}
           <div className="mt-auto shrink-0">
             <p className="font-display text-xs text-zinc-500 mb-1">Disclaimer</p>
@@ -1057,8 +1193,8 @@ export default function ResultsPage({ params }: Props) {
         </div>
         
         <NavigationFooter onNext={onNext} onBack={onBack} light={false} nextText="see summary →" />
-      </div>
-    );
+    </div>
+  );
   };
 
   const SummaryContent = ({ onBack }: { onBack?: () => void }) => {
@@ -1068,43 +1204,32 @@ export default function ResultsPage({ params }: Props) {
       typeof navigator !== 'undefined' && !!navigator.share && !!navigator.canShare
     );
 
-    // Capture card as canvas
-    const captureCard = async (): Promise<HTMLCanvasElement | null> => {
+    // Capture card as data URL
+    const captureCard = async (): Promise<string | null> => {
       if (!cardRef.current) return null;
       
       try {
-        const canvas = await html2canvas(cardRef.current, {
+        // modern-screenshot is more reliable for modern CSS
+        return await domToPng(cardRef.current, {
           scale: 2, // Higher resolution for better quality
-          useCORS: true,
           backgroundColor: '#FFFFFF',
-          logging: false,
         });
-        return canvas;
       } catch (error) {
         console.error('Failed to capture card:', error);
         return null;
       }
     };
 
-    // Convert canvas to blob
-    const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob | null> => {
-      return new Promise((resolve) => {
-        canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
-      });
-    };
-
     // Handle download - works on mobile by opening image in new tab
     const handleDownload = async () => {
       setIsProcessing(true);
       try {
-        const canvas = await captureCard();
-        if (!canvas) {
+        const dataUrl = await captureCard();
+        if (!dataUrl) {
           alert('Failed to generate image. Please try again.');
           return;
         }
 
-        const dataUrl = canvas.toDataURL('image/png');
-        
         // Check if iOS Safari (download attribute doesn't work well)
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         
@@ -1170,18 +1295,16 @@ export default function ResultsPage({ params }: Props) {
     const handleShare = async () => {
       setIsProcessing(true);
       try {
-        const canvas = await captureCard();
-        if (!canvas) {
+        const dataUrl = await captureCard();
+        if (!dataUrl) {
           alert('Failed to generate image. Please try again.');
           return;
         }
 
-        const blob = await canvasToBlob(canvas);
-        if (!blob) {
-          alert('Failed to generate image. Please try again.');
-          return;
-        }
-
+        // Convert data URL to blob for sharing
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        
         const file = new File([blob], `lookbook-${results.userName.toLowerCase()}-2025.png`, { 
           type: 'image/png' 
         });
@@ -1230,8 +1353,8 @@ export default function ResultsPage({ params }: Props) {
                 <div className="flex flex-col">
                   <span className="font-display text-2xl leading-none tracking-tighter text-[#4A3B33]">Look</span>
                   <span className="font-display text-2xl leading-none tracking-tighter text-[#7A5547]">book</span>
-          </div>
-          
+                </div>
+                
                 {/* Title */}
                 <div className="text-right flex-1 ml-4">
                   <h1 className="font-display text-3xl leading-none tracking-tight text-gray-900 mb-1">
@@ -1241,8 +1364,8 @@ export default function ResultsPage({ params }: Props) {
                     {results.userName}'s 2025 palette
                   </p>
                 </div>
-          </div>
-          
+              </div>
+
               {/* Main photo */}
               <div className="flex-1 bg-gray-100 rounded-2xl overflow-hidden mb-4 relative min-h-[280px]">
                 {results.top_outfits[0]?.path ? (
@@ -1269,22 +1392,22 @@ export default function ResultsPage({ params }: Props) {
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-semibold">colours</p>
                     <div className="flex gap-1.5">
                       {results.top_colors.slice(0, 4).map((c, i) => (
-                <div
-                  key={i}
+                        <div
+                          key={i}
                           className="w-10 h-10 rounded-lg shadow-sm"
-                  style={{ backgroundColor: c.top_shade_hex }}
-                />
-              ))}
-            </div>
-          </div>
-          
+                          style={{ backgroundColor: c.top_shade_hex }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Style Twin */}
                   <div>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-semibold">style twin</p>
                     <p className="text-xs text-gray-900 leading-tight">
                       {results.top_celeb_match.celeb_name}
                     </p>
-          </div>
+                  </div>
 
                   {/* Decade */}
                   <div>
@@ -1292,8 +1415,8 @@ export default function ResultsPage({ params }: Props) {
                     <p className="text-xs text-gray-900">
                       2020s
                     </p>
-        </div>
-        
+                  </div>
+
                   {/* City */}
                   <div>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-semibold">city</p>
@@ -1358,11 +1481,11 @@ export default function ResultsPage({ params }: Props) {
             </svg>
             {shareSupported ? 'Share' : 'Copy Link'}
           </button>
-      </div>
-      
+        </div>
+        
         <NavigationFooter onBack={onBack} leftLabel={`${results.userName}'s Lookbook`} />
-    </div>
-  );
+      </div>
+    );
   };
 
   // Photo flipping sequence (multiple pages at once)
@@ -1498,7 +1621,13 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <ColorsContent onNext={colorsFlip.flip} onBack={onBack['colors']} />
+              <ColorsShadesContent 
+                view="colors" 
+                onNext={() => setStep('color-aura')} 
+                onBack={onBack['colors']} 
+                onViewChange={setColorsView}
+                isActive={false}
+              />
             </div>
             <FlipPage key="top-styles" isFlipped={topStylesFlip.isFlipped} zIndex={10}>
               <TopStylesContent onNext={topStylesFlip.flip} onBack={onBack['top-styles']} />
@@ -1507,25 +1636,20 @@ export default function ResultsPage({ params }: Props) {
         );
       
       case 'colors':
-        return (
-          <FlipContainer>
-            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <ShadesContent onNext={shadesFlip.flip} onBack={onBack['shades']} />
-            </div>
-            <FlipPage key="colors" isFlipped={colorsFlip.isFlipped} zIndex={10}>
-              <ColorsContent onNext={colorsFlip.flip} onBack={onBack['colors']} />
-            </FlipPage>
-          </FlipContainer>
-        );
-      
-      case 'shades':
+        // Colors and shades now use push animation internally (no flip between them)
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
               <ColorAuraContent onNext={colorAuraFlip.flip} onBack={onBack['color-aura']} />
             </div>
-            <FlipPage key="shades" isFlipped={shadesFlip.isFlipped} zIndex={10}>
-              <ShadesContent onNext={shadesFlip.flip} onBack={onBack['shades']} />
+            <FlipPage key="colors" isFlipped={colorsView === 'shades' && shadesFlip.isFlipped} zIndex={10}>
+              <ColorsShadesContent 
+                view={colorsView} 
+                onNext={() => { shadesFlip.flip(); }} 
+                onBack={onBack['colors']} 
+                onViewChange={setColorsView}
+                isActive={true}
+              />
             </FlipPage>
           </FlipContainer>
         );
@@ -1533,8 +1657,8 @@ export default function ResultsPage({ params }: Props) {
       case 'color-aura':
         return (
           <FlipContainer>
-            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <StyleContent onNext={styleFlip.flip} onBack={onBack['style']} />
+            <div className="absolute inset-0 bg-black z-0">
+              <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} />
             </div>
             <FlipPage key="color-aura" isFlipped={colorAuraFlip.isFlipped} zIndex={10}>
               <ColorAuraContent onNext={colorAuraFlip.flip} onBack={onBack['color-aura']} />
@@ -1542,14 +1666,14 @@ export default function ResultsPage({ params }: Props) {
           </FlipContainer>
         );
       
-      case 'style':
+      case 'decade':
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-black z-0">
               <CelebrityIntroContent onNext={celebrityIntroFlip.flip} onBack={onBack['celebrity-intro']} />
             </div>
-            <FlipPage key="style" isFlipped={styleFlip.isFlipped} zIndex={10}>
-              <StyleContent onNext={styleFlip.flip} onBack={onBack['style']} />
+            <FlipPage key="decade" isFlipped={decadeFlip.isFlipped} zIndex={10}>
+              <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} />
             </FlipPage>
           </FlipContainer>
         );

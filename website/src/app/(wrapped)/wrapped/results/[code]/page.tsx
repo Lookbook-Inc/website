@@ -5,6 +5,8 @@ import { FlipPage } from '@/app/components/FlipPage';
 import { useFlip } from '@/hooks/useFlip';
 import { domToPng } from 'modern-screenshot';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getInsightsByShareCode } from '@/lib/api/wrapped';
+import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
 
 // --- Types ---
 
@@ -171,6 +173,9 @@ type Props = {
   params: Promise<{ code: string }>
 }
 
+// Test code to skip backend and use mock data
+const TEST_CODE = 'TESTME';
+
 // Helper function to format style names (remove underscores, capitalize)
 const formatStyleName = (style: string): string => {
   return style
@@ -194,6 +199,7 @@ export default function ResultsPage({ params }: Props) {
   const [results, setResults] = useState<WrappedResults>(mockResults); // Start with mock data to avoid null checks
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [colorsView, setColorsView] = useState<'colors' | 'shades'>('colors');
 
   const TOTAL_FLIP_PAGES = 10;
 
@@ -223,6 +229,14 @@ export default function ResultsPage({ params }: Props) {
         // Get the share code from params
         const resolvedParams = await params;
         const code = resolvedParams.code;
+
+        // Check for test code - skip backend and use mock data
+        if (code.toUpperCase() === TEST_CODE) {
+          console.log('Using test mode with mock data');
+          setResults(mockResults);
+          setLoading(false);
+          return;
+        }
 
         // Fetch insights from backend
         const backendData = await getInsightsByShareCode(code);
@@ -261,7 +275,7 @@ export default function ResultsPage({ params }: Props) {
         await preloadImages(imageUrls);
 
         // Set results and hide loading
-        setResults(transformed);
+        setResults(transformed as WrappedResults);
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch insights:', err);

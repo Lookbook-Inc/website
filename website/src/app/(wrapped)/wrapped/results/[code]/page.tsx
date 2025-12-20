@@ -167,7 +167,7 @@ const mockResults: WrappedResults = {
   decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.'
 };
 
-type Step = 'welcome' | 'intro' | 'photo-flip' | 'fav-item' | 'fav-pairings' | 'unworn-pairings' | 'top-styles' | 'colors' | 'color-aura' | 'decade' | 'celebrity-intro' | 'celebrity' | 'city-intro' | 'city-reveal' | 'summary';
+type Step = 'welcome' | 'intro' | 'photo-flip' | 'fav-item' | 'fav-pairings' | 'unworn-pairings' | 'top-styles' | 'colors' | 'color-aura' | 'decade' | 'celebrity' | 'city-intro' | 'city-reveal' | 'summary';
 
 type Props = {
   params: Promise<{ code: string }>
@@ -298,8 +298,7 @@ export default function ResultsPage({ params }: Props) {
   const colorsFlip = useFlip(() => {}); // Keep for back navigation compatibility
   const shadesFlip = useFlip(() => setStep('color-aura'));
   const colorAuraFlip = useFlip(() => setStep('decade'));
-  const decadeFlip = useFlip(() => setStep('celebrity-intro'));
-  const celebrityIntroFlip = useFlip(() => setStep('celebrity'));
+  const decadeFlip = useFlip(() => setStep('celebrity'));
   const celebrityFlip = useFlip(() => setStep('city-intro'));
   const cityIntroFlip = useFlip(() => setStep('city-reveal'));
   const cityRevealFlip = useFlip(() => setStep('summary'));
@@ -316,8 +315,7 @@ export default function ResultsPage({ params }: Props) {
     // 'shades' is now internal to 'colors' - back is handled in ColorsShadesContent
     'color-aura': () => { setPrevStep(step); setColorsView('shades'); setStep('colors'); },
     'decade': () => { setPrevStep(step); setStep('color-aura'); },
-    'celebrity-intro': () => { setPrevStep(step); setStep('decade'); },
-    'celebrity': () => { setPrevStep(step); setStep('celebrity-intro'); },
+    'celebrity': () => { setPrevStep(step); setStep('decade'); },
     'city-intro': () => { setPrevStep(step); setStep('celebrity'); },
     'city-reveal': () => { setPrevStep(step); setStep('city-intro'); },
     'summary': () => { setPrevStep(step); setStep('city-reveal'); },
@@ -336,7 +334,6 @@ export default function ResultsPage({ params }: Props) {
       'colors': shadesFlip, // shadesFlip.flip() takes us to color-aura, so unflip it when going back
       'color-aura': colorAuraFlip,
       'decade': decadeFlip,
-      'celebrity-intro': celebrityIntroFlip,
       'celebrity': celebrityFlip,
       'city-intro': cityIntroFlip,
       'city-reveal': cityRevealFlip,
@@ -353,7 +350,7 @@ export default function ResultsPage({ params }: Props) {
     } else {
       setPrevStep(null);
     }
-  }, [step, prevStep, favItemFlip, favPairingsFlip, unwornPairingsFlip, topStylesFlip, colorsFlip, shadesFlip, colorAuraFlip, decadeFlip, celebrityIntroFlip, celebrityFlip, cityIntroFlip, cityRevealFlip]);
+  }, [step, prevStep, favItemFlip, favPairingsFlip, unwornPairingsFlip, topStylesFlip, colorsFlip, shadesFlip, colorAuraFlip, decadeFlip, celebrityFlip, cityIntroFlip, cityRevealFlip]);
   
   // Track which pages have been flipped for the photo sequence
   const [flippedPages, setFlippedPages] = useState<boolean[]>(
@@ -363,12 +360,12 @@ export default function ResultsPage({ params }: Props) {
   // Handle the photo flipping sequence
   useEffect(() => {
     if (step === 'photo-flip') {
-      // Flip intro page first (index 0)
-      setFlippedPages(prev => {
-        const next = [...prev];
-        next[0] = true;
-        return next;
-      });
+      // // Flip intro page first (index 0)
+      // setFlippedPages(prev => {
+      //   const next = [...prev];
+      //   next[0] = true;
+      //   return next;
+      // });
 
       // Then flip each photo page with delays
       for (let i = 1; i <= TOTAL_FLIP_PAGES; i++) {
@@ -1030,74 +1027,94 @@ export default function ResultsPage({ params }: Props) {
     );
   };
 
-  const CelebrityIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
-    const [isAnimating, setIsAnimating] = useState(false);
+  const CelebrityContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
+    const [revealed, setRevealed] = useState(false);
     
     useEffect(() => {
-      // Start animation after a brief delay
+      // Start the reveal animation after a brief pause
       const timer = setTimeout(() => {
-        setIsAnimating(true);
-      }, 500);
+        setRevealed(true);
+      }, 800);
       return () => clearTimeout(timer);
     }, []);
 
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-        <div className="flex-1 flex flex-col justify-center overflow-hidden">
-          <h1 
-            className={`font-display leading-[0.9] transition-all duration-1000 ease-out ${
-              isAnimating 
-                ? 'text-2xl' 
-                : 'text-6xl'
-            }`}
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          
+          {/* Title - animates from centered/large to top/small */}
+          <motion.div 
+            className="shrink-0"
+            initial={false}
+            animate={{
+              y: revealed ? 0 : '30vh',
+            }}
+            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
           >
-            Your<br />
-            Celebrity<br />
-            Lookalike
-          </h1>
-          <span className="font-display text-4xl mt-2">...</span>
-      </div>
-      
-        <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-    </div>
-  );
-  };
-
-  const CelebrityContent = ({ onNext, onBack, interactive = true }: { onNext?: () => void; onBack?: () => void; interactive?: boolean }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-      <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="shrink-0 mb-6">
-          <h1 className="font-display text-2xl leading-[0.9]">
-            Your<br />
-            Celebrity<br />
-            Lookalike
-        </h1>
-          <span className="font-display text-2xl">...</span>
+            <motion.h1 
+              className="font-display leading-[0.9]"
+              initial={false}
+              animate={{
+                fontSize: revealed ? '1.5rem' : '3.75rem',
+              }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              Your<br />
+              Celebrity<br />
+              Lookalike
+            </motion.h1>
+            <motion.span 
+              className="font-display block"
+              initial={false}
+              animate={{
+                fontSize: revealed ? '1.5rem' : '2.25rem',
+                marginTop: revealed ? '0' : '0.5rem',
+              }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              ...
+            </motion.span>
+          </motion.div>
+          
+          {/* Celebrity Image - fades in and slides up */}
+          <motion.div 
+            className="flex-1 flex flex-col min-h-[350px] mt-6"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ 
+              opacity: revealed ? 1 : 0, 
+              y: revealed ? 0 : 40 
+            }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
+              {results.top_celeb_match.celeb_photo_url ? (
+                <img
+                  src={results.top_celeb_match.celeb_photo_url}
+                  alt={results.top_celeb_match.celeb_name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+                  <span className="text-zinc-500 text-sm uppercase tracking-widest">
+                    {results.top_celeb_match.celeb_name}
+                  </span>
+                </div>
+              )}
             </div>
-        
-        {/* Celebrity Image */}
-        <div className="flex-1 flex flex-col min-h-[350px]">
-          <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
-            {results.top_celeb_match.celeb_photo_url ? (
-              <img
-                src={results.top_celeb_match.celeb_photo_url}
-                alt={results.top_celeb_match.celeb_name}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-                <span className="text-zinc-500 text-sm uppercase tracking-widest">
-                  {results.top_celeb_match.celeb_name}
-                </span>
-              </div>
-            )}
-          </div>
+          </motion.div>
         </div>
+        
+        {/* Footer - fades in after reveal */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: revealed ? 1 : 0 }}
+          transition={{ duration: 0.4, delay: 0.6 }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+        </motion.div>
       </div>
-      
-      <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-    </div>
-  );
+    );
+  };
 
   const CityIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
@@ -1526,11 +1543,6 @@ export default function ResultsPage({ params }: Props) {
           </FlipPage>
         );
       })}
-
-      {/* Intro page on top of everything */}
-      <FlipPage isFlipped={flippedPages[0]} zIndex={(TOTAL_FLIP_PAGES + 1) * 10}>
-        <IntroContent />
-      </FlipPage>
     </FlipContainer>
   );
 
@@ -1684,22 +1696,10 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-black z-0">
-              <CelebrityIntroContent onNext={celebrityIntroFlip.flip} onBack={onBack['celebrity-intro']} />
+              <CelebrityContent onNext={celebrityFlip.flip} onBack={onBack['celebrity']} />
             </div>
             <FlipPage key="decade" isFlipped={decadeFlip.isFlipped} zIndex={10}>
               <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} />
-            </FlipPage>
-          </FlipContainer>
-        );
-      
-      case 'celebrity-intro':
-        return (
-          <FlipContainer>
-            <div className="absolute inset-0 bg-black z-0">
-              <CelebrityContent onNext={celebrityFlip.flip} onBack={onBack['celebrity']} />
-            </div>
-            <FlipPage key="celebrity-intro" isFlipped={celebrityIntroFlip.isFlipped} zIndex={10}>
-              <CelebrityIntroContent onNext={celebrityIntroFlip.flip} onBack={onBack['celebrity-intro']} />
             </FlipPage>
           </FlipContainer>
         );

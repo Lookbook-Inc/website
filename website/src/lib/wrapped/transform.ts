@@ -119,6 +119,11 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
     all_uploaded_photos: backend.all_uploaded_photos.map(photo => ({
       signed_url: photo.signed_url,
     })),
+
+    // Decade
+    top_decade: backend.style_decade || '2020s',
+    decade_description: backend.style_decade_description || '',
+    decade_photo_url: backend.decade_photo_url || null,
   };
 }
 

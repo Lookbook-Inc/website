@@ -1596,7 +1596,7 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              {/* Empty background - will transition to photo flip */}
+              <PhotoPageContent outfit={results.top_outfits[0]} pageNum={1} />
             </div>
             <FlipPage key="intro" isFlipped={introFlip.isFlipped} zIndex={10}>
               <IntroContent onNext={introFlip.flip} />

@@ -454,44 +454,61 @@ export default function WrappedWizard() {
         We want to see your favorite looks from this year. Pick <strong>between 10 and 30</strong> pictures for us to analyze.
       </p>
       
-      {/* Tips */}
-      <div className="space-y-3 mb-8">
-        <div className="flex gap-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
-          <div>
-            <p className="font-display text-gray-900 text-md">Prefer pictures that get your full outfit.</p>
-            <p className="text-gray-500 text-sm">The more of your outfit we can see, the better - but we'll manage with partials, too.</p>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
-          <div>
-            <p className="font-display text-gray-900 text-md">Prefer solo pictures.</p>
-            <p className="text-gray-500 text-sm">If you want to use a group photo, we'll let you crop out other people once you've selected your pictures.</p>
-          </div>
-        </div>
-      </div>
-      
-      {/* Upload area */}
-      <div 
-        onClick={() => fileInputRef.current?.click()}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors mb-4"
-      >
-        <div className="text-gray-400 mb-2">
-          <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </div>
-        <p className="text-gray-500 text-sm">Choose Outfit Pictures</p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-      </div>
+      {/* Tips & Upload area - hidden during upload */}
+      <AnimatePresence>
+        {!loading && (
+          <motion.div
+            initial={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{
+              duration: 0.5,
+              ease: [0.4, 0, 0.2, 1],
+              opacity: { duration: 0.3 },
+              height: { duration: 0.5, delay: 0.1 }
+            }}
+            className="overflow-hidden"
+          >
+            {/* Tips */}
+            <div className="space-y-3 mb-8">
+              <div className="flex gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
+                <div>
+                  <p className="font-display text-gray-900 text-md">Prefer pictures that get your full outfit.</p>
+                  <p className="text-gray-500 text-sm">The more of your outfit we can see, the better - but we'll manage with partials, too.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
+                <div>
+                  <p className="font-display text-gray-900 text-md">Prefer solo pictures.</p>
+                  <p className="text-gray-500 text-sm">If you want to use a group photo, we'll let you crop out other people once you've selected your pictures.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Upload area */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors mb-4"
+            >
+              <div className="text-gray-400 mb-2">
+                <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 text-sm">Choose Outfit Pictures</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Photo preview grid */}
       {photos.length > 0 && (
@@ -549,9 +566,9 @@ export default function WrappedWizard() {
         >
           {loading ? 'Uploading...' : 'Upload fits'}
         </button>
-        <p className="text-center text-gray-400 text-xs mt-2">
+        {/* <p className="text-center text-gray-400 text-xs mt-2">
           {photos.length} of 10-30 photos selected
-        </p>
+        </p> */}
       </div>
     </div>
   );

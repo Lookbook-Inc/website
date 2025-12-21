@@ -24,7 +24,7 @@ export function FlipPage({
       style={{ zIndex, transformStyle: 'preserve-3d' }}
       initial={false}
       animate={{ rotateY: isFlipped ? -180 : 0 }}
-      transition={{ duration, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration, ease: [0.1, 0, 0.4, 0.2] }}
     >
       {/* Front of page */}
       <div 
@@ -43,6 +43,17 @@ export function FlipPage({
           style={{ opacity: isFlipped ? 1 : 0, transition: `opacity ${duration * 0.5}s` }}
         />
       </div>
+      
+      {/* Page edge - positioned off-screen, visible during flip */}
+      <div 
+        className="absolute top-0 bottom-0 w-1 pointer-events-none"
+        style={{ 
+          right: -12, // Position just past the right edge
+          background: '#d1bb99',
+          boxShadow: 'inset 2px 0 4px rgba(0,0,0,0.1)',
+          backfaceVisibility: 'hidden',
+        }}
+      />
       
       {/* Back of page */}
       <div 

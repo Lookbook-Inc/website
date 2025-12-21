@@ -38,6 +38,7 @@ interface ColorResult {
 interface CelebMatch {
   celeb_name: string;
   celeb_photo_url?: string;
+  celeb_portrait_url: string;
   description: string;
   similarity_score: number;
   categories: string[];
@@ -131,6 +132,7 @@ const mockResults: WrappedResults = {
   ],
   top_celeb_match: {
     celeb_name: 'Anirudh Satish',
+    celeb_portrait_url: '',
     description: 'Brown man looking for his place in the world.',
     similarity_score: 32.78,
     categories: ['Engineer'],
@@ -507,19 +509,13 @@ export default function ResultsPage({ params }: Props) {
       <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <h3 className="font-display text-lg text-gray-900 mb-8">You've worn it with...</h3>
         
-        <div className="flex-1 flex flex-col pb-10">
+        <div className="space-y-4 flex-1">
           {results.best_pairings.map((pairing, i) => (
-            <div 
-              key={i} 
-              className={`w-[40vw] max-w-[200px] aspect-square relative shrink-0 rounded-2xl bg-black/10 ${
-                i % 2 === 0 ? 'self-start' : 'self-end mr-4'
-              } ${i > 0 ? '-mt-8' : ''}`}
-              style={{ zIndex: i + 1 }}
-            >
+            <div key={i} className="w-full aspect-video rounded-xl overflow-hidden bg-[#F1EDE7] shadow-sm relative shrink-0">
               <img
                 src={pairing.garment_path}
                 alt={pairing.garment_name}
-                className="w-full h-full object-contain drop-shadow-lg"
+                className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
           ))}

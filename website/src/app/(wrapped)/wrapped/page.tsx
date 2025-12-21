@@ -48,6 +48,9 @@ export default function WrappedWizard() {
     'Investigating worldly styles and colors'
   ];
 
+  // Mock upload mode
+  const [mockMode, setMockMode] = useState(false);
+
   // Dev mode: Check URL params for direct step access (runs after hydration)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -57,6 +60,11 @@ export default function WrappedWizard() {
       if (devStep === 'processing' && !name) {
         setName('Dev User');
       }
+    }
+    // Check for mock mode
+    if (params.get('mock') === 'true') {
+      setMockMode(true);
+      console.log('[WRAPPED] Mock upload mode enabled');
     }
   }, []); // Run once on mount
 
@@ -185,7 +193,7 @@ export default function WrappedWizard() {
       return;
     }
 
-    if (!batchId) {
+    if (!batchId && !mockMode) {
       setError('Batch ID not generated. Please try again.');
       return;
     }
@@ -196,6 +204,22 @@ export default function WrappedWizard() {
     setUploadProgress(0);
 
     try {
+      // Mock upload mode - simulate uploads with delays
+      if (mockMode) {
+        console.log(`[WRAPPED] Mock upload: ${photos.length} photos`);
+
+        for (let i = 0; i < photos.length; i++) {
+          // Simulate network delay (300-800ms per photo)
+          await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
+          setUploadProgress(i + 1);
+          console.log(`[WRAPPED] Mock uploaded photo ${i + 1}/${photos.length}`);
+        }
+
+        console.log('[WRAPPED] Mock upload complete!');
+        setStep('processing');
+        return;
+      }
+
       // Get auth token
       const token = await getAuthToken(supabase);
       if (!token) {
@@ -214,7 +238,7 @@ export default function WrappedWizard() {
             photo,
             null, // cropped_file (we don't have cropping yet)
             token,
-            batchId,
+            batchId!,
             photos.length
           );
 
@@ -415,6 +439,14 @@ export default function WrappedWizard() {
 
   const renderUpload = () => (
     <div className="flex flex-col min-h-screen px-10 pt-24 pb-6">
+      {/* Mock mode indicator */}
+      {mockMode && (
+        <div className="mb-4 px-3 py-1.5 bg-amber-100 border border-amber-300 rounded-lg inline-flex items-center gap-2 self-start">
+          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          <span className="text-amber-800 text-xs font-medium">Mock Mode</span>
+        </div>
+      )}
+
       <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
         Upload pics of you from this year!
       </h1>
@@ -482,7 +514,22 @@ export default function WrappedWizard() {
           ))}
         </div>
       )}
-      
+
+      {/* Upload progress bar */}
+      {loading && uploadTotal > 0 && (
+        <div className="mb-4">
+          <div className="w-full h-4 border-2 border-gray-900 bg-[#FFFAF4]">
+            <div
+              className="h-full bg-gray-900 transition-all duration-300 ease-out"
+              style={{ width: `${(uploadProgress / uploadTotal) * 100}%` }}
+            />
+          </div>
+          {/* <p className="text-center text-gray-500 text-xs mt-2">
+            Uploading {uploadProgress} of {uploadTotal}...
+          </p> */}
+        </div>
+      )}
+
       {/* Upload button */}
       <div className="mt-auto pt-6">
         {error && (

@@ -61,6 +61,7 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
     top_celeb_match: {
       celeb_name: backend.top_celeb_match.celeb_name,
       celeb_photo_url: backend.top_celeb_match.celeb_photo_url,
+      celeb_portrait_url: backend.top_celeb_match.celeb_portrait_url,
       description: backend.top_celeb_match.description || '',
       similarity_score: backend.top_celeb_match.similarity_score,
       categories: backend.top_celeb_match.categories || [],

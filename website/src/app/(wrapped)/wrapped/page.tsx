@@ -582,19 +582,11 @@ export default function WrappedWizard() {
     ];
 
     return (
-      <div className="flex flex-col min-h-screen px-10 pt-12 pb-12">
-        {/* User card with pulse */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 mb-8 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
-            <span className="text-green-600 font-semibold text-lg">{name.charAt(0).toUpperCase()}</span>
-          </div>
-          <div>
-            <p className="font-medium text-gray-900">{name}</p>
-            <p className="text-gray-500 text-sm">Processing your style...</p>
-          </div>
-        </div>
+      <div className="flex flex-col min-h-screen px-10 pb-12">
+        {/* Spacer to push content to ~55% down the page */}
+        <div className="h-[45vh]" />
 
-        <h1 className="font-display text-2xl text-gray-900 leading-tight mb-6">
+        <h1 className="font-display text-4xl text-gray-900 leading-tight mb-6">
           Analyzing... we will send you an email when we're done
         </h1>
 

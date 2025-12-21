@@ -128,6 +128,17 @@ export interface BackendCelebMatch {
   categories: string[] | null;
   gender: string | null;
   color_aura_name: string;
+  style_1: string;
+  style_2: string;
+  style_3: string;
+}
+
+// ============================================================================
+// UPLOADED PHOTOS
+// ============================================================================
+
+export interface BackendUploadedPhoto {
+  signed_url: string;
 }
 
 // ============================================================================
@@ -200,4 +211,7 @@ export interface BackendWrappedInsights {
   total_clothing_items: number;
   total_outfits_analyzed: number;
   unique_colors_worn: number;
+
+  // Uploaded photos
+  all_uploaded_photos: BackendUploadedPhoto[];
 }

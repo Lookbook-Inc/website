@@ -16,7 +16,7 @@ interface ClothingItem {
   outfit_count: number;
   shade_hex_1: string;
   shade_name_1: string;
-  details?: string;
+  details: string | null;
 }
 
 interface ColorGroup {
@@ -40,6 +40,12 @@ interface CelebMatch {
   description: string;
   similarity_score: number;
   categories: string[];
+  color_aura_name: string;
+  top_style: string;
+}
+
+interface UploadedPhoto {
+  signed_url: string;
 }
 
 interface TopOutfit {
@@ -88,6 +94,7 @@ interface WrappedResults {
   style_description: string;
   total_clothing_items: number;
   top_outfits: TopOutfit[];
+  all_uploaded_photos: UploadedPhoto[];
 }
 
 // Mock data populated from the provided CSV values
@@ -123,7 +130,9 @@ const mockResults: WrappedResults = {
     celeb_name: 'Anirudh Satish',
     description: 'Brown man looking for his place in the world.',
     similarity_score: 32.78,
-    categories: ['Engineer']
+    categories: ['Engineer'],
+    color_aura_name: 'candlelit dinner',
+    top_style: 'minimalist'
   },
   most_worn_item: {
     name: 'Light-colored athletic sneakers',
@@ -131,7 +140,8 @@ const mockResults: WrappedResults = {
     item_type: 'shoes',
     outfit_count: 3,
     shade_hex_1: '#CED4D7',
-    shade_name_1: 'Grout'
+    shade_name_1: 'Grout',
+    details: null
   },
   best_pairings: [
     { garment_name: 'Medium-wash blue jeans', garment_path: '...', times_paired: 2 },
@@ -159,6 +169,11 @@ const mockResults: WrappedResults = {
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
       similarity_score: 0.1974
     }
+  ],
+  all_uploaded_photos: [
+    { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/58cae82f-990e-4f45-9bef-069590f93e54_original.jpeg' },
+    { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg' },
+    { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg' }
   ]
 };
 
@@ -240,8 +255,8 @@ export default function ResultsPage({ params }: Props) {
 
         // Extract all image URLs for preloading
         const imageUrls: (string | null | undefined)[] = [
-          // Top outfits (flip sequence)
-          ...transformed.top_outfits.map(o => o.path),
+          // All uploaded photos (flip sequence)
+          ...transformed.all_uploaded_photos.map(p => p.signed_url),
           // Most worn item
           transformed.most_worn_item.path,
           // Best pairings
@@ -617,13 +632,13 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const PhotoPageContent = ({ outfit, pageNum }: { outfit?: TopOutfit; pageNum: number }) => (
+  const PhotoPageContent = ({ photo, pageNum }: { photo?: UploadedPhoto; pageNum: number }) => (
     <div className="flex flex-col h-full items-center justify-center p-8">
       <div className="w-full aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 shadow-xl relative">
-        {outfit ? (
+        {photo ? (
           <img
-            src={outfit.path}
-            alt={`Top outfit ${pageNum}`}
+            src={photo.signed_url}
+            alt={`Uploaded photo ${pageNum}`}
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
@@ -635,7 +650,7 @@ export default function ResultsPage({ params }: Props) {
         )}
       </div>
       <p className="mt-4 font-display text-gray-400">
-        {outfit ? 'Top Outfit' : `Style Moment ${pageNum}`}
+        {photo ? 'Your Outfit' : `Style Moment ${pageNum}`}
       </p>
     </div>
   );
@@ -915,17 +930,13 @@ export default function ResultsPage({ params }: Props) {
   const CelebrityContent = ({ onNext, onBack, interactive = true }: { onNext?: () => void; onBack?: () => void; interactive?: boolean }) => (
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
       <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="shrink-0 mb-6">
-          <h1 className="font-display text-2xl leading-[0.9]">
-            Your<br />
-            Celebrity<br />
-            Lookalike
-          </h1>
-          <span className="font-display text-2xl">...</span>
-        </div>
-        
+        {/* Celebrity Name */}
+        <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
+          {results.top_celeb_match.celeb_name}
+        </h1>
+
         {/* Celebrity Image */}
-        <div className="flex-1 flex flex-col min-h-[350px]">
+        <div className="flex-1 flex flex-col min-h-[350px] mb-8">
           <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
             {results.top_celeb_match.celeb_photo_url ? (
               <img
@@ -942,8 +953,24 @@ export default function ResultsPage({ params }: Props) {
             )}
           </div>
         </div>
+
+        {/* Color Aura */}
+        <div className="mb-6 shrink-0">
+          <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Color Aura</h3>
+          <p className="text-sm text-zinc-400 leading-relaxed capitalize">
+            {results.top_celeb_match.color_aura_name}
+          </p>
+        </div>
+
+        {/* Style */}
+        <div className="mb-6 shrink-0">
+          <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Style</h3>
+          <p className="text-sm text-zinc-400 leading-relaxed capitalize">
+            {results.top_celeb_match.top_style.replace(/_/g, ' ')}
+          </p>
+        </div>
       </div>
-      
+
       <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
     </div>
   );
@@ -1377,15 +1404,15 @@ export default function ResultsPage({ params }: Props) {
       {Array.from({ length: TOTAL_FLIP_PAGES }, (_, i) => {
         const pageNum = i + 1;
         const zIndex = (TOTAL_FLIP_PAGES - i) * 10;
-        const outfit = results.top_outfits[i];
-        
+        const photo = results.all_uploaded_photos[i];
+
         return (
           <FlipPage
             key={pageNum}
             isFlipped={flippedPages[pageNum]}
             zIndex={zIndex}
           >
-            <PhotoPageContent outfit={outfit} pageNum={pageNum} />
+            <PhotoPageContent photo={photo} pageNum={pageNum} />
           </FlipPage>
         );
       })}

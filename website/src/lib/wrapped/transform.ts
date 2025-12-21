@@ -64,6 +64,8 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
       description: backend.top_celeb_match.description || '',
       similarity_score: backend.top_celeb_match.similarity_score,
       categories: backend.top_celeb_match.categories || [],
+      color_aura_name: backend.top_celeb_match.color_aura_name,
+      top_style: backend.top_celeb_match.style_1,
     },
 
     // Most worn item
@@ -110,6 +112,11 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
       photo_id: outfit.photo_id,
       path: outfit.signed_url, // Use signed URL for display
       similarity_score: outfit.similarity_score,
+    })),
+
+    // All uploaded photos
+    all_uploaded_photos: backend.all_uploaded_photos.map(photo => ({
+      signed_url: photo.signed_url,
     })),
   };
 }

@@ -623,30 +623,102 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const WelcomeContent = ({ onNext }: { onNext?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
-      <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-8">
-          {results.userName}—<br />
-          Welcome to your Lookbook.
-        </h1>
-      </div>
-      
-      <NavigationFooter onNext={onNext} nextText="enter →" />
-    </div>
-  );
+  const WelcomeContent = ({ onNext, isActive = true }: { onNext?: () => void; isActive?: boolean }) => {
+    const lineVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: (i: number) => ({
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 0.3 + i * 0.2,
+          duration: 0.6,
+          ease: [0.4, 0, 0.2, 1],
+        },
+      }),
+    };
 
-  const IntroContent = ({ onNext }: { onNext?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
-      <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-8">
-          We analyzed {results.total_outfits_analyzed} of your outfits to uncover your styles this year.
-        </h1>
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h1 className="font-display text-5xl text-gray-900 leading-[1.1] mb-8">
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={0}
+            >
+              {results.userName}—
+            </motion.span>
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={1}
+            >
+              Welcome to your Lookbook.
+            </motion.span>
+          </h1>
+        </div>
+
+        <NavigationFooter onNext={onNext} nextText="enter →" />
       </div>
-      
-      <NavigationFooter onNext={onNext} nextText="enter →" />
-    </div>
-  );
+    );
+  };
+
+  const IntroContent = ({ onNext, isActive = true }: { onNext?: () => void; isActive?: boolean }) => {
+    const lineVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: (i: number) => ({
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 0.3 + i * 0.2,
+          duration: 0.6,
+          ease: [0.4, 0, 0.2, 1],
+        },
+      }),
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h1 className="font-display text-5xl text-gray-900 leading-[1.1] mb-8">
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={0}
+            >
+              We analyzed <span style={{ color: '#8F9779' }}>{results.total_outfits_analyzed}</span> of your
+            </motion.span>
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={1}
+            >
+              outfits to uncover your
+            </motion.span>
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={2}
+            >
+              styles this year.
+            </motion.span>
+          </h1>
+        </div>
+
+        <NavigationFooter onNext={onNext} nextText="enter →" />
+      </div>
+    );
+  };
 
   const PhotoPageContent = ({ photo, pageNum }: { photo?: UploadedPhoto; pageNum: number }) => (
     <div className="flex flex-col h-full items-center justify-center p-8">
@@ -1649,14 +1721,14 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <IntroContent onNext={introFlip.flip} />
+              <IntroContent onNext={introFlip.flip} isActive={false} />
             </div>
             <FlipPage key="welcome" isFlipped={welcomeFlip.isFlipped} zIndex={10}>
-              <WelcomeContent onNext={welcomeFlip.flip} />
+              <WelcomeContent onNext={welcomeFlip.flip} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );
-      
+
       case 'intro':
         return (
           <FlipContainer>
@@ -1664,7 +1736,7 @@ export default function ResultsPage({ params }: Props) {
               <PhotoPageContent photo={results.all_uploaded_photos[0]} pageNum={1} />
             </div>
             <FlipPage key="intro" isFlipped={introFlip.isFlipped} zIndex={10}>
-              <IntroContent onNext={introFlip.flip} />
+              <IntroContent onNext={introFlip.flip} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );

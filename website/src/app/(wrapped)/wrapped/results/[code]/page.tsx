@@ -177,7 +177,7 @@ const mockResults: WrappedResults = {
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/58cae82f-990e-4f45-9bef-069590f93e54_original.jpeg' },
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg' },
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg' }
-  ]
+  ],
   top_decade: '2020s',
   decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.'
 };
@@ -1042,95 +1042,6 @@ export default function ResultsPage({ params }: Props) {
     );
   };
 
-  const CelebrityContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
-    const [revealed, setRevealed] = useState(false);
-    
-    useEffect(() => {
-      // Start the reveal animation after a brief pause
-      const timer = setTimeout(() => {
-        setRevealed(true);
-      }, 800);
-      return () => clearTimeout(timer);
-    }, []);
-
-    return (
-      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-        <div className="flex-1 flex flex-col overflow-hidden relative">
-          
-          {/* Title - animates from centered/large to top/small */}
-          <motion.div 
-            className="shrink-0"
-            initial={false}
-            animate={{
-              y: revealed ? 0 : '30vh',
-            }}
-            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <motion.h1 
-              className="font-display leading-[0.9]"
-              initial={false}
-              animate={{
-                fontSize: revealed ? '1.5rem' : '3.75rem',
-              }}
-              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-            >
-              Your<br />
-              Celebrity<br />
-              Lookalike
-            </motion.h1>
-            <motion.span 
-              className="font-display block"
-              initial={false}
-              animate={{
-                fontSize: revealed ? '1.5rem' : '2.25rem',
-                marginTop: revealed ? '0' : '0.5rem',
-              }}
-              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-            >
-              ...
-            </motion.span>
-          </motion.div>
-          
-          {/* Celebrity Image - fades in and slides up */}
-          <motion.div 
-            className="flex-1 flex flex-col min-h-[350px] mt-6"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ 
-              opacity: revealed ? 1 : 0, 
-              y: revealed ? 0 : 40 
-            }}
-            transition={{ duration: 0.6, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
-              {results.top_celeb_match.celeb_photo_url ? (
-                <img
-                  src={results.top_celeb_match.celeb_photo_url}
-                  alt={results.top_celeb_match.celeb_name}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-                  <span className="text-zinc-500 text-sm uppercase tracking-widest">
-                    {results.top_celeb_match.celeb_name}
-                  </span>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-        
-        {/* Footer - fades in after reveal */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: revealed ? 1 : 0 }}
-          transition={{ duration: 0.4, delay: 0.6 }}
-        >
-          <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-        </motion.div>
-      </div>
-    );
-  };
-
   const CelebrityContent = ({ onNext, onBack, interactive = true }: { onNext?: () => void; onBack?: () => void; interactive?: boolean }) => (
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
       <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -1178,6 +1089,95 @@ export default function ResultsPage({ params }: Props) {
       <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
     </div>
   );
+
+  // const CelebrityContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
+  //   const [revealed, setRevealed] = useState(false);
+    
+  //   useEffect(() => {
+  //     // Start the reveal animation after a brief pause
+  //     const timer = setTimeout(() => {
+  //       setRevealed(true);
+  //     }, 800);
+  //     return () => clearTimeout(timer);
+  //   }, []);
+
+  //   return (
+  //     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
+  //       <div className="flex-1 flex flex-col overflow-hidden relative">
+          
+  //         {/* Title - animates from centered/large to top/small */}
+  //         <motion.div 
+  //           className="shrink-0"
+  //           initial={false}
+  //           animate={{
+  //             y: revealed ? 0 : '30vh',
+  //           }}
+  //           transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+  //         >
+  //           <motion.h1 
+  //             className="font-display leading-[0.9]"
+  //             initial={false}
+  //             animate={{
+  //               fontSize: revealed ? '1.5rem' : '3.75rem',
+  //             }}
+  //             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+  //           >
+  //             Your<br />
+  //             Celebrity<br />
+  //             Lookalike
+  //           </motion.h1>
+  //           <motion.span 
+  //             className="font-display block"
+  //             initial={false}
+  //             animate={{
+  //               fontSize: revealed ? '1.5rem' : '2.25rem',
+  //               marginTop: revealed ? '0' : '0.5rem',
+  //             }}
+  //             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+  //           >
+  //             ...
+  //           </motion.span>
+  //         </motion.div>
+          
+  //         {/* Celebrity Image - fades in and slides up */}
+  //         <motion.div 
+  //           className="flex-1 flex flex-col min-h-[350px] mt-6"
+  //           initial={{ opacity: 0, y: 40 }}
+  //           animate={{ 
+  //             opacity: revealed ? 1 : 0, 
+  //             y: revealed ? 0 : 40 
+  //           }}
+  //           transition={{ duration: 0.6, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+  //         >
+  //           <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
+  //             {results.top_celeb_match.celeb_photo_url ? (
+  //               <img
+  //                 src={results.top_celeb_match.celeb_photo_url}
+  //                 alt={results.top_celeb_match.celeb_name}
+  //                 className="absolute inset-0 w-full h-full object-cover"
+  //               />
+  //             ) : (
+  //               <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+  //                 <span className="text-zinc-500 text-sm uppercase tracking-widest">
+  //                   {results.top_celeb_match.celeb_name}
+  //                 </span>
+  //               </div>
+  //             )}
+  //           </div>
+  //         </motion.div>
+  //       </div>
+        
+  //       {/* Footer - fades in after reveal */}
+  //       <motion.div
+  //         initial={{ opacity: 0 }}
+  //         animate={{ opacity: revealed ? 1 : 0 }}
+  //         transition={{ duration: 0.4, delay: 0.6 }}
+  //       >
+  //         <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+  //       </motion.div>
+  //     </div>
+  //   );
+  // };
 
   const CityIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
@@ -1659,7 +1659,7 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <PhotoPageContent outfit={results.top_outfits[0]} pageNum={1} />
+              <PhotoPageContent photo={results.all_uploaded_photos[0]} pageNum={1} />
             </div>
             <FlipPage key="intro" isFlipped={introFlip.isFlipped} zIndex={10}>
               <IntroContent onNext={introFlip.flip} />

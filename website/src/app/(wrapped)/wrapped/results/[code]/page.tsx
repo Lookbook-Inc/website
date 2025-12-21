@@ -507,13 +507,19 @@ export default function ResultsPage({ params }: Props) {
       <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <h3 className="font-display text-lg text-gray-900 mb-8">You've worn it with...</h3>
         
-        <div className="space-y-4 flex-1">
+        <div className="flex-1 flex flex-col pb-10">
           {results.best_pairings.map((pairing, i) => (
-            <div key={i} className="w-full aspect-video rounded-xl overflow-hidden bg-[#F1EDE7] shadow-sm relative shrink-0">
+            <div 
+              key={i} 
+              className={`w-[40vw] max-w-[200px] aspect-square relative shrink-0 rounded-2xl bg-black/10 ${
+                i % 2 === 0 ? 'self-start' : 'self-end mr-4'
+              } ${i > 0 ? '-mt-8' : ''}`}
+              style={{ zIndex: i + 1 }}
+            >
               <img
                 src={pairing.garment_path}
                 alt={pairing.garment_name}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="w-full h-full object-contain drop-shadow-lg"
               />
             </div>
           ))}

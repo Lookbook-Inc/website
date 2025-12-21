@@ -7,7 +7,7 @@
  * Authentication: All requests include Authorization header with Supabase JWT token
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_WRAPPED_BACKEND_URL || 'http://localhost:8002'
+const API_BASE_URL = process.env.NEXT_PUBLIC_WRAPPED_BACKEND_URL // || 'http://localhost:8002'
 
 /**
  * Helper to get auth token from Supabase session

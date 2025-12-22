@@ -501,76 +501,217 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const FavPairingsContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
-      <FavSidebar />
-      <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h3 className="font-display text-lg text-gray-900 mb-8">You've worn it with...</h3>
-        
-        <div className="flex-1 flex flex-col pb-10">
-          {results.best_pairings.map((pairing, i) => (
-            <div 
-              key={i} 
-              className={`w-[40vw] max-w-[200px] aspect-square relative shrink-0 rounded-2xl bg-black/10 ${
-                i % 2 === 0 ? 'self-start' : 'self-end mr-4'
-              } ${i > 0 ? '-mt-8' : ''}`}
-              style={{ zIndex: i + 1 }}
-            >
-              <img
-                src={pairing.garment_path}
-                alt={pairing.garment_name}
-                className="w-full h-full object-contain drop-shadow-lg"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      <NavigationFooter onNext={onNext} onBack={onBack} />
-    </div>
-  );
+  const FavPairingsContent = ({ 
+    onNext, 
+    onBack,
+    isActive = true 
+  }: { 
+    onNext?: () => void; 
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    // Container variants for staggered children
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.5,
+          delayChildren: 0,
+        },
+      },
+    };
 
-  const UnwornPairingsContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-black text-white">
-      <FavSidebar light={false} />
-      <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h3 className="font-display text-lg text-white mb-8">You haven't worn it with these yet...</h3>
-        
-        <div className="relative flex-1 min-h-[300px]">
-          {/* Staggered layout as seen in image */}
-          {results.unworn_pairings[0] && (
-            <div className="absolute top-0 right-0 w-2/3 aspect-[3/4] rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800">
-              <img
-                src={results.unworn_pairings[0].garment_path}
-                alt={results.unworn_pairings[0].garment_name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          {results.unworn_pairings[1] && (
-            <div className="absolute top-1/4 left-0 w-2/3 aspect-video rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800 z-10 opacity-60">
-              <img
-                src={results.unworn_pairings[1].garment_path}
-                alt={results.unworn_pairings[1].garment_name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          {results.unworn_pairings[2] && (
-            <div className="absolute bottom-0 right-4 w-3/4 aspect-video rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800 opacity-40">
-              <img
-                src={results.unworn_pairings[2].garment_path}
-                alt={results.unworn_pairings[2].garment_name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
+    // Individual item variants - slide up from below
+    const itemVariants = {
+      hidden: {
+        y: 60,
+        opacity: 0,
+      },
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.5,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
+        <FavSidebar />
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h3 className="font-display text-2xl text-gray-900 mb-8">You've paired it with:</h3>
+          
+          <motion.div 
+            className="flex-1 flex flex-col pb-10"
+            variants={containerVariants}
+            initial="hidden"
+            animate={isActive ? "visible" : "hidden"}
+          >
+            {results.best_pairings.map((pairing, i) => {
+              const zIndex = i;
+              
+              // Overlap and jitter variations
+              const overlaps = [0, -45, -65, -40, -35];
+              // Jitter as vw percentages, capped at proportion of max-w-md (448px)
+              const jitterConfigs = [
+                { pct: -5, max: -22 },
+                { pct: 3, max: 100 }, 
+                { pct: 0, max: 0 },
+                { pct: 0, max: 0 },
+                { pct: -4, max: -18 },
+              ];
+              
+              const marginTop = i > 0 ? overlaps[i % overlaps.length] : 0;
+              const jitter = jitterConfigs[i % jitterConfigs.length];
+              const translateX = jitter.pct >= 0 
+                ? `min(${jitter.pct}vw, ${jitter.max}px)` 
+                : `max(${jitter.pct}vw, ${jitter.max}px)`;
+
+              return (
+                <motion.div 
+                  key={i} 
+                  variants={itemVariants}
+                  className={`w-[40vw] max-w-[200px] aspect-square rounded-xl overflow-hidden bg-[#F1EDE7] shadow-md relative shrink-0 border-1 border-[#FFFAF4] ${
+                    i % 2 === 0 ? 'self-end mr-4' : 'self-start'
+                  }`}
+                  style={{ 
+                    zIndex, 
+                    marginTop: `${marginTop}px`,
+                    transform: `translateX(${translateX})`,
+                    WebkitMaskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)',
+                    maskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)'
+                  }}
+                >
+                  <img
+                    src={pairing.garment_path}
+                    alt={pairing.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {/* 3D effect overlay */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%)'
+                    }}
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
         </div>
+        
+        <NavigationFooter onNext={onNext} onBack={onBack} />
       </div>
-      
-      <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-    </div>
-  );
+    );
+  };
+
+  const UnwornPairingsContent = ({ 
+    onNext, 
+    onBack,
+    isActive = true 
+  }: { 
+    onNext?: () => void; 
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    // Container variants for staggered children
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.5,
+          delayChildren: 0,
+        },
+      },
+    };
+
+    // Individual item variants - slide up from below
+    const itemVariants = {
+      hidden: {
+        y: 60,
+        opacity: 0,
+      },
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.5,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-black text-white">
+        <FavSidebar light={false} />
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h3 className="font-display text-2xl text-[#F7EFE5] mb-8 text-right">You haven't worn it with these yet...</h3>
+          
+          <motion.div 
+            className="flex-1 flex flex-col pb-10"
+            variants={containerVariants}
+            initial="hidden"
+            animate={isActive ? "visible" : "hidden"}
+          >
+            {results.unworn_pairings.map((pairing, i) => {
+              const zIndex = i;
+              
+              // Overlap and jitter variations
+              const overlaps = [0, -45, -65, -40, -35];
+              // Jitter as vw percentages, capped at proportion of max-w-md (448px)
+              const jitterConfigs = [
+                { pct: -5, max: -22 },
+                { pct: 3, max: 100 }, 
+                { pct: 0, max: 0 },
+                { pct: 0, max: 0 },
+                { pct: -4, max: -18 },
+              ];
+              
+              const marginTop = i > 0 ? overlaps[i % overlaps.length] : 0;
+              const jitter = jitterConfigs[i % jitterConfigs.length];
+              const translateX = jitter.pct >= 0 
+                ? `min(${jitter.pct}vw, ${jitter.max}px)` 
+                : `max(${jitter.pct}vw, ${jitter.max}px)`;
+
+              return (
+                <motion.div 
+                  key={i} 
+                  variants={itemVariants}
+                  className={`w-[40vw] max-w-[200px] aspect-square rounded-xl overflow-hidden bg-zinc-400 shadow-md relative shrink-0 border-1 border-zinc-200 ${
+                    i % 2 === 0 ? 'self-end mr-4' : 'self-start'
+                  }`}
+                  style={{ 
+                    zIndex, 
+                    marginTop: `${marginTop}px`,
+                    transform: `translateX(${translateX})`,
+                    WebkitMaskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)',
+                    maskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)'
+                  }}
+                >
+                  <img
+                    src={pairing.garment_path}
+                    alt={pairing.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {/* 3D effect overlay - adjusted for light card on dark background */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%)'
+                    }}
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+        
+        <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+      </div>
+    );
+  };
 
   const StyleSidebar = ({ light = true }: { light?: boolean }) => (
     <div className="absolute left-0 top-0 bottom-0 w-24 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
@@ -1680,7 +1821,11 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <FavPairingsContent onNext={favPairingsFlip.flip} onBack={onBack['fav-pairings']} />
+              <FavPairingsContent 
+                isActive={false}
+                onNext={favPairingsFlip.flip} 
+                onBack={onBack['fav-pairings']} 
+              />
             </div>
             <FlipPage key="fav-item" isFlipped={favItemFlip.isFlipped} zIndex={10}>
               <FavItemContent onNext={favItemFlip.flip} />
@@ -1692,10 +1837,18 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-black z-0">
-              <UnwornPairingsContent onNext={unwornPairingsFlip.flip} onBack={onBack['unworn-pairings']} />
+              <UnwornPairingsContent 
+                isActive={false}
+                onNext={unwornPairingsFlip.flip} 
+                onBack={onBack['unworn-pairings']} 
+              />
             </div>
             <FlipPage key="fav-pairings" isFlipped={favPairingsFlip.isFlipped} zIndex={10}>
-              <FavPairingsContent onNext={favPairingsFlip.flip} onBack={onBack['fav-pairings']} />
+              <FavPairingsContent 
+                isActive={true}
+                onNext={favPairingsFlip.flip} 
+                onBack={onBack['fav-pairings']} 
+              />
             </FlipPage>
           </FlipContainer>
         );
@@ -1707,7 +1860,11 @@ export default function ResultsPage({ params }: Props) {
               <TopStylesContent onNext={topStylesFlip.flip} onBack={onBack['top-styles']} />
             </div>
             <FlipPage key="unworn-pairings" isFlipped={unwornPairingsFlip.isFlipped} zIndex={10}>
-              <UnwornPairingsContent onNext={unwornPairingsFlip.flip} onBack={onBack['unworn-pairings']} />
+              <UnwornPairingsContent 
+                isActive={true}
+                onNext={unwornPairingsFlip.flip} 
+                onBack={onBack['unworn-pairings']} 
+              />
             </FlipPage>
           </FlipContainer>
         );

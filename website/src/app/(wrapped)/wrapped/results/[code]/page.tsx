@@ -274,12 +274,25 @@ export default function ResultsPage({ params }: Props) {
         // Transform backend data to frontend format
         const transformed = transformWrappedInsights(backendData);
 
-        // Extract all image URLs for preloading
-        const imageUrls: (string | null | undefined)[] = [
-          // All uploaded photos (flip sequence)
-          ...transformed.all_uploaded_photos.map(p => p.signed_url),
-          // Most worn item
+        // Phase 1: Preload critical images (blocks until loaded)
+        // These are needed for the initial flip sequence + first content screen
+        const criticalImages: (string | null | undefined)[] = [
+          // First 10 photos for flip sequence
+          ...transformed.all_uploaded_photos.slice(0, 10).map(p => p.signed_url),
+          // Most worn item (shown right after flip)
           transformed.most_worn_item.path,
+        ];
+
+        await preloadImages(criticalImages);
+
+        // Set results and hide loading - user can start viewing!
+        setResults(transformed as WrappedResults);
+        setLoading(false);
+
+        // Phase 2: Preload remaining images in background (non-blocking)
+        const remainingImages: (string | null | undefined)[] = [
+          // Remaining uploaded photos (if more than 10)
+          ...transformed.all_uploaded_photos.slice(10).map(p => p.signed_url),
           // Best pairings
           ...transformed.best_pairings.map(p => p.garment_path),
           // Unworn pairings
@@ -292,12 +305,8 @@ export default function ResultsPage({ params }: Props) {
           transformed.decade_photo_url,
         ];
 
-        // Preload all images before showing results
-        await preloadImages(imageUrls);
-
-        // Set results and hide loading
-        setResults(transformed as WrappedResults);
-        setLoading(false);
+        // Fire and forget - loads while user views initial screens
+        preloadImages(remainingImages);
       } catch (err) {
         console.error('Failed to fetch insights:', err);
         setError(err instanceof Error ? err.message : 'Failed to load insights');

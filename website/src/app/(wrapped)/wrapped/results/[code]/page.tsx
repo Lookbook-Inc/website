@@ -477,29 +477,37 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const FavItemContent = ({ onNext }: { onNext?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
-      <FavSidebar />
-      <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h3 className="font-display text-lg text-gray-900 mb-1">One piece carried your aesthetic</h3>
-        <p className="text-sm text-gray-500 mb-8 leading-snug max-w-[200px]">
-          {results.clothing_items_description}
-        </p>
-        
-        <div className="flex-1 flex flex-col">
-          <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm relative shrink-0">
-            <img
-              src={results.most_worn_item.path}
-              alt={results.most_worn_item.name}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+  const FavItemContent = ({ onNext }: { onNext?: () => void }) => {
+    const displayName = results.most_worn_item.name.split('(')[0].trim();
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
+        <FavSidebar />
+        <div className="flex-1 flex flex-col justify-center pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">One piece anchored your outfits this year...</h3>
+          <p className="text-md text-gray-500 leading-snug mb-8 text-right">
+              This piece was a constant in your rotation - and for good reason.
+            </p>
+          <div className="flex flex-col rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm shrink-0 mb-4">
+            <div className="w-full aspect-[3/4] relative overflow-hidden">
+              <img
+                src={results.most_worn_item.path}
+                alt={results.most_worn_item.name}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </div>
+            <div className="p-6 pt-4 text-center">
+              <p className="font-sans text-xs font-bold uppercase text-gray-900/50 tracking-[0.1em]">{displayName}</p>
+              {/* <p className="font-display text-sm text-gray-900/50 lowercase">{displayName}</p> */}
+            </div>
           </div>
+
         </div>
+        
+        <NavigationFooter onNext={onNext} />
       </div>
-      
-      <NavigationFooter onNext={onNext} />
-    </div>
-  );
+    );
+  };
 
   const FavPairingsContent = ({ 
     onNext, 
@@ -1046,7 +1054,7 @@ export default function ResultsPage({ params }: Props) {
                 key={i}
                 custom={direction}
                 variants={itemVariants}
-                className={`h-[12vh] w-[50vw] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
+                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
                   light ? 'text-black' : 'text-white'
                 }`}
                 style={{ backgroundColor: c.top_shade_hex }}
@@ -1099,7 +1107,7 @@ export default function ResultsPage({ params }: Props) {
                 key={i}
                 custom={direction}
                 variants={itemVariants}
-                className={`h-[12vh] w-[50vw] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
+                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
                   light ? 'text-black' : 'text-white'
                 }`}
                 style={{ backgroundColor: c.shade_hex }}
@@ -1189,142 +1197,142 @@ export default function ResultsPage({ params }: Props) {
     );
   };
 
-  const CelebrityContent = ({ onNext, onBack, interactive = true }: { onNext?: () => void; onBack?: () => void; interactive?: boolean }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-      <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {/* Celebrity Name */}
-        <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
-          {results.top_celeb_match.celeb_name}
-        </h1>
+  // const CelebrityContent = ({ onNext, onBack, interactive = true }: { onNext?: () => void; onBack?: () => void; interactive?: boolean }) => (
+  //   <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
+  //     <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  //       {/* Celebrity Name */}
+  //       <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
+  //         {results.top_celeb_match.celeb_name}
+  //       </h1>
 
-        {/* Celebrity Image */}
-        <div className="flex-1 flex flex-col min-h-[350px] mb-8">
-          <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
-            {results.top_celeb_match.celeb_photo_url ? (
-              <img
-                src={results.top_celeb_match.celeb_photo_url}
-                alt={results.top_celeb_match.celeb_name}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-                <span className="text-zinc-500 text-sm uppercase tracking-widest">
-                  {results.top_celeb_match.celeb_name}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Color Aura */}
-        <div className="mb-6 shrink-0">
-          <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Color Aura</h3>
-          <p className="text-sm text-zinc-400 leading-relaxed capitalize">
-            {results.top_celeb_match.color_aura_name}
-          </p>
-        </div>
-
-        {/* Style */}
-        <div className="mb-6 shrink-0">
-          <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Style</h3>
-          <p className="text-sm text-zinc-400 leading-relaxed capitalize">
-            {results.top_celeb_match.top_style.replace(/_/g, ' ')}
-          </p>
-        </div>
-      </div>
-
-      <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-    </div>
-  );
-
-  // const CelebrityContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
-  //   const [revealed, setRevealed] = useState(false);
-    
-  //   useEffect(() => {
-  //     // Start the reveal animation after a brief pause
-  //     const timer = setTimeout(() => {
-  //       setRevealed(true);
-  //     }, 800);
-  //     return () => clearTimeout(timer);
-  //   }, []);
-
-  //   return (
-  //     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-  //       <div className="flex-1 flex flex-col overflow-hidden relative">
-          
-  //         {/* Title - animates from centered/large to top/small */}
-  //         <motion.div 
-  //           className="shrink-0"
-  //           initial={false}
-  //           animate={{
-  //             y: revealed ? 0 : '30vh',
-  //           }}
-  //           transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-  //         >
-  //           <motion.h1 
-  //             className="font-display leading-[0.9]"
-  //             initial={false}
-  //             animate={{
-  //               fontSize: revealed ? '1.5rem' : '3.75rem',
-  //             }}
-  //             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-  //           >
-  //             Your<br />
-  //             Celebrity<br />
-  //             Lookalike
-  //           </motion.h1>
-  //           <motion.span 
-  //             className="font-display block"
-  //             initial={false}
-  //             animate={{
-  //               fontSize: revealed ? '1.5rem' : '2.25rem',
-  //               marginTop: revealed ? '0' : '0.5rem',
-  //             }}
-  //             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-  //           >
-  //             ...
-  //           </motion.span>
-  //         </motion.div>
-          
-  //         {/* Celebrity Image - fades in and slides up */}
-  //         <motion.div 
-  //           className="flex-1 flex flex-col min-h-[350px] mt-6"
-  //           initial={{ opacity: 0, y: 40 }}
-  //           animate={{ 
-  //             opacity: revealed ? 1 : 0, 
-  //             y: revealed ? 0 : 40 
-  //           }}
-  //           transition={{ duration: 0.6, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-  //         >
-  //           <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
-  //             {results.top_celeb_match.celeb_photo_url ? (
-  //               <img
-  //                 src={results.top_celeb_match.celeb_photo_url}
-  //                 alt={results.top_celeb_match.celeb_name}
-  //                 className="absolute inset-0 w-full h-full object-cover"
-  //               />
-  //             ) : (
-  //               <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-  //                 <span className="text-zinc-500 text-sm uppercase tracking-widest">
-  //                   {results.top_celeb_match.celeb_name}
-  //                 </span>
-  //               </div>
-  //             )}
-  //           </div>
-  //         </motion.div>
+  //       {/* Celebrity Image */}
+  //       <div className="flex-1 flex flex-col min-h-[350px] mb-8">
+  //         <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
+  //           {results.top_celeb_match.celeb_photo_url ? (
+  //             <img
+  //               src={results.top_celeb_match.celeb_photo_url}
+  //               alt={results.top_celeb_match.celeb_name}
+  //               className="absolute inset-0 w-full h-full object-cover"
+  //             />
+  //           ) : (
+  //             <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+  //               <span className="text-zinc-500 text-sm uppercase tracking-widest">
+  //                 {results.top_celeb_match.celeb_name}
+  //               </span>
+  //             </div>
+  //           )}
+  //         </div>
   //       </div>
-        
-  //       {/* Footer - fades in after reveal */}
-  //       <motion.div
-  //         initial={{ opacity: 0 }}
-  //         animate={{ opacity: revealed ? 1 : 0 }}
-  //         transition={{ duration: 0.4, delay: 0.6 }}
-  //       >
-  //         <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-  //       </motion.div>
+
+  //       {/* Color Aura */}
+  //       <div className="mb-6 shrink-0">
+  //         <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Color Aura</h3>
+  //         <p className="text-sm text-zinc-400 leading-relaxed capitalize">
+  //           {results.top_celeb_match.color_aura_name}
+  //         </p>
+  //       </div>
+
+  //       {/* Style */}
+  //       <div className="mb-6 shrink-0">
+  //         <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Style</h3>
+  //         <p className="text-sm text-zinc-400 leading-relaxed capitalize">
+  //           {results.top_celeb_match.top_style.replace(/_/g, ' ')}
+  //         </p>
+  //       </div>
   //     </div>
-  //   );
-  // };
+
+  //     <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+  //   </div>
+  // );
+
+  const CelebrityContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
+    const [revealed, setRevealed] = useState(false);
+    
+    useEffect(() => {
+      // Start the reveal animation after a brief pause
+      const timer = setTimeout(() => {
+        setRevealed(true);
+      }, 800);
+      return () => clearTimeout(timer);
+    }, []);
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          
+          {/* Title - animates from centered/large to top/small */}
+          <motion.div 
+            className="shrink-0"
+            initial={false}
+            animate={{
+              y: revealed ? 0 : '30vh',
+            }}
+            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <motion.h1 
+              className="font-display leading-[0.9]"
+              initial={false}
+              animate={{
+                fontSize: revealed ? '1.5rem' : '3.75rem',
+              }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              Your<br />
+              Celebrity<br />
+              Lookalike
+            </motion.h1>
+            <motion.span 
+              className="font-display block"
+              initial={false}
+              animate={{
+                fontSize: revealed ? '1.5rem' : '2.25rem',
+                marginTop: revealed ? '0' : '0.5rem',
+              }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              ...
+            </motion.span>
+          </motion.div>
+          
+          {/* Celebrity Image - fades in and slides up */}
+          <motion.div 
+            className="flex-1 flex flex-col min-h-[350px] mt-6"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ 
+              opacity: revealed ? 1 : 0, 
+              y: revealed ? 0 : 40 
+            }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
+              {results.top_celeb_match.celeb_photo_url ? (
+                <img
+                  src={results.top_celeb_match.celeb_photo_url}
+                  alt={results.top_celeb_match.celeb_name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+                  <span className="text-zinc-500 text-sm uppercase tracking-widest">
+                    {results.top_celeb_match.celeb_name}
+                  </span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+        
+        {/* Footer - fades in after reveal */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: revealed ? 1 : 0 }}
+          transition={{ duration: 0.4, delay: 0.6 }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+        </motion.div>
+      </div>
+    );
+  };
 
   const CityIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">

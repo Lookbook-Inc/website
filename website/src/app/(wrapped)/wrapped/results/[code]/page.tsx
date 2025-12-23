@@ -220,6 +220,7 @@ const FlipContainer = ({ children }: { children: ReactNode }) => (
 export default function ResultsPage({ params }: Props) {
   const [step, setStep] = useState<Step>('welcome');
   const [results, setResults] = useState<WrappedResults>(mockResults); // Start with mock data to avoid null checks
+  const [selectedOutfitIndex, setSelectedOutfitIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [colorsView, setColorsView] = useState<'colors' | 'shades'>('colors');
@@ -435,7 +436,8 @@ export default function ResultsPage({ params }: Props) {
     nextText = "continue →", 
     backText = "← back",
     light = true,
-    leftLabel = "Lookbook"
+    leftLabel = "Lookbook",
+    disabled = false
   }: { 
     onNext?: () => void; 
     onBack?: () => void; 
@@ -443,6 +445,7 @@ export default function ResultsPage({ params }: Props) {
     backText?: string;
     light?: boolean;
     leftLabel?: string;
+    disabled?: boolean;
   }) => {
     // Match the background color of the current screen to "punch out" the text from the sidebar
     const bgColor = light ? '#FFFAF4' : '#000000';
@@ -472,7 +475,8 @@ export default function ResultsPage({ params }: Props) {
         {onNext && (
           <button 
             onClick={onNext} 
-            className={`${light ? 'text-gray-900' : 'text-white'} text-lg px-2 py-0.5 rounded-sm`}
+            disabled={disabled}
+            className={`${light ? 'text-gray-900' : 'text-[#F7EFE5]'} text-lg px-2 py-0.5 rounded-sm transition-opacity ${disabled ? 'opacity-20 cursor-not-allowed' : 'opacity-100'}`}
             style={{ backgroundColor: bgColor }}
           >
             {nextText}
@@ -1426,7 +1430,7 @@ export default function ResultsPage({ params }: Props) {
     const dotStagger = 0.2; // stagger between dots appearing
     const singleLoopDuration = 1.0; // total time for one complete cycle (in/hold/out)
     const loopPause = 0.4; // pause between loops
-    const numLoops = 2;
+    const numLoops = 1;
     const repeatDelay = loopPause + (2 * dotStagger);
     const totalDotsTime = (singleLoopDuration + (numLoops - 1) * (singleLoopDuration + repeatDelay) + (2 * dotStagger)) * 1000;
     
@@ -1701,20 +1705,82 @@ export default function ResultsPage({ params }: Props) {
   );
   };
 
-  const TopOutfitsIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-      <div className="flex-1 flex flex-col justify-center overflow-hidden">
-        <h1 className="font-display text-3xl leading-[1.2] text-left">
-          Okay, this is it.
-        </h1>
-        <p className="font-display text-3xl leading-[1.2] text-left mt-4">
-          Out of your <span className="italic">{results.total_outfits_analyzed}</span> photos, here are our 5 favorite outfits.
-        </p>
+  const TopOutfitsIntroContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
+    const [phase, setPhase] = useState<'initial' | 'first' | 'transition' | 'second'>('initial');
+
+    useEffect(() => {
+      if (!isActive) {
+        setPhase('initial');
+        return;
+      }
+
+      // Initial delay to wait for the page flip to be fully finished and settled
+      const settleTimer = setTimeout(() => {
+        setPhase('first');
+        
+        // After 1000ms of "Okay, this is it" being visible, start the fade out
+        const transitionTimer = setTimeout(() => {
+          setPhase('transition');
+        }, 1000);
+
+        // After the fade out, show the second line
+        const secondTimer = setTimeout(() => {
+          setPhase('second');
+        }, 1800);
+
+        return () => {
+          clearTimeout(transitionTimer);
+          clearTimeout(secondTimer);
+        };
+      }, 400); // Increased wait time for flip to settle
+
+      return () => clearTimeout(settleTimer);
+    }, [isActive]);
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-[#FFFAF4] text-gray-900">
+        <div className="flex-1 flex flex-col justify-center overflow-hidden">
+          <AnimatePresence mode="wait">
+            {(phase === 'first' || phase === 'transition') && (
+              <motion.h1
+                key="first"
+                className="font-display text-4xl leading-[1.2] text-left"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ 
+                  opacity: phase === 'first' ? 1 : 0, 
+                  y: phase === 'first' ? 0 : -10 
+                }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+              >
+                Okay, this is it.
+              </motion.h1>
+            )}
+
+            {phase === 'second' && (
+              <motion.p
+                key="second"
+                className="font-display text-4xl leading-[1.2] text-left"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+              >
+                Out of your {results.total_outfits_analyzed} photos, here are our <span style={{ color: '#D1BB99' }}> 5 favorite outfits.</span>
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </div>
+        
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: phase === 'second' ? 1 : 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={true} />
+        </motion.div>
       </div>
-      
-      <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-    </div>
-  );
+    );
+  };
 
   const TopOutfitsPickContent = ({ 
     onNext, 
@@ -1723,25 +1789,27 @@ export default function ResultsPage({ params }: Props) {
     onNext?: () => void; 
     onBack?: () => void;
   }) => {
-    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-    
     // Get top 5 outfits (or fewer if not available)
     const topFive = results.top_outfits.slice(0, 5);
     
     return (
       <div className="flex flex-col h-[100dvh] px-6 pt-12 pb-4 bg-black text-[#F7EFE5]">
-        <div className="shrink-0 mb-6">
-          <h3 className="font-display text-xl text-center">Pick out your favorite one.</h3>
-        </div>
-        
         <div className="flex-1 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="grid grid-cols-2 gap-3">
+            {/* Top Left: The prompt text */}
+            <div className="aspect-[3/4] flex flex-col justify-start pb-4 pr-2">
+              <h3 className="font-display text-2xl leading-[1.1] text-left">
+                Pick out <br />your <br /> <span style={{ color: '#D1BB99' }}>personal favorite.</span>
+              </h3>
+            </div>
+
+            {/* The rest of the grid: Top 5 outfits */}
             {topFive.map((outfit, i) => (
               <motion.button
                 key={outfit.photo_id}
-                onClick={() => setSelectedIndex(i)}
+                onClick={() => setSelectedOutfitIndex(i)}
                 className={`aspect-[3/4] rounded-xl overflow-hidden relative border-2 transition-all ${
-                  selectedIndex === i 
+                  selectedOutfitIndex === i 
                     ? 'border-white shadow-lg scale-[1.02]' 
                     : 'border-transparent'
                 }`}
@@ -1752,7 +1820,7 @@ export default function ResultsPage({ params }: Props) {
                   alt={`Outfit ${i + 1}`}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-                {selectedIndex === i && (
+                {selectedOutfitIndex === i && (
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -1777,7 +1845,8 @@ export default function ResultsPage({ params }: Props) {
           onNext={onNext} 
           onBack={onBack} 
           light={false}
-          nextText={selectedIndex !== null ? "see summary →" : "skip →"}
+          nextText="see summary →"
+          disabled={selectedOutfitIndex === null}
         />
       </div>
     );
@@ -1789,6 +1858,11 @@ export default function ResultsPage({ params }: Props) {
     const [shareSupported] = useState(() => 
       typeof navigator !== 'undefined' && !!navigator.share && !!navigator.canShare
     );
+
+    // Determine which outfit to show - use user selection if available, else top outfit
+    const signatureOutfit = selectedOutfitIndex !== null 
+      ? results.top_outfits[selectedOutfitIndex] 
+      : results.top_outfits[0];
 
     // Capture card as data URL
     const captureCard = async (): Promise<string | null> => {
@@ -1954,9 +2028,9 @@ export default function ResultsPage({ params }: Props) {
 
               {/* Main photo */}
               <div className="flex-1 bg-gray-100 rounded-2xl overflow-hidden mb-4 relative min-h-[280px]">
-                {results.top_outfits[0]?.path ? (
+                {signatureOutfit?.path ? (
                   <img
-                    src={results.top_outfits[0].path}
+                    src={signatureOutfit.path}
                     alt="Your signature look"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
@@ -2302,8 +2376,8 @@ export default function ResultsPage({ params }: Props) {
       case 'city-reveal':
         return (
           <FlipContainer>
-            <div className="absolute inset-0 bg-black z-0">
-              <TopOutfitsIntroContent onNext={topOutfitsIntroFlip.flip} onBack={onBack['top-outfits-intro']} />
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <TopOutfitsIntroContent onNext={topOutfitsIntroFlip.flip} onBack={onBack['top-outfits-intro']} isActive={false} />
             </div>
             <FlipPage key="city-reveal" isFlipped={cityRevealFlip.isFlipped} zIndex={10}>
               <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} />
@@ -2318,7 +2392,7 @@ export default function ResultsPage({ params }: Props) {
               <TopOutfitsPickContent onNext={topOutfitsPickFlip.flip} onBack={onBack['top-outfits-pick']} />
             </div>
             <FlipPage key="top-outfits-intro" isFlipped={topOutfitsIntroFlip.isFlipped} zIndex={10}>
-              <TopOutfitsIntroContent onNext={topOutfitsIntroFlip.flip} onBack={onBack['top-outfits-intro']} />
+              <TopOutfitsIntroContent onNext={topOutfitsIntroFlip.flip} onBack={onBack['top-outfits-intro']} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );

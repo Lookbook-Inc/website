@@ -121,6 +121,7 @@ export interface BackendCelebMatch {
   celeb_id: string;
   celeb_name: string;
   celeb_photo_url: string;
+  celeb_portrait_url: string;
   similarity_score: number;
   aura_score: number;
   style_score: number;

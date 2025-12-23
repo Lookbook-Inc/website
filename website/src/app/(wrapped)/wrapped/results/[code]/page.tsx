@@ -38,6 +38,7 @@ interface ColorResult {
 interface CelebMatch {
   celeb_name: string;
   celeb_photo_url?: string;
+  celeb_portrait_url: string;
   description: string;
   similarity_score: number;
   categories: string[];
@@ -100,6 +101,7 @@ interface WrappedResults {
   all_uploaded_photos: UploadedPhoto[];
   top_decade: string;
   decade_description: string;
+  decade_photo_url: string | null;
 }
 
 // Mock data populated from the provided CSV values
@@ -133,6 +135,7 @@ const mockResults: WrappedResults = {
   ],
   top_celeb_match: {
     celeb_name: 'Anirudh Satish',
+    celeb_portrait_url: '',
     description: 'Brown man looking for his place in the world.',
     similarity_score: 32.78,
     categories: ['Engineer'],
@@ -183,7 +186,8 @@ const mockResults: WrappedResults = {
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg' }
   ],
   top_decade: '2020s',
-  decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.'
+  decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.',
+  decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80'
 };
 
 type Step = 'welcome' | 'intro' | 'photo-flip' | 'fav-item' | 'fav-pairings' | 'unworn-pairings' | 'top-styles' | 'colors' | 'color-aura' | 'decade' | 'celebrity' | 'city-intro' | 'city-reveal' | 'top-outfits-intro' | 'top-outfits-pick' | 'summary';
@@ -274,12 +278,25 @@ export default function ResultsPage({ params }: Props) {
         // Transform backend data to frontend format
         const transformed = transformWrappedInsights(backendData);
 
-        // Extract all image URLs for preloading
-        const imageUrls: (string | null | undefined)[] = [
-          // All uploaded photos (flip sequence)
-          ...transformed.all_uploaded_photos.map(p => p.signed_url),
-          // Most worn item
+        // Phase 1: Preload critical images (blocks until loaded)
+        // These are needed for the initial flip sequence + first content screen
+        const criticalImages: (string | null | undefined)[] = [
+          // First 10 photos for flip sequence
+          ...transformed.all_uploaded_photos.slice(0, 10).map(p => p.signed_url),
+          // Most worn item (shown right after flip)
           transformed.most_worn_item.path,
+        ];
+
+        await preloadImages(criticalImages);
+
+        // Set results and hide loading - user can start viewing!
+        setResults(transformed as WrappedResults);
+        setLoading(false);
+
+        // Phase 2: Preload remaining images in background (non-blocking)
+        const remainingImages: (string | null | undefined)[] = [
+          // Remaining uploaded photos (if more than 10)
+          ...transformed.all_uploaded_photos.slice(10).map(p => p.signed_url),
           // Best pairings
           ...transformed.best_pairings.map(p => p.garment_path),
           // Unworn pairings
@@ -288,14 +305,12 @@ export default function ResultsPage({ params }: Props) {
           transformed.top_celeb_match.celeb_photo_url,
           // City photo
           transformed.city_photo_url,
+          // Decade photo
+          transformed.decade_photo_url,
         ];
 
-        // Preload all images before showing results
-        await preloadImages(imageUrls);
-
-        // Set results and hide loading
-        setResults(transformed as WrappedResults);
-        setLoading(false);
+        // Fire and forget - loads while user views initial screens
+        preloadImages(remainingImages);
       } catch (err) {
         console.error('Failed to fetch insights:', err);
         setError(err instanceof Error ? err.message : 'Failed to load insights');
@@ -786,30 +801,102 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const WelcomeContent = ({ onNext }: { onNext?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
-      <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-8">
-          {results.userName}—<br />
-          Welcome to your Lookbook.
-        </h1>
-      </div>
-      
-      <NavigationFooter onNext={onNext} nextText="enter →" />
-    </div>
-  );
+  const WelcomeContent = ({ onNext, isActive = true }: { onNext?: () => void; isActive?: boolean }) => {
+    const lineVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: (i: number) => ({
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 0.3 + i * 0.2,
+          duration: 0.6,
+          ease: [0.4, 0, 0.2, 1],
+        },
+      }),
+    };
 
-  const IntroContent = ({ onNext }: { onNext?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
-      <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-8">
-          We analyzed {results.total_outfits_analyzed} of your outfits to uncover your styles this year.
-        </h1>
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h1 className="font-display text-5xl text-gray-900 leading-[1.1] mb-8">
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={0}
+            >
+              {results.userName}—
+            </motion.span>
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={1}
+            >
+              Welcome to your Lookbook.
+            </motion.span>
+          </h1>
+        </div>
+
+        <NavigationFooter onNext={onNext} nextText="enter →" />
       </div>
-      
-      <NavigationFooter onNext={onNext} nextText="enter →" />
-    </div>
-  );
+    );
+  };
+
+  const IntroContent = ({ onNext, isActive = true }: { onNext?: () => void; isActive?: boolean }) => {
+    const lineVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: (i: number) => ({
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 0.3 + i * 0.2,
+          duration: 0.6,
+          ease: [0.4, 0, 0.2, 1],
+        },
+      }),
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h1 className="font-display text-5xl text-gray-900 leading-[1.1] mb-8">
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={0}
+            >
+              We analyzed <span style={{ color: '#8F9779' }}>{results.total_outfits_analyzed}</span> of your
+            </motion.span>
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={1}
+            >
+              outfits to uncover your
+            </motion.span>
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={2}
+            >
+              styles this year.
+            </motion.span>
+          </h1>
+        </div>
+
+        <NavigationFooter onNext={onNext} nextText="enter →" />
+      </div>
+    );
+  };
 
   const PhotoPageContent = ({ photo, pageNum }: { photo?: UploadedPhoto; pageNum: number }) => (
     <div className="flex flex-col h-full items-center justify-center p-8">
@@ -880,7 +967,7 @@ export default function ResultsPage({ params }: Props) {
             <h2 className="font-display text-lg text-gray-900 mb-2 leading-none">your palette is</h2>
             <h1 className="font-display text-6xl italic text-gray-900 mb-6 leading-none lowercase">{results.color_aura}</h1>
             <p className="font-light text-md text-gray-900 leading-tight px-4">
-              {results.color_aura_description.split('.')[0]}.
+              {results.color_aura_description}
             </p>
           </div>
 
@@ -1169,7 +1256,10 @@ export default function ResultsPage({ params }: Props) {
     <ColorsShadesContent view="shades" onNext={onNext} onBack={onBack} onViewChange={() => {}} isActive={false} />
   );
 
-  const DecadeContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
+  const DecadeContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
+    // Animation state: 'intro' -> 'reveal' -> 'final'
+    const [phase, setPhase] = useState<'intro' | 'reveal' | 'final'>('intro');
+
     // Decade styling information
     const decadeStyles: Record<string, { vibe: string; icon: string; color: string }> = {
       '1950s': { vibe: 'Classic elegance meets rebellion', icon: '🎸', color: '#E8D5B7' },
@@ -1185,25 +1275,137 @@ export default function ResultsPage({ params }: Props) {
     const decade = results.top_decade || '2020s';
     const style = decadeStyles[decade] || decadeStyles['2020s'];
 
+    // Trigger phase transitions after delays - only when active
+    useEffect(() => {
+      if (!isActive) return;
+
+      // Phase 1 -> Phase 2 (reveal decade)
+      const revealTimer = setTimeout(() => {
+        setPhase('reveal');
+      }, 1400);
+
+      // Phase 2 -> Phase 3 (move to top, show photo)
+      const finalTimer = setTimeout(() => {
+        setPhase('final');
+      }, 3000);
+
+      return () => {
+        clearTimeout(revealTimer);
+        clearTimeout(finalTimer);
+      };
+    }, [isActive]);
+
+    const isFinal = phase === 'final';
+
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-        <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
-          <p className="text-zinc-500 text-sm mb-4 uppercase tracking-widest">Your decade is</p>
-          
-          <div className="text-center mb-8">
-            <span className="text-8xl mb-4 block">{style.icon}</span>
-            <h1 className="font-display text-7xl leading-none tracking-tight">
-              {decade}
-        </h1>
-          </div>
-        
-          <p className="text-zinc-400 text-center text-lg italic max-w-[280px] leading-relaxed">
-            {results.decade_description || style.vibe}
-        </p>
-        </div>
-        
-        <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-        </div>
+        <motion.div
+          className="flex-1 flex flex-col overflow-hidden"
+          layout
+          transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+        >
+          {/* Header section - centered initially, top-aligned in final */}
+          <motion.div
+            layout
+            className={`flex flex-col ${isFinal ? 'items-start pt-8' : 'items-center justify-center flex-1'}`}
+            transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+          >
+            {/* "Your decade is..." text */}
+            <motion.p
+              layout
+              className={`uppercase tracking-widest mb-2 ${isFinal ? 'text-zinc-500 text-sm' : 'text-zinc-500 text-sm'}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: isActive ? 1 : 0, y: isActive ? 0 : 20 }}
+              transition={{
+                duration: 0.6,
+                ease: [0.4, 0, 0.2, 1],
+                layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] }
+              }}
+            >
+              Your decade is...
+            </motion.p>
+
+            {/* Decade icon and text */}
+            <AnimatePresence>
+              {isActive && (phase === 'reveal' || phase === 'final') && (
+                <motion.div
+                  layout
+                  className={`${isFinal ? 'flex items-center gap-3' : 'text-center'}`}
+                  initial={{ opacity: 0, scale: 0.8, y: 30 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{
+                    duration: 0.7,
+                    ease: [0.4, 0, 0.2, 1],
+                    layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] }
+                  }}
+                >
+                  {/* <motion.span
+                    layout
+                    className={`block ${isFinal ? 'text-4xl' : 'text-8xl mb-4'}`}
+                    transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+                  >
+                    {style.icon}
+                  </motion.span> */}
+                  <motion.h1
+                    layout
+                    className={`font-display leading-none tracking-tight ${isFinal ? 'text-6xl' : 'text-8xl'} italic`}
+                    transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+                  >
+                    {decade}
+                  </motion.h1>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Photo section - only in final phase */}
+          <AnimatePresence>
+            {isFinal && (
+              <motion.div
+                className="flex-1 flex flex-col mt-6 min-h-[280px]"
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              >
+                <div className="aspect-[3/4] max-h-[55vh] rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
+                  {results.decade_photo_url ? (
+                    <img
+                      src={results.decade_photo_url}
+                      alt={`${decade} style`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+                      <span className="text-zinc-500 text-sm uppercase tracking-widest">
+                        {decade} Aesthetic
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Description */}
+                {/* <motion.p
+                  className="text-zinc-400 text-sm mt-4 leading-relaxed"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                >
+                  {results.decade_description || style.vibe}
+                </motion.p> */}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Navigation - show after reveal */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isActive && (phase === 'reveal' || phase === 'final') ? 1 : 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+        </motion.div>
+      </div>
     );
   };
 
@@ -1937,14 +2139,14 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <IntroContent onNext={introFlip.flip} />
+              <IntroContent onNext={introFlip.flip} isActive={false} />
             </div>
             <FlipPage key="welcome" isFlipped={welcomeFlip.isFlipped} zIndex={10}>
-              <WelcomeContent onNext={welcomeFlip.flip} />
+              <WelcomeContent onNext={welcomeFlip.flip} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );
-      
+
       case 'intro':
         return (
           <FlipContainer>
@@ -1952,7 +2154,7 @@ export default function ResultsPage({ params }: Props) {
               <PhotoPageContent photo={results.all_uploaded_photos[0]} pageNum={1} />
             </div>
             <FlipPage key="intro" isFlipped={introFlip.isFlipped} zIndex={10}>
-              <IntroContent onNext={introFlip.flip} />
+              <IntroContent onNext={introFlip.flip} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );
@@ -2053,14 +2255,14 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-black z-0">
-              <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} />
+              <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} isActive={false} />
             </div>
             <FlipPage key="color-aura" isFlipped={colorAuraFlip.isFlipped} zIndex={10}>
               <ColorAuraContent onNext={colorAuraFlip.flip} onBack={onBack['color-aura']} />
             </FlipPage>
           </FlipContainer>
         );
-      
+
       case 'decade':
         return (
           <FlipContainer>
@@ -2068,7 +2270,7 @@ export default function ResultsPage({ params }: Props) {
               <CelebrityContent onNext={celebrityFlip.flip} onBack={onBack['celebrity']} isActive={false} />
             </div>
             <FlipPage key="decade" isFlipped={decadeFlip.isFlipped} zIndex={10}>
-              <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} />
+              <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );

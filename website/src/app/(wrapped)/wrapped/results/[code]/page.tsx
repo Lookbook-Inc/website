@@ -1086,91 +1086,618 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const ColorAuraContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
+  const ColorAuraContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
+    // Phase state: intro -> reveal -> collage
+    const [phase, setPhase] = useState<'intro' | 'reveal' | 'collage'>('intro');
+
     // Select 2 outfit pieces and 2 clothing items
     const outfit1 = results.top_outfits[0];
     const outfit2 = results.top_outfits[1];
     const clothing1 = results.best_pairings[0];
     const clothing2 = results.best_pairings[1];
 
+    // Auto-transition between phases
+    useEffect(() => {
+      if (!isActive) return;
+
+      // Reset to intro when becoming active
+      setPhase('intro');
+    }, [isActive]);
+
+    useEffect(() => {
+      if (!isActive) return;
+
+      if (phase === 'intro') {
+        // intro -> reveal after 1.2s
+        const timer = setTimeout(() => setPhase('reveal'), 1200);
+        return () => clearTimeout(timer);
+      } else if (phase === 'reveal') {
+        // reveal -> collage after 2.5s
+        const timer = setTimeout(() => setPhase('collage'), 2500);
+        return () => clearTimeout(timer);
+      }
+    }, [isActive, phase]);
+
+    // Derived state for easier checks
+    const isReveal = phase === 'reveal' || phase === 'collage';
+    const isCollage = phase === 'collage';
+
     return (
-      <div className="flex flex-col h-[100dvh] pt-12 pb-4 relative bg-[#FFFAF4] overflow-hidden">
+      <motion.div
+        className="flex flex-col h-[100dvh] pt-12 pb-4 relative bg-[#FFFAF4] overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isActive ? 1 : 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="flex-1 relative">
+
+        <motion.div
+            className="absolute left-[25%] w-[10%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.top_colors[2]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
           {/* Top Left - Outfit 1 */}
-          <div className="absolute top-0 left-0 w-[28%] aspect-[3/4] z-5">
-            <div className="absolute inset-0 bg-gray-200/30 rounded-lg transform translate-x-2 translate-y-2"></div>
-            <div className="relative w-full h-full bg-[#D1D5DB] rounded-lg shadow-xl border border-white/20 overflow-hidden">
-              {outfit1 && (
-                <img
-                  src={outfit1.path}
-                  alt="Your outfit"
-                  className="w-full h-full object-cover"
-                />
-              )}
-            </div>
-          </div>
+          <motion.div
+            className="absolute top-0 left-0 w-[28%] aspect-[3/4] z-5"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              x: [10, 0, -10, 0, 10],
+              y: [0, 8, 0, -8, 0],
+              scale: isCollage ? 1 : 0.6,
+              opacity: isCollage ? 1 : 0.4
+            }}
+            transition={{
+              x: {
+                duration: 6,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 6,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              scale: { duration: 0.8, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.8, ease: [0.4, 0, 0.2, 1] }
+            }}
+          >
+            {/* Shadow/backdrop */}
+            <motion.div
+              className="absolute inset-0 rounded-lg transform translate-x-2 translate-y-2"
+              animate={{
+                backgroundColor: isCollage ? 'rgba(209, 213, 215, 0.3)' : 'rgba(223, 225, 227, 0.2)'
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Main image container */}
+            <motion.div
+              className="relative w-full h-full rounded-lg shadow-xl border border-white/20 overflow-hidden"
+              animate={{
+                backgroundColor: isCollage ? '#D1D5DB' : '#9CA3AF'
+              }}
+              transition={{ duration: 0.6 }}
+            >
+              {/* Image - only shows during collage phase */}
+              <AnimatePresence>
+                {outfit1 && isCollage && (
+                  <motion.img
+                    src={outfit1.path}
+                    alt="Your outfit"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="absolute right-[5%] top-[20%] w-[15%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.top_colors[0]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          <motion.div
+            className="absolute right-[1%] top-[30%] w-[10%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 9, 0, -4, 0],
+              y: [2, 0, -8, 0, 3],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.top_colors[2]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.45 },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
 
           {/* Top Right - Clothing 1 with color accents */}
-          <div className="absolute top-0 right-0 w-[30%] aspect-square z-5">
-            <div className="absolute right-[-15%] top-[15%] w-[40%] h-[70%] rounded-lg opacity-60"
-                 style={{ backgroundColor: results.top_colors[0]?.top_shade_hex || '#F3CD81' }}></div>
-            <div className="absolute left-[-15%] bottom-[-10%] w-[35%] h-[50%] rounded-lg opacity-70"
-                 style={{ backgroundColor: results.top_colors[1]?.top_shade_hex || '#4B5563' }}></div>
-            <div className="relative w-full h-full bg-white/80 rounded-lg shadow-2xl border border-white/30 overflow-hidden">
-              {clothing1 && (
-                <img
-                  src={clothing1.garment_path}
-                  alt={clothing1.garment_name}
-                  className="w-full h-full object-cover"
-                />
-              )}
-            </div>
-          </div>
+          <motion.div
+            className="absolute top-0 right-0 w-[30%] aspect-square z-5"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              x: [-8, 0, 8, 0, -8],
+              y: [0, -10, 0, 10, 0],
+              scale: isCollage ? 1 : 0.6,
+              opacity: isCollage ? 1 : 0.4
+            }}
+            transition={{
+              x: {
+                duration: 7,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 7,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              scale: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.1 },
+              opacity: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.1 }
+            }}
+          >
+
+            {/* Color accent block 1 */}
+            <motion.div
+              className="absolute right-[-15%] top-[15%] w-[40%] h-[70%] rounded-lg"
+              animate={{
+                backgroundColor: isReveal ? (results.top_colors[0]?.top_shade_hex || '#F3CD81') : '#9CA3AF',
+                opacity: isReveal ? 0.6 : 0.3
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Color accent block 2 */}
+            <motion.div
+              className="absolute left-[-15%] bottom-[-10%] w-[35%] h-[50%] rounded-lg"
+              animate={{
+                backgroundColor: isReveal ? (results.top_colors[1]?.top_shade_hex || '#4B5563') : '#9CA3AF',
+                opacity: isReveal ? 0.7 : 0.3
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Main image container */}
+            <motion.div
+              className="relative w-full h-full rounded-lg shadow-2xl border border-white/30 overflow-hidden"
+              animate={{
+                backgroundColor: isCollage ? 'rgba(255, 255, 255, 0.8)' : '#9CA3AF'
+              }}
+              transition={{ duration: 0.6 }}
+            >
+              <AnimatePresence>
+                {clothing1 && isCollage && (
+                  <motion.img
+                    src={clothing1.garment_path}
+                    alt={clothing1.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
 
           {/* Central Text */}
           <div className="absolute top-1/2 left-0 right-0 transform -translate-y-1/2 z-10 text-center px-10">
-            <h2 className="font-display text-lg text-gray-900 mb-2 leading-none">your palette is</h2>
-            <h1 className="font-display text-6xl italic text-gray-900 mb-6 leading-none lowercase">{results.color_aura}</h1>
-            <p className="font-light text-md text-gray-900 leading-tight px-4">
+            {/* "your palette is" - fades in during intro */}
+            <motion.h2
+              className="font-display text-lg text-gray-900 mb-2 leading-none"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{
+                opacity: isActive ? 1 : 0,
+                y: isActive ? 0 : 10
+              }}
+              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+            >
+              your palette is
+            </motion.h2>
+
+            {/* Color aura name - reveals during reveal phase */}
+            <motion.h1
+              className="font-display text-6xl italic text-gray-900 mb-6 leading-none lowercase"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{
+                opacity: isReveal ? 1 : 0,
+                scale: isReveal ? 1 : 0.9,
+                y: isReveal ? 0 : 20
+              }}
+              transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {results.color_aura}
+            </motion.h1>
+
+            {/* Description - fades in after the name */}
+            <motion.p
+              className="font-light text-md text-gray-900 leading-tight px-4"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{
+                opacity: isReveal ? 1 : 0,
+                y: isReveal ? 0 : 15
+              }}
+              transition={{ duration: 0.5, delay: 1.5, ease: [0.4, 0, 0.2, 1] }}
+            >
               {results.color_aura_description}
-            </p>
+            </motion.p>
           </div>
 
+          <motion.div
+            className="absolute left-[1%] bottom-[25%] w-[10%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, -8, 0, 12, 0],
+              y: [9, 0, -5, 0, 10],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.top_colors[3]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.2 },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          <motion.div
+            className="absolute left-[8%] top-[20%] w-[10%] h-[5%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.top_colors[0]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          <motion.div
+            className="absolute left-[2%] top-[28%] w-[10%] h-[7%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 10, 0, -4, 3],
+              y: [5, 0, -10, 0, 2],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.top_colors[2]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 12,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 12,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6, delay: 0.4 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          <motion.div
+            className="absolute left-[8%] bottom-[16%] w-[10%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.top_colors[0]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
           {/* Bottom Left - Clothing 2 with color accent */}
-          <div className="absolute bottom-0 left-0 w-[35%] aspect-square z-5">
-            <div className="absolute right-[-10%] bottom-[-10%] w-[45%] h-[45%] rounded-lg opacity-75"
-                 style={{ backgroundColor: results.top_colors[2]?.top_shade_hex || '#6B7280' }}></div>
-            <div className="relative w-full h-full bg-white/80 rounded-lg shadow-xl border border-white/30 overflow-hidden">
-              {clothing2 && (
-                <img
-                  src={clothing2.garment_path}
-                  alt={clothing2.garment_name}
-                  className="w-full h-full object-cover"
-                />
-              )}
-            </div>
-          </div>
+          <motion.div
+            className="absolute bottom-0 left-0 w-[35%] aspect-square z-5"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              x: [0, 9, 0, -9, 0],
+              y: [7, 0, -7, 0, 7],
+              scale: isCollage ? 1 : 0.6,
+              opacity: isCollage ? 1 : 0.4
+            }}
+            transition={{
+              x: {
+                duration: 5.5,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5.5,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              scale: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.2 },
+              opacity: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.2 }
+            }}
+          >
+            {/* Color accent block */}
+            <motion.div
+              className="absolute right-[-10%] bottom-[-10%] w-[45%] h-[45%] rounded-lg"
+              animate={{
+                backgroundColor: isReveal ? (results.top_colors[2]?.top_shade_hex || '#6B7280') : '#9CA3AF',
+                opacity: isReveal ? 0.75 : 0.3
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Main image container */}
+            <motion.div
+              className="relative w-full h-full rounded-lg shadow-xl border border-white/30 overflow-hidden"
+              animate={{
+                backgroundColor: isCollage ? 'rgba(255, 255, 255, 0.8)' : '#9CA3AF'
+              }}
+              transition={{ duration: 0.6 }}
+            >
+              <AnimatePresence>
+                {clothing2 && isCollage && (
+                  <motion.img
+                    src={clothing2.garment_path}
+                    alt={clothing2.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
           
           {/* Bottom Right - Outfit 2 */}
-          <div className="absolute bottom-0 right-0 w-[45%] aspect-[3/4] z-5">
-            <div className="absolute left-[-8%] top-[-5%] w-[30%] h-[25%] rounded-lg opacity-50"
-                 style={{ backgroundColor: results.top_colors[3]?.top_shade_hex || '#D1D5DB' }}></div>
-            <div className="relative w-full h-full bg-[#E5E7EB] rounded-lg shadow-2xl border border-white/20 overflow-hidden">
-              {outfit2 && (
-                <img
-                  src={outfit2.path}
-                  alt="Your outfit"
-                  className="w-full h-full object-cover"
-                />
-              )}
-            </div>
-          </div>
+          <motion.div
+            className="absolute bottom-0 right-8 w-[45%] aspect-[3/4] z-5"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              x: [0, -11, 0, 11, 0],
+              y: [-6, 0, 6, 0, -6],
+              scale: isCollage ? 0.8 : 0.6,
+              opacity: isCollage ? 1 : 0.4
+            }}
+            transition={{
+              x: {
+                duration: 6.5,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 6.5,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              scale: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
+              opacity: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 }
+            }}
+          >
+            {/* Color accent block */}
+            <motion.div
+              className="absolute left-[-8%] top-[-5%] w-[30%] h-[25%] rounded-lg"
+              animate={{
+                backgroundColor: isReveal ? (results.top_colors[3]?.top_shade_hex || '#D1D5DB') : '#9CA3AF',
+                opacity: isReveal ? 0.5 : 0.3
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Main image container */}
+            <motion.div
+              className="relative w-full h-full rounded-lg shadow-2xl border border-white/20 overflow-hidden"
+              animate={{
+                backgroundColor: isCollage ? '#E5E7EB' : '#9CA3AF'
+              }}
+              transition={{ duration: 0.6 }}
+            >
+              <AnimatePresence>
+                {outfit2 && isCollage && (
+                  <motion.img
+                    src={outfit2.path}
+                    alt="Your outfit"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="absolute right-[4%] bottom-[1%] w-[10%] h-[12%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.top_colors[1]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
         </div>
         
         <div className="px-10 shrink-0">
           <NavigationFooter onNext={onNext} onBack={onBack} />
         </div>
-      </div>
+      </motion.div>
     );
   };
   const ColorSidebar = ({ light = true }: { light?: boolean }) => (
@@ -2037,7 +2564,7 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <ColorAuraContent onNext={colorAuraFlip.flip} onBack={onBack['color-aura']} />
+              <ColorAuraContent onNext={colorAuraFlip.flip} onBack={onBack['color-aura']} isActive={false} />
             </div>
             <FlipPage key="colors" isFlipped={colorsView === 'shades' && shadesFlip.isFlipped} zIndex={10}>
               <ColorsShadesContent 
@@ -2058,7 +2585,7 @@ export default function ResultsPage({ params }: Props) {
               <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} isActive={false} />
             </div>
             <FlipPage key="color-aura" isFlipped={colorAuraFlip.isFlipped} zIndex={10}>
-              <ColorAuraContent onNext={colorAuraFlip.flip} onBack={onBack['color-aura']} />
+              <ColorAuraContent onNext={colorAuraFlip.flip} onBack={onBack['color-aura']} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );

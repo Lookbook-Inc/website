@@ -43,7 +43,9 @@ interface CelebMatch {
   similarity_score: number;
   categories: string[];
   color_aura_name: string;
-  top_style: string;
+  style_1: string;
+  style_2: string;
+  style_3: string;
 }
 
 interface UploadedPhoto {
@@ -138,7 +140,9 @@ const mockResults: WrappedResults = {
     similarity_score: 32.78,
     categories: ['Engineer'],
     color_aura_name: 'candlelit dinner',
-    top_style: 'minimalist'
+    style_1: 'minimalist',
+    style_2: 'streetwear',
+    style_3: 'business casual'
   },
   most_worn_item: {
     name: 'Light-colored athletic sneakers',
@@ -186,7 +190,7 @@ const mockResults: WrappedResults = {
   decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80'
 };
 
-type Step = 'welcome' | 'intro' | 'photo-flip' | 'fav-item' | 'fav-pairings' | 'unworn-pairings' | 'top-styles' | 'colors' | 'color-aura' | 'decade' | 'celebrity' | 'city-intro' | 'city-reveal' | 'summary';
+type Step = 'welcome' | 'intro' | 'photo-flip' | 'fav-item' | 'fav-pairings' | 'unworn-pairings' | 'top-styles' | 'colors' | 'color-aura' | 'decade' | 'celebrity' | 'city-intro' | 'city-reveal' | 'top-outfits-intro' | 'top-outfits-pick' | 'summary';
 
 type Props = {
   params: Promise<{ code: string }>
@@ -331,7 +335,9 @@ export default function ResultsPage({ params }: Props) {
   const decadeFlip = useFlip(() => setStep('celebrity'));
   const celebrityFlip = useFlip(() => setStep('city-intro'));
   const cityIntroFlip = useFlip(() => setStep('city-reveal'));
-  const cityRevealFlip = useFlip(() => setStep('summary'));
+  const cityRevealFlip = useFlip(() => setStep('top-outfits-intro'));
+  const topOutfitsIntroFlip = useFlip(() => setStep('top-outfits-pick'));
+  const topOutfitsPickFlip = useFlip(() => setStep('summary'));
   
   // Track the previous step to handle reverse animations
   const [prevStep, setPrevStep] = useState<Step | null>(null);
@@ -348,7 +354,9 @@ export default function ResultsPage({ params }: Props) {
     'celebrity': () => { setPrevStep(step); setStep('decade'); },
     'city-intro': () => { setPrevStep(step); setStep('celebrity'); },
     'city-reveal': () => { setPrevStep(step); setStep('city-intro'); },
-    'summary': () => { setPrevStep(step); setStep('city-reveal'); },
+    'top-outfits-intro': () => { setPrevStep(step); setStep('city-reveal'); },
+    'top-outfits-pick': () => { setPrevStep(step); setStep('top-outfits-intro'); },
+    'summary': () => { setPrevStep(step); setStep('top-outfits-pick'); },
   };
 
   // Handle the reverse animation when moving to a previous step
@@ -367,6 +375,8 @@ export default function ResultsPage({ params }: Props) {
       'celebrity': celebrityFlip,
       'city-intro': cityIntroFlip,
       'city-reveal': cityRevealFlip,
+      'top-outfits-intro': topOutfitsIntroFlip,
+      'top-outfits-pick': topOutfitsPickFlip,
     };
 
     const hookToReset = flipHooks[step];
@@ -380,7 +390,7 @@ export default function ResultsPage({ params }: Props) {
     } else {
       setPrevStep(null);
     }
-  }, [step, prevStep, favItemFlip, favPairingsFlip, unwornPairingsFlip, topStylesFlip, colorsFlip, shadesFlip, colorAuraFlip, decadeFlip, celebrityFlip, cityIntroFlip, cityRevealFlip]);
+  }, [step, prevStep, favItemFlip, favPairingsFlip, unwornPairingsFlip, topStylesFlip, colorsFlip, shadesFlip, colorAuraFlip, decadeFlip, celebrityFlip, cityIntroFlip, cityRevealFlip, topOutfitsIntroFlip, topOutfitsPickFlip]);
   
   // Track which pages have been flipped for the photo sequence
   const [flippedPages, setFlippedPages] = useState<boolean[]>(
@@ -492,94 +502,249 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const FavItemContent = ({ onNext }: { onNext?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
-      <FavSidebar />
-      <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h3 className="font-display text-lg text-gray-900 mb-1">One piece carried your aesthetic</h3>
-        <p className="text-sm text-gray-500 mb-8 leading-snug max-w-[200px]">
-          {results.clothing_items_description}
-        </p>
-        
-        <div className="flex-1 flex flex-col">
-          <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm relative shrink-0">
-            <img
-              src={results.most_worn_item.path}
-              alt={results.most_worn_item.name}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </div>
-        </div>
-      </div>
-      
-      <NavigationFooter onNext={onNext} />
-    </div>
-  );
+  const FavItemContent = ({ onNext }: { onNext?: () => void }) => {
+    const displayName = results.most_worn_item.name.split('(')[0].trim();
 
-  const FavPairingsContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
-      <FavSidebar />
-      <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h3 className="font-display text-lg text-gray-900 mb-8">You've worn it with...</h3>
-        
-        <div className="space-y-4 flex-1">
-          {results.best_pairings.map((pairing, i) => (
-            <div key={i} className="w-full aspect-video rounded-xl overflow-hidden bg-[#F1EDE7] shadow-sm relative shrink-0">
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
+        <FavSidebar />
+        <div className="flex-1 flex flex-col justify-center pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">One piece anchored your outfits this year...</h3>
+          <p className="text-md text-gray-500 leading-snug mb-8 text-right">
+              This piece was a constant in your rotation - and for good reason.
+            </p>
+          <div className="flex flex-col rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm shrink-0 mb-4">
+            <div className="w-full aspect-[3/4] relative overflow-hidden">
               <img
-                src={pairing.garment_path}
-                alt={pairing.garment_name}
+                src={results.most_worn_item.path}
+                alt={results.most_worn_item.name}
                 className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
-          ))}
-        </div>
-      </div>
-      
-      <NavigationFooter onNext={onNext} onBack={onBack} />
-    </div>
-  );
+            <div className="p-6 pt-4 text-center">
+              <p className="font-sans text-xs font-bold uppercase text-gray-900/50 tracking-[0.1em]">{displayName}</p>
+              {/* <p className="font-display text-sm text-gray-900/50 lowercase">{displayName}</p> */}
+            </div>
+          </div>
 
-  const UnwornPairingsContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-black text-white">
-      <FavSidebar light={false} />
-      <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <h3 className="font-display text-lg text-white mb-8">You haven't worn it with these yet...</h3>
-        
-        <div className="relative flex-1 min-h-[300px]">
-          {/* Staggered layout as seen in image */}
-          {results.unworn_pairings[0] && (
-            <div className="absolute top-0 right-0 w-2/3 aspect-[3/4] rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800">
-              <img
-                src={results.unworn_pairings[0].garment_path}
-                alt={results.unworn_pairings[0].garment_name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          {results.unworn_pairings[1] && (
-            <div className="absolute top-1/4 left-0 w-2/3 aspect-video rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800 z-10 opacity-60">
-              <img
-                src={results.unworn_pairings[1].garment_path}
-                alt={results.unworn_pairings[1].garment_name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          {results.unworn_pairings[2] && (
-            <div className="absolute bottom-0 right-4 w-3/4 aspect-video rounded-xl overflow-hidden bg-zinc-900 shadow-2xl border border-zinc-800 opacity-40">
-              <img
-                src={results.unworn_pairings[2].garment_path}
-                alt={results.unworn_pairings[2].garment_name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
         </div>
+        
+        <NavigationFooter onNext={onNext} />
       </div>
-      
-      <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-    </div>
-  );
+    );
+  };
+
+  const FavPairingsContent = ({ 
+    onNext, 
+    onBack,
+    isActive = true 
+  }: { 
+    onNext?: () => void; 
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    // Container variants for staggered children
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.5,
+          delayChildren: 0,
+        },
+      },
+    };
+
+    // Individual item variants - slide up from below
+    const itemVariants = {
+      hidden: {
+        y: 60,
+        opacity: 0,
+      },
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.5,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
+        <FavSidebar />
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h3 className="font-display text-2xl text-gray-900 mb-8">You've paired it with:</h3>
+          
+          <motion.div 
+            className="flex-1 flex flex-col pb-10"
+            variants={containerVariants}
+            initial="hidden"
+            animate={isActive ? "visible" : "hidden"}
+          >
+            {results.best_pairings.map((pairing, i) => {
+              const zIndex = i;
+              
+              // Overlap and jitter variations
+              const overlaps = [0, -45, -65, -40, -35];
+              // Jitter as vw percentages, capped at proportion of max-w-md (448px)
+              const jitterConfigs = [
+                { pct: -5, max: -22 },
+                { pct: 3, max: 100 }, 
+                { pct: 0, max: 0 },
+                { pct: 0, max: 0 },
+                { pct: -4, max: -18 },
+              ];
+              
+              const marginTop = i > 0 ? overlaps[i % overlaps.length] : 0;
+              const jitter = jitterConfigs[i % jitterConfigs.length];
+              const translateX = jitter.pct >= 0 
+                ? `min(${jitter.pct}vw, ${jitter.max}px)` 
+                : `max(${jitter.pct}vw, ${jitter.max}px)`;
+
+              return (
+                <motion.div 
+                  key={i} 
+                  variants={itemVariants}
+                  className={`w-[40vw] max-w-[200px] aspect-square rounded-xl overflow-hidden bg-[#F1EDE7] shadow-md relative shrink-0 border-1 border-[#FFFAF4] ${
+                    i % 2 === 0 ? 'self-end mr-4' : 'self-start'
+                  }`}
+                  style={{ 
+                    zIndex, 
+                    marginTop: `${marginTop}px`,
+                    transform: `translateX(${translateX})`,
+                    WebkitMaskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)',
+                    maskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)'
+                  }}
+                >
+                  <img
+                    src={pairing.garment_path}
+                    alt={pairing.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {/* 3D effect overlay */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%)'
+                    }}
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+        
+        <NavigationFooter onNext={onNext} onBack={onBack} />
+      </div>
+    );
+  };
+
+  const UnwornPairingsContent = ({ 
+    onNext, 
+    onBack,
+    isActive = true 
+  }: { 
+    onNext?: () => void; 
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    // Container variants for staggered children
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.5,
+          delayChildren: 0,
+        },
+      },
+    };
+
+    // Individual item variants - slide up from below
+    const itemVariants = {
+      hidden: {
+        y: 60,
+        opacity: 0,
+      },
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.5,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-black text-white">
+        <FavSidebar light={false} />
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h3 className="font-display text-2xl text-[#F7EFE5] mb-8 text-right">You haven't worn it with these yet...</h3>
+          
+          <motion.div 
+            className="flex-1 flex flex-col pb-10"
+            variants={containerVariants}
+            initial="hidden"
+            animate={isActive ? "visible" : "hidden"}
+          >
+            {results.unworn_pairings.map((pairing, i) => {
+              const zIndex = i;
+              
+              // Overlap and jitter variations
+              const overlaps = [0, -45, -65, -40, -35];
+              // Jitter as vw percentages, capped at proportion of max-w-md (448px)
+              const jitterConfigs = [
+                { pct: -5, max: -22 },
+                { pct: 3, max: 100 }, 
+                { pct: 0, max: 0 },
+                { pct: 0, max: 0 },
+                { pct: -4, max: -18 },
+              ];
+              
+              const marginTop = i > 0 ? overlaps[i % overlaps.length] : 0;
+              const jitter = jitterConfigs[i % jitterConfigs.length];
+              const translateX = jitter.pct >= 0 
+                ? `min(${jitter.pct}vw, ${jitter.max}px)` 
+                : `max(${jitter.pct}vw, ${jitter.max}px)`;
+
+              return (
+                <motion.div 
+                  key={i} 
+                  variants={itemVariants}
+                  className={`w-[40vw] max-w-[200px] aspect-square rounded-xl overflow-hidden bg-zinc-400 shadow-md relative shrink-0 border-1 border-zinc-200 ${
+                    i % 2 === 0 ? 'self-end mr-4' : 'self-start'
+                  }`}
+                  style={{ 
+                    zIndex, 
+                    marginTop: `${marginTop}px`,
+                    transform: `translateX(${translateX})`,
+                    WebkitMaskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)',
+                    maskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)'
+                  }}
+                >
+                  <img
+                    src={pairing.garment_path}
+                    alt={pairing.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {/* 3D effect overlay - adjusted for light card on dark background */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%)'
+                    }}
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+        
+        <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+      </div>
+    );
+  };
 
   const StyleSidebar = ({ light = true }: { light?: boolean }) => (
     <div className="absolute left-0 top-0 bottom-0 w-24 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
@@ -986,7 +1151,7 @@ export default function ResultsPage({ params }: Props) {
                 key={i}
                 custom={direction}
                 variants={itemVariants}
-                className={`h-[12vh] w-[50vw] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
+                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
                   light ? 'text-black' : 'text-white'
                 }`}
                 style={{ backgroundColor: c.top_shade_hex }}
@@ -1039,7 +1204,7 @@ export default function ResultsPage({ params }: Props) {
                 key={i}
                 custom={direction}
                 variants={itemVariants}
-                className={`h-[12vh] w-[50vw] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
+                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
                   light ? 'text-black' : 'text-white'
                 }`}
                 style={{ backgroundColor: c.shade_hex }}
@@ -1244,142 +1409,185 @@ export default function ResultsPage({ params }: Props) {
     );
   };
 
-  const CelebrityContent = ({ onNext, onBack, interactive = true }: { onNext?: () => void; onBack?: () => void; interactive?: boolean }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-      <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {/* Celebrity Name */}
-        <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
-          {results.top_celeb_match.celeb_name}
-        </h1>
 
-        {/* Celebrity Image */}
-        <div className="flex-1 flex flex-col min-h-[350px] mb-8">
-          <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
-            {results.top_celeb_match.celeb_photo_url ? (
-              <img
-                src={results.top_celeb_match.celeb_photo_url}
-                alt={results.top_celeb_match.celeb_name}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-                <span className="text-zinc-500 text-sm uppercase tracking-widest">
-                  {results.top_celeb_match.celeb_name}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Color Aura */}
-        <div className="mb-6 shrink-0">
-          <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Color Aura</h3>
-          <p className="text-sm text-zinc-400 leading-relaxed capitalize">
-            {results.top_celeb_match.color_aura_name}
-          </p>
-        </div>
-
-        {/* Style */}
-        <div className="mb-6 shrink-0">
-          <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Style</h3>
-          <p className="text-sm text-zinc-400 leading-relaxed capitalize">
-            {results.top_celeb_match.top_style.replace(/_/g, ' ')}
-          </p>
-        </div>
-      </div>
-
-      <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-    </div>
-  );
-
-  // const CelebrityContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
-  //   const [revealed, setRevealed] = useState(false);
+  const CelebrityContent = ({ 
+    onNext, 
+    onBack,
+    isActive = true 
+  }: { 
+    onNext?: () => void; 
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    const [dotsComplete, setDotsComplete] = useState(false);
+    const [revealed, setRevealed] = useState(false);
     
-  //   useEffect(() => {
-  //     // Start the reveal animation after a brief pause
-  //     const timer = setTimeout(() => {
-  //       setRevealed(true);
-  //     }, 800);
-  //     return () => clearTimeout(timer);
-  //   }, []);
+    // Dots animation timing: each dot fades in, holds, fades out
+    const dotStagger = 0.2; // stagger between dots appearing
+    const singleLoopDuration = 1.0; // total time for one complete cycle (in/hold/out)
+    const loopPause = 0.4; // pause between loops
+    const numLoops = 2;
+    const repeatDelay = loopPause + (2 * dotStagger);
+    const totalDotsTime = (singleLoopDuration + (numLoops - 1) * (singleLoopDuration + repeatDelay) + (2 * dotStagger)) * 1000;
+    
+    useEffect(() => {
+      if (!isActive) return;
+      const dotsTimer = setTimeout(() => {
+        setDotsComplete(true);
+      }, totalDotsTime + 200); // add a small buffer
+      return () => clearTimeout(dotsTimer);
+    }, [isActive, totalDotsTime]);
+    
+    useEffect(() => {
+      if (!isActive || !dotsComplete) return;
+      const revealTimer = setTimeout(() => {
+        setRevealed(true);
+      }, 300);
+      return () => clearTimeout(revealTimer);
+    }, [isActive, dotsComplete]);
 
-  //   return (
-  //     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-  //       <div className="flex-1 flex flex-col overflow-hidden relative">
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
+        <div className="flex-1 flex flex-col overflow-hidden relative">
           
-  //         {/* Title - animates from centered/large to top/small */}
-  //         <motion.div 
-  //           className="shrink-0"
-  //           initial={false}
-  //           animate={{
-  //             y: revealed ? 0 : '30vh',
-  //           }}
-  //           transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-  //         >
-  //           <motion.h1 
-  //             className="font-display leading-[0.9]"
-  //             initial={false}
-  //             animate={{
-  //               fontSize: revealed ? '1.5rem' : '3.75rem',
-  //             }}
-  //             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-  //           >
-  //             Your<br />
-  //             Celebrity<br />
-  //             Lookalike
-  //           </motion.h1>
-  //           <motion.span 
-  //             className="font-display block"
-  //             initial={false}
-  //             animate={{
-  //               fontSize: revealed ? '1.5rem' : '2.25rem',
-  //               marginTop: revealed ? '0' : '0.5rem',
-  //             }}
-  //             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-  //           >
-  //             ...
-  //           </motion.span>
-  //         </motion.div>
+          {/* Title - animates from centered/large to top/small */}
+          <motion.div 
+            className="shrink-0"
+            initial={false}
+            animate={{
+              y: revealed ? 0 : '30vh',
+              opacity: revealed ? 0.5 : 1,
+            }}
+            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <motion.h1 
+              className="font-display leading-[0.9]"
+              initial={false}
+              animate={{
+                fontSize: revealed ? '1.25rem' : '3.75rem',
+              }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              Your<br />
+              Celebrity<br />
+              Lookalike
+            </motion.h1>
+            <motion.span 
+              className="font-display block"
+              initial={false}
+              animate={{
+                fontSize: revealed ? '0.5rem' : '2.25rem',
+                marginTop: revealed ? '-0.5rem' : '0.5rem',
+              }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0 }}
+                  animate={isActive ? { 
+                    opacity: [0, 1, 1, 0] 
+                  } : { opacity: 0 }}
+                  style={{ display: 'inline-block' }}
+                  transition={{
+                    opacity: {
+                      delay: i * dotStagger,
+                      duration: singleLoopDuration,
+                      times: [0, 0.2, 0.7, 1], // fade in quick, hold, fade out
+                      repeat: numLoops - 1, // repeat 2 more times (3 total)
+                      repeatDelay: repeatDelay, // constant delay to maintain stagger
+                      ease: "easeInOut",
+                    },
+                  }}
+                >
+                  .
+                </motion.span>
+              ))}
+            </motion.span>
+          </motion.div>
           
-  //         {/* Celebrity Image - fades in and slides up */}
-  //         <motion.div 
-  //           className="flex-1 flex flex-col min-h-[350px] mt-6"
-  //           initial={{ opacity: 0, y: 40 }}
-  //           animate={{ 
-  //             opacity: revealed ? 1 : 0, 
-  //             y: revealed ? 0 : 40 
-  //           }}
-  //           transition={{ duration: 0.6, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-  //         >
-  //           <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
-  //             {results.top_celeb_match.celeb_photo_url ? (
-  //               <img
-  //                 src={results.top_celeb_match.celeb_photo_url}
-  //                 alt={results.top_celeb_match.celeb_name}
-  //                 className="absolute inset-0 w-full h-full object-cover"
-  //               />
-  //             ) : (
-  //               <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-  //                 <span className="text-zinc-500 text-sm uppercase tracking-widest">
-  //                   {results.top_celeb_match.celeb_name}
-  //                 </span>
-  //               </div>
-  //             )}
-  //           </div>
-  //         </motion.div>
-  //       </div>
+          {/* Celebrity Name Header - Above image */}
+          <motion.div
+            className="mt-2 mb-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ 
+              opacity: revealed ? 1 : 0, 
+              y: revealed ? 0 : 10 
+            }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <h2 className="font-display text-3xl leading-tight">
+              {results.top_celeb_match.celeb_name}
+            </h2>
+          </motion.div>
+
+          {/* Celebrity Image - fades in and slides up */}
+          <motion.div 
+            className="flex-1 flex flex-col min-h-[300px]"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ 
+              opacity: revealed ? 1 : 0, 
+              y: revealed ? 0 : 40 
+            }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
+              {results.top_celeb_match.celeb_photo_url ? (
+                <img
+                  src={results.top_celeb_match.celeb_photo_url}
+                  alt={results.top_celeb_match.celeb_name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+                  <span className="text-zinc-500 text-sm uppercase tracking-widest">
+                    {results.top_celeb_match.celeb_name}
+                  </span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Celebrity details - centered against each other */}
+          <motion.div
+            className="mt-6 grid grid-cols-2 gap-0 shrink-0 pb-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: revealed ? 1 : 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+          >
+            <div className="text-right pr-4 border-r-2 border-zinc-600">
+              <p className="text-xs text-zinc-500 font-bold uppercase tracking-[0.1em] mb-1">Top Styles</p>
+              <div className="flex flex-col gap-1">
+                {[results.top_celeb_match.style_1, results.top_celeb_match.style_2, results.top_celeb_match.style_3]
+                  .filter(Boolean)
+                  .map((style, i) => (
+                    <p key={i} className="text-lg font-display text-[#F7EFE5] leading-tight capitalize">
+                      {style.replace(/_/g, ' ')}
+                    </p>
+                  ))}
+              </div>
+            </div>
+
+            <div className="text-left pl-4">
+              <p className="text-xs text-zinc-500 font-bold uppercase tracking-[0.1em] mb-1">Color Palette</p>
+              <p className="text-lg font-display text-[#F7EFE5] leading-tight capitalize">
+                {results.top_celeb_match.color_aura_name}
+              </p>
+            </div>
+          </motion.div>
+        </div>
         
-  //       {/* Footer - fades in after reveal */}
-  //       <motion.div
-  //         initial={{ opacity: 0 }}
-  //         animate={{ opacity: revealed ? 1 : 0 }}
-  //         transition={{ duration: 0.4, delay: 0.6 }}
-  //       >
-  //         <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
-  //       </motion.div>
-  //     </div>
-  //   );
-  // };
+        {/* Footer - fades in after reveal */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: revealed ? 1 : 0 }}
+          transition={{ duration: 0.4, delay: 0.6 }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+        </motion.div>
+      </div>
+    );
+  };
 
   const CityIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
@@ -1488,9 +1696,91 @@ export default function ResultsPage({ params }: Props) {
           </div>
         </div>
         
-        <NavigationFooter onNext={onNext} onBack={onBack} light={false} nextText="see summary →" />
+        <NavigationFooter onNext={onNext} onBack={onBack} light={false} nextText="continue →" />
     </div>
   );
+  };
+
+  const TopOutfitsIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
+    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
+      <div className="flex-1 flex flex-col justify-center overflow-hidden">
+        <h1 className="font-display text-3xl leading-[1.2] text-left">
+          Okay, this is it.
+        </h1>
+        <p className="font-display text-3xl leading-[1.2] text-left mt-4">
+          Out of your <span className="italic">{results.total_outfits_analyzed}</span> photos, here are our 5 favorite outfits.
+        </p>
+      </div>
+      
+      <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+    </div>
+  );
+
+  const TopOutfitsPickContent = ({ 
+    onNext, 
+    onBack 
+  }: { 
+    onNext?: () => void; 
+    onBack?: () => void;
+  }) => {
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+    
+    // Get top 5 outfits (or fewer if not available)
+    const topFive = results.top_outfits.slice(0, 5);
+    
+    return (
+      <div className="flex flex-col h-[100dvh] px-6 pt-12 pb-4 bg-black text-[#F7EFE5]">
+        <div className="shrink-0 mb-6">
+          <h3 className="font-display text-xl text-center">Pick out your favorite one.</h3>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="grid grid-cols-2 gap-3">
+            {topFive.map((outfit, i) => (
+              <motion.button
+                key={outfit.photo_id}
+                onClick={() => setSelectedIndex(i)}
+                className={`aspect-[3/4] rounded-xl overflow-hidden relative border-2 transition-all ${
+                  selectedIndex === i 
+                    ? 'border-white shadow-lg scale-[1.02]' 
+                    : 'border-transparent'
+                }`}
+                whileTap={{ scale: 0.98 }}
+              >
+                <img
+                  src={outfit.path}
+                  alt={`Outfit ${i + 1}`}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                {selectedIndex === i && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute inset-0 bg-white/10 flex items-center justify-center"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
+                      <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </motion.div>
+                )}
+                <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs">
+                  #{i + 1}
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+        
+        <NavigationFooter 
+          onNext={onNext} 
+          onBack={onBack} 
+          light={false}
+          nextText={selectedIndex !== null ? "see summary →" : "skip →"}
+        />
+      </div>
+    );
   };
 
   const SummaryContent = ({ onBack }: { onBack?: () => void }) => {
@@ -1876,7 +2166,11 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <FavPairingsContent onNext={favPairingsFlip.flip} onBack={onBack['fav-pairings']} />
+              <FavPairingsContent 
+                isActive={false}
+                onNext={favPairingsFlip.flip} 
+                onBack={onBack['fav-pairings']} 
+              />
             </div>
             <FlipPage key="fav-item" isFlipped={favItemFlip.isFlipped} zIndex={10}>
               <FavItemContent onNext={favItemFlip.flip} />
@@ -1888,10 +2182,18 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-black z-0">
-              <UnwornPairingsContent onNext={unwornPairingsFlip.flip} onBack={onBack['unworn-pairings']} />
+              <UnwornPairingsContent 
+                isActive={false}
+                onNext={unwornPairingsFlip.flip} 
+                onBack={onBack['unworn-pairings']} 
+              />
             </div>
             <FlipPage key="fav-pairings" isFlipped={favPairingsFlip.isFlipped} zIndex={10}>
-              <FavPairingsContent onNext={favPairingsFlip.flip} onBack={onBack['fav-pairings']} />
+              <FavPairingsContent 
+                isActive={true}
+                onNext={favPairingsFlip.flip} 
+                onBack={onBack['fav-pairings']} 
+              />
             </FlipPage>
           </FlipContainer>
         );
@@ -1903,7 +2205,11 @@ export default function ResultsPage({ params }: Props) {
               <TopStylesContent onNext={topStylesFlip.flip} onBack={onBack['top-styles']} />
             </div>
             <FlipPage key="unworn-pairings" isFlipped={unwornPairingsFlip.isFlipped} zIndex={10}>
-              <UnwornPairingsContent onNext={unwornPairingsFlip.flip} onBack={onBack['unworn-pairings']} />
+              <UnwornPairingsContent 
+                isActive={true}
+                onNext={unwornPairingsFlip.flip} 
+                onBack={onBack['unworn-pairings']} 
+              />
             </FlipPage>
           </FlipContainer>
         );
@@ -1961,7 +2267,7 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-black z-0">
-              <CelebrityContent onNext={celebrityFlip.flip} onBack={onBack['celebrity']} />
+              <CelebrityContent onNext={celebrityFlip.flip} onBack={onBack['celebrity']} isActive={false} />
             </div>
             <FlipPage key="decade" isFlipped={decadeFlip.isFlipped} zIndex={10}>
               <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} isActive={true} />
@@ -1976,7 +2282,7 @@ export default function ResultsPage({ params }: Props) {
               <CityIntroContent onNext={cityIntroFlip.flip} onBack={onBack['city-intro']} />
             </div>
             <FlipPage key="celebrity" isFlipped={celebrityFlip.isFlipped} zIndex={10}>
-              <CelebrityContent onNext={celebrityFlip.flip} onBack={onBack['celebrity']} />
+              <CelebrityContent onNext={celebrityFlip.flip} onBack={onBack['celebrity']} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );
@@ -1996,11 +2302,35 @@ export default function ResultsPage({ params }: Props) {
       case 'city-reveal':
         return (
           <FlipContainer>
-            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <SummaryContent onBack={onBack['summary']} />
+            <div className="absolute inset-0 bg-black z-0">
+              <TopOutfitsIntroContent onNext={topOutfitsIntroFlip.flip} onBack={onBack['top-outfits-intro']} />
             </div>
             <FlipPage key="city-reveal" isFlipped={cityRevealFlip.isFlipped} zIndex={10}>
               <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'top-outfits-intro':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-black z-0">
+              <TopOutfitsPickContent onNext={topOutfitsPickFlip.flip} onBack={onBack['top-outfits-pick']} />
+            </div>
+            <FlipPage key="top-outfits-intro" isFlipped={topOutfitsIntroFlip.isFlipped} zIndex={10}>
+              <TopOutfitsIntroContent onNext={topOutfitsIntroFlip.flip} onBack={onBack['top-outfits-intro']} />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'top-outfits-pick':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <SummaryContent onBack={onBack['summary']} />
+            </div>
+            <FlipPage key="top-outfits-pick" isFlipped={topOutfitsPickFlip.isFlipped} zIndex={10}>
+              <TopOutfitsPickContent onNext={topOutfitsPickFlip.flip} onBack={onBack['top-outfits-pick']} />
             </FlipPage>
           </FlipContainer>
         );

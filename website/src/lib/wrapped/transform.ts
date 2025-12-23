@@ -65,7 +65,9 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
       similarity_score: backend.top_celeb_match.similarity_score,
       categories: backend.top_celeb_match.categories || [],
       color_aura_name: backend.top_celeb_match.color_aura_name,
-      top_style: backend.top_celeb_match.style_1,
+      style_1: backend.top_celeb_match.style_1,
+      style_2: backend.top_celeb_match.style_2,
+      style_3: backend.top_celeb_match.style_3,
     },
 
     // Most worn item

@@ -71,6 +71,12 @@ interface StyleResult {
   appearances: number;
 }
 
+interface TopOutfitForStyle {
+  photo_id: string;
+  path: string;
+  similarity_score: number;
+}
+
 interface UnwornPairing {
   reasoning: string;
   garment_name: string;
@@ -85,6 +91,7 @@ interface WrappedResults {
   city_photo_url: string | null;
   primary_style: string;
   top_styles: StyleResult[];
+  top_outfits_for_style: TopOutfitForStyle[];
   total_outfits_analyzed: number;
   top_colors: ColorGroup[];
   top_shades: ColorResult[];
@@ -115,6 +122,23 @@ const mockResults: WrappedResults = {
     { style_name: 'minimalist', points: 9, appearances: 3 },
     { style_name: 'streetwear', points: 5, appearances: 2 },
     { style_name: 'business casual', points: 2.5, appearances: 1 }
+  ],
+  top_outfits_for_style: [
+    {
+      photo_id: '58cae82f-990e-4f45-9bef-069590f93e54',
+      path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/58cae82f-990e-4f45-9bef-069590f93e54_original.jpeg',
+      similarity_score: 0.92
+    },
+    {
+      photo_id: '8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1',
+      path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
+      similarity_score: 0.88
+    },
+    {
+      photo_id: '0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7',
+      path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
+      similarity_score: 0.85
+    }
   ],
   total_outfits_analyzed: 3,
   color_aura: 'Candlelit Dinner',
@@ -301,6 +325,8 @@ export default function ResultsPage({ params }: Props) {
           ...transformed.best_pairings.map(p => p.garment_path),
           // Unworn pairings
           ...transformed.unworn_pairings.map(p => p.garment_path),
+          // Top outfits for primary style
+          ...transformed.top_outfits_for_style.map(o => o.path),
           // Celebrity photo
           transformed.top_celeb_match.celeb_photo_url,
           // City photo
@@ -766,40 +792,327 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const TopStylesContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
-    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
-      <StyleSidebar />
-      <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  const TopStylesContent = ({
+    onNext,
+    onBack,
+    isActive = true
+  }: {
+    onNext?: () => void;
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    // Phase state management: shuffle -> reveal -> gallery
+    const [phase, setPhase] = useState<'shuffle' | 'reveal' | 'gallery'>('shuffle');
+
+    // Auto-transition from reveal -> gallery after delay
+    useEffect(() => {
+      if (phase === 'reveal' && isActive) {
+        const timer = setTimeout(() => {
+          setPhase('gallery');
+        }, 3000); // 2 second pause on reveal before showing photos
+        return () => clearTimeout(timer);
+      }
+    }, [phase, isActive]);
+
+    // Container variants for staggered children - slide from right
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 1.0,
+          delayChildren: 0.2,
+        },
+      },
+    };
+
+    // Style item variants - slide in from right
+    const styleItemVariants = {
+      hidden: {
+        x: 60,
+        opacity: 0,
+      },
+      visible: {
+        x: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.8,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    // Text variants - fade and slide up from bottom with extra delay
+    const textVariants = {
+      hidden: {
+        y: 20,
+        opacity: 0,
+      },
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.5,
+          // delay: 3.5,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    // Handle navigation
+    const handleNext = () => {
+      if (phase === 'shuffle') {
+        setPhase('reveal');
+      } else if (phase === 'reveal') {
+        setPhase('gallery'); // Skip ahead if user clicks during reveal
+      } else {
+        onNext?.();
+      }
+    };
+
+    const handleBack = () => {
+      if (phase === 'gallery' || phase === 'reveal') {
+        setPhase('shuffle');
+      } else {
+        onBack?.();
+      }
+    };
+
+    // Animation should play when component isActive AND in shuffle phase
+    const shouldAnimate = isActive && phase === 'shuffle';
+
+    // Check if we're in the gallery phase (photos visible)
+    const isGallery = phase === 'gallery';
+
+    // Shuffle phase inner content
+    const ShuffleInner = () => (
+      <motion.div
+        className="flex-1 flex flex-col"
+        initial="hidden"
+        animate={shouldAnimate ? "visible" : "hidden"}
+        exit={{ opacity: 0, transition: { duration: 0.2 } }}
+      >
         <h3 className="font-display text-lg text-gray-900 mb-8">Your top 3 aesthetics</h3>
-        
-        <div className="space-y-6 flex-1">
-          {results.top_styles.slice(0, 3).map((style, i) => (
-            <div key={i} className="flex flex-col gap-2 shrink-0">
-              <div className="flex items-baseline justify-between border-b border-gray-200 pb-1">
-                <span className="text-sm text-gray-400 font-display">0{i + 1}</span>
-                <span className="text-2xl font-display uppercase tracking-tight text-gray-900">
-                  {formatStyleName(style.style_name)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-gray-400">
-                <span>{style.appearances} Appearances</span>
-                <span>{Math.round(style.points)} Points</span>
-              </div>
-            </div>
-          ))}
+
+        {/* Vertical spacer */}
+        <div className="flex-1" />
+
+        <motion.div
+          className="space-y-10"
+          variants={containerVariants}
+        >
+          {results.top_styles.slice(0, 3).map((style, i) => {
+            const isPrimary = style.style_name === results.primary_style;
+            return (
+              <motion.div
+                key={style.style_name}
+                className="flex flex-col gap-2 shrink-0"
+                variants={styleItemVariants}
+              >
+                <div className="flex items-baseline justify-end border-b border-gray-200 pb-1">
+                  <motion.span
+                    layoutId={isPrimary ? "primary-style-text" : undefined}
+                    className="text-3xl font-display uppercase tracking-tight text-gray-900"
+                  >
+                    {formatStyleName(style.style_name)}
+                  </motion.span>
+                </div>
+              </motion.div>
+            );
+          })}
+
+          <motion.p
+            className="text-sm text-gray-600 text-center italic"
+            variants={textVariants}
+          >
+            But if we had to choose one...
+          </motion.p>
+        </motion.div>
+
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+      </motion.div>
+    );
+
+    // Reveal/Gallery phase inner content - uses layout animations
+    const RevealGalleryInner = () => (
+      <motion.div
+        className="flex-1 flex flex-col overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0, transition: { duration: 0.2 } }}
+        layout
+        transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+      >
+        {/* Header section - centered in reveal, top-aligned in gallery */}
+        <motion.div
+          layout
+          className={`flex flex-col ${isGallery ? 'items-start' : 'items-center justify-center flex-1'}`}
+          transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+        >
+          <AnimatePresence>
+            {isGallery && (
+              <motion.p
+                key="label-above"
+                className="font-display text-medium text-gray-500 mb-2"
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+              >
+                Your signature:
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          {/* Primary style name - animates from center to top */}
+          <motion.div
+            layout
+            layoutId="primary-style-text"
+            className="font-display uppercase tracking-tight text-gray-900"
+            style={{
+              fontSize: isGallery ? 'clamp(1.5rem, 8vw, 2.25rem)' : 'clamp(2rem, 12vw, 3.75rem)',
+              marginBottom: isGallery ? '1.5rem' : '0',
+            }}
+            transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+          >
+            {formatStyleName(results.primary_style)}
+          </motion.div>
+
+          <AnimatePresence>
+          {!isGallery && (
+            <motion.p
+              key="label-below"
+              className="font-display text-lg text-gray-500 mt-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{
+                duration: 0.35,
+                delay: 1.0,
+                ease: [0.4, 0, 0.2, 1],
+              }}
+            >
+              Looking good!
+            </motion.p>
+          )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Outfit photos - only visible in gallery phase */}
+        <AnimatePresence>
+          {isGallery && (
+            <motion.div
+              className="flex-1 flex flex-col pb-4"
+              initial="hidden"
+              animate="visible"
+              exit={{ opacity: 0 }}
+              variants={{
+                hidden: {},
+                visible: {
+                  transition: {
+                    staggerChildren: 0.15,
+                    delayChildren: 0.2,
+                  },
+                },
+              }}
+            >
+              {results.top_outfits_for_style.slice(0, 3).map((outfit, i) => {
+                const zIndex = i;
+
+                // Overlap and jitter variations (similar to FavPairingsContent)
+                const overlaps = [0, -45, -65];
+                const jitterConfigs = [
+                  { pct: -5, max: -22 },
+                  { pct: 8, max: 36 },
+                  { pct: -3, max: -14 },
+                ];
+
+                const marginTop = i > 0 ? overlaps[i] : 0;
+                const jitter = jitterConfigs[i];
+                const translateX = jitter.pct >= 0
+                  ? `min(${jitter.pct}vw, ${jitter.max}px)`
+                  : `max(${jitter.pct}vw, ${jitter.max}px)`;
+
+                return (
+                  <motion.div
+                    key={outfit.photo_id}
+                    variants={{
+                      hidden: { y: 60, opacity: 0 },
+                      visible: {
+                        y: 0,
+                        opacity: 1,
+                        transition: {
+                          duration: 0.5,
+                          ease: [0.4, 0, 0.2, 1],
+                        },
+                      },
+                    }}
+                    className={`w-[45vw] max-w-[220px] aspect-[3/4] rounded-xl overflow-hidden bg-[#F1EDE7] shadow-lg relative shrink-0 ${
+                      i % 2 === 0 ? 'self-end mr-4' : 'self-start'
+                    }`}
+                    style={{
+                      zIndex,
+                      marginTop: `${marginTop}px`,
+                      transform: `translateX(${translateX})`,
+                    }}
+                  >
+                    <img
+                      src={outfit.path}
+                      alt={`Outfit ${i + 1}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    {/* 3D effect overlay */}
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%)'
+                      }}
+                    />
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
+        <StyleSidebar />
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-hidden">
+          {/* Phase-based content rendering with AnimatePresence */}
+          <AnimatePresence mode="wait">
+            {phase === 'shuffle' ? (
+              <ShuffleInner key="shuffle" />
+            ) : (
+              <RevealGalleryInner key="reveal-gallery" />
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="mt-12 p-6 bg-[#F1EDE7] rounded-2xl shrink-0">
-          <p className="text-sm text-gray-600 leading-relaxed italic">
-            "Your style blends {formatStyleName(results.top_styles[0].style_name)} with {formatStyleName(results.top_styles[1].style_name)} touches,
-            creating a look that's uniquely yours."
-          </p>
-        </div>
+        <NavigationFooter onNext={handleNext} onBack={handleBack} />
       </div>
-      
-      <NavigationFooter onNext={onNext} onBack={onBack} />
-    </div>
-  );
+    );
+  };
 
   const WelcomeContent = ({ onNext, isActive = true }: { onNext?: () => void; isActive?: boolean }) => {
     const lineVariants = {
@@ -2202,7 +2515,11 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <TopStylesContent onNext={topStylesFlip.flip} onBack={onBack['top-styles']} />
+              <TopStylesContent
+                isActive={false}
+                onNext={topStylesFlip.flip}
+                onBack={onBack['top-styles']}
+              />
             </div>
             <FlipPage key="unworn-pairings" isFlipped={unwornPairingsFlip.isFlipped} zIndex={10}>
               <UnwornPairingsContent 
@@ -2227,7 +2544,11 @@ export default function ResultsPage({ params }: Props) {
               />
             </div>
             <FlipPage key="top-styles" isFlipped={topStylesFlip.isFlipped} zIndex={10}>
-              <TopStylesContent onNext={topStylesFlip.flip} onBack={onBack['top-styles']} />
+              <TopStylesContent
+                isActive={true}
+                onNext={topStylesFlip.flip}
+                onBack={onBack['top-styles']}
+              />
             </FlipPage>
           </FlipContainer>
         );

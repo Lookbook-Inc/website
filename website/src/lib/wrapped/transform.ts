@@ -7,6 +7,18 @@
 import type { BackendWrappedInsights } from '@/types/wrapped-api';
 
 /**
+ * Shuffle array in place using Fisher-Yates algorithm
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
  * Transform backend insights response to frontend format
  *
  * This function maps the backend field names to the frontend's expected format.
@@ -30,10 +42,17 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
 
     // Styles
     primary_style: backend.primary_style,
-    top_styles: backend.top_styles.map(style => ({
-      style_name: style.style_name,
-      points: style.points,
-      appearances: style.appearances,
+    top_styles: shuffleArray(
+      backend.top_styles.slice(0, 3).map(style => ({
+        style_name: style.style_name,
+        points: style.points,
+        appearances: style.appearances,
+      }))
+    ),
+    top_outfits_for_style: backend.top_outfits_for_style.map(outfit => ({
+      photo_id: outfit.photo_id,
+      path: outfit.signed_url, // Use signed URL for display
+      similarity_score: outfit.similarity_score,
     })),
 
     // Statistics

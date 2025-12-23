@@ -7,6 +7,17 @@
 import type { BackendWrappedInsights } from '@/types/wrapped-api';
 
 /**
+ * Helper function to format style names (remove underscores, capitalize)
+ * e.g., "minimalist_streetwear" -> "Minimalist Streetwear"
+ */
+export const formatStyleName = (style: string): string => {
+  return style
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+/**
  * Shuffle array in place using Fisher-Yates algorithm
  */
 function shuffleArray<T>(array: T[]): T[] {
@@ -37,14 +48,14 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
     userCity: backend.user_city || null,
 
     // City vibe
-    city_vibe: backend.city_vibe,
+    city_vibe: formatStyleName(backend.city_vibe),
     city_photo_url: backend.city_photo_url || null,
 
     // Styles
-    primary_style: backend.primary_style,
+    primary_style: formatStyleName(backend.primary_style),
     top_styles: shuffleArray(
       backend.top_styles.slice(0, 3).map(style => ({
-        style_name: style.style_name,
+        style_name: formatStyleName(style.style_name),
         points: style.points,
         appearances: style.appearances,
       }))
@@ -61,17 +72,17 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
 
     // Colors
     top_colors: backend.top_colors.map(color => ({
-      color: color.color,
-      top_shade: color.top_shade,
+      color: formatStyleName(color.color),
+      top_shade: formatStyleName(color.top_shade),
       top_shade_hex: color.top_shade_hex,
       piece_count: color.piece_count,
     })),
 
     // Top shades (for the #1 color)
     top_shades: backend.top_shades.map(shade => ({
-      color: shade.color_result,
+      color: formatStyleName(shade.color_result),
       shade_hex: shade.shade_hex_result,
-      shade_name: shade.shade_name_result,
+      shade_name: formatStyleName(shade.shade_name_result),
       photo_ids: shade.photo_ids_result,
       importance_score: shade.importance_score_result,
     })),
@@ -84,10 +95,10 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
       description: backend.top_celeb_match.description || '',
       similarity_score: backend.top_celeb_match.similarity_score,
       categories: backend.top_celeb_match.categories || [],
-      color_aura_name: backend.top_celeb_match.color_aura_name,
-      style_1: backend.top_celeb_match.style_1,
-      style_2: backend.top_celeb_match.style_2,
-      style_3: backend.top_celeb_match.style_3,
+      color_aura_name: formatStyleName(backend.top_celeb_match.color_aura_name),
+      style_1: formatStyleName(backend.top_celeb_match.style_1),
+      style_2: formatStyleName(backend.top_celeb_match.style_2),
+      style_3: formatStyleName(backend.top_celeb_match.style_3),
     },
 
     // Most worn item
@@ -97,7 +108,7 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
       item_type: backend.most_worn_item.item_type,
       outfit_count: backend.most_worn_item.outfit_count,
       shade_hex_1: backend.most_worn_item.shade_hex_1 || '#000000',
-      shade_name_1: backend.most_worn_item.shade_name_1 || 'Unknown',
+      shade_name_1: formatStyleName(backend.most_worn_item.shade_name_1 || 'Unknown'),
       details: backend.most_worn_item.details,
     },
 
@@ -121,7 +132,7 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
     clothing_items_description: backend.clothing_items_description ||
       'Your wardrobe insights are being generated...',
 
-    color_aura: backend.color_aura,
+    color_aura: formatStyleName(backend.color_aura),
 
     color_aura_description: backend.color_aura_description ||
       'Your color personality analysis is coming soon...',

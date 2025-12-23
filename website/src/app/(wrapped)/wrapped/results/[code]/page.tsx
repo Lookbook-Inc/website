@@ -1,115 +1,32 @@
 'use client';
 
 import { useState, useEffect, ReactNode, useRef } from 'react';
-import { FlipPage } from '@/app/components/FlipPage';
+import { FlipPage } from './_components/FlipPage';
 import { useFlip } from '@/hooks/useFlip';
 import { domToPng } from 'modern-screenshot';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getInsightsByShareCode } from '@/lib/api/wrapped';
 import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
+import { 
+  ClothingItem, 
+  ColorGroup, 
+  ColorResult, 
+  CelebMatch, 
+  UploadedPhoto, 
+  TopOutfit, 
+  Pairing, 
+  StyleResult, 
+  TopOutfitForStyle, 
+  UnwornPairing, 
+  WrappedResults,
+  Step 
+} from '@/types/wrapped-frontend';
+import { NavigationFooter } from './_components/NavigationFooter';
+import { SummaryContent } from './_components/SummaryContent';
+import { TopOutfitsSelectionContent } from './_components/TopOutfitsSelectionContent';
 
 // --- Types ---
-
-interface ClothingItem {
-  name: string;
-  path: string;
-  item_type: string;
-  outfit_count: number;
-  shade_hex_1: string;
-  shade_name_1: string;
-  details: string | null;
-}
-
-interface ColorGroup {
-  color: string;
-  top_shade: string;
-  top_shade_hex: string;
-  piece_count: number;
-}
-
-interface ColorResult {
-  color: string;
-  photo_ids: string[];
-  shade_hex: string;
-  shade_name: string;
-  importance_score: number;
-}
-
-interface CelebMatch {
-  celeb_name: string;
-  celeb_photo_url?: string;
-  celeb_portrait_url: string;
-  description: string;
-  similarity_score: number;
-  categories: string[];
-  color_aura_name: string;
-  style_1: string;
-  style_2: string;
-  style_3: string;
-}
-
-interface UploadedPhoto {
-  signed_url: string;
-}
-
-interface TopOutfit {
-  photo_id: string;
-  path: string;
-  similarity_score: number;
-}
-
-interface Pairing {
-  garment_name: string;
-  garment_path: string;
-  times_paired?: number;
-  garment_color?: string;
-}
-
-interface StyleResult {
-  style_name: string;
-  points: number;
-  appearances: number;
-}
-
-interface TopOutfitForStyle {
-  photo_id: string;
-  path: string;
-  similarity_score: number;
-}
-
-interface UnwornPairing {
-  reasoning: string;
-  garment_name: string;
-  garment_path: string;
-  garment_color?: string;
-}
-
-interface WrappedResults {
-  userName: string;
-  userCity: string | null;
-  city_vibe: string;
-  city_photo_url: string | null;
-  primary_style: string;
-  top_styles: StyleResult[];
-  top_outfits_for_style: TopOutfitForStyle[];
-  total_outfits_analyzed: number;
-  top_colors: ColorGroup[];
-  top_shades: ColorResult[];
-  top_celeb_match: CelebMatch;
-  most_worn_item: ClothingItem;
-  best_pairings: Pairing[];
-  unworn_pairings: UnwornPairing[];
-  clothing_items_description: string;
-  color_aura: string;
-  color_aura_description: string;
-  style_description: string;
-  total_clothing_items: number;
-  top_outfits: TopOutfit[];
-  all_uploaded_photos: UploadedPhoto[];
-  top_decade: string;
-  decade_description: string;
-  decade_photo_url: string | null;
-}
+// Moved to @/types/wrapped-frontend
 
 // Mock data populated from the provided CSV values
 const mockResults: WrappedResults = {
@@ -117,11 +34,11 @@ const mockResults: WrappedResults = {
   userCity: 'San Francisco',
   city_vibe: 'San Francisco',
   city_photo_url: null,
-  primary_style: 'minimalist',
+  primary_style: 'Minimalist',
   top_styles: [
-    { style_name: 'minimalist', points: 9, appearances: 3 },
-    { style_name: 'streetwear', points: 5, appearances: 2 },
-    { style_name: 'business casual', points: 2.5, appearances: 1 }
+    { style_name: 'Minimalist', points: 9, appearances: 3 },
+    { style_name: 'Streetwear', points: 5, appearances: 2 },
+    { style_name: 'Business Casual', points: 2.5, appearances: 1 }
   ],
   top_outfits_for_style: [
     {
@@ -214,22 +131,12 @@ const mockResults: WrappedResults = {
   decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80'
 };
 
-type Step = 'welcome' | 'intro' | 'photo-flip' | 'fav-item' | 'fav-pairings' | 'unworn-pairings' | 'top-styles' | 'colors' | 'color-aura' | 'decade' | 'celebrity' | 'city-intro' | 'city-reveal' | 'top-outfits-intro' | 'top-outfits-pick' | 'summary';
-
 type Props = {
   params: Promise<{ code: string }>
 }
 
 // Test code to skip backend and use mock data
 const TEST_CODE = 'TESTME';
-
-// Helper function to format style names (remove underscores, capitalize)
-const formatStyleName = (style: string): string => {
-  return style
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
 
 // Wrapper for perspective context
 const FlipContainer = ({ children }: { children: ReactNode }) => (
@@ -362,9 +269,8 @@ export default function ResultsPage({ params }: Props) {
   const decadeFlip = useFlip(() => setStep('celebrity'));
   const celebrityFlip = useFlip(() => setStep('city-intro'));
   const cityIntroFlip = useFlip(() => setStep('city-reveal'));
-  const cityRevealFlip = useFlip(() => setStep('top-outfits-intro'));
-  const topOutfitsIntroFlip = useFlip(() => setStep('top-outfits-pick'));
-  const topOutfitsPickFlip = useFlip(() => setStep('summary'));
+  const cityRevealFlip = useFlip(() => setStep('top-outfits-selection'));
+  const topOutfitsSelectionFlip = useFlip(() => setStep('summary'));
   
   // Track the previous step to handle reverse animations
   const [prevStep, setPrevStep] = useState<Step | null>(null);
@@ -381,9 +287,8 @@ export default function ResultsPage({ params }: Props) {
     'celebrity': () => { setPrevStep(step); setStep('decade'); },
     'city-intro': () => { setPrevStep(step); setStep('celebrity'); },
     'city-reveal': () => { setPrevStep(step); setStep('city-intro'); },
-    'top-outfits-intro': () => { setPrevStep(step); setStep('city-reveal'); },
-    'top-outfits-pick': () => { setPrevStep(step); setStep('top-outfits-intro'); },
-    'summary': () => { setPrevStep(step); setStep('top-outfits-pick'); },
+    'top-outfits-selection': () => { setPrevStep(step); setStep('city-reveal'); },
+    'summary': () => { setPrevStep(step); setStep('top-outfits-selection'); },
   };
 
   // Handle the reverse animation when moving to a previous step
@@ -402,8 +307,7 @@ export default function ResultsPage({ params }: Props) {
       'celebrity': celebrityFlip,
       'city-intro': cityIntroFlip,
       'city-reveal': cityRevealFlip,
-      'top-outfits-intro': topOutfitsIntroFlip,
-      'top-outfits-pick': topOutfitsPickFlip,
+      'top-outfits-selection': topOutfitsSelectionFlip,
     };
 
     const hookToReset = flipHooks[step];
@@ -417,7 +321,7 @@ export default function ResultsPage({ params }: Props) {
     } else {
       setPrevStep(null);
     }
-  }, [step, prevStep, favItemFlip, favPairingsFlip, unwornPairingsFlip, topStylesFlip, colorsFlip, shadesFlip, colorAuraFlip, decadeFlip, celebrityFlip, cityIntroFlip, cityRevealFlip, topOutfitsIntroFlip, topOutfitsPickFlip]);
+  }, [step, prevStep, favItemFlip, favPairingsFlip, unwornPairingsFlip, topStylesFlip, colorsFlip, shadesFlip, colorAuraFlip, decadeFlip, celebrityFlip, cityIntroFlip, cityRevealFlip, topOutfitsSelectionFlip]);
   
   // Track which pages have been flipped for the photo sequence
   const [flippedPages, setFlippedPages] = useState<boolean[]>(
@@ -455,62 +359,6 @@ export default function ResultsPage({ params }: Props) {
   }, [step, TOTAL_FLIP_PAGES]);
 
   // --- Page Contents ---
-
-  const NavigationFooter = ({ 
-    onNext, 
-    onBack, 
-    nextText = "continue →", 
-    backText = "← back",
-    light = true,
-    leftLabel = "Lookbook",
-    disabled = false
-  }: { 
-    onNext?: () => void; 
-    onBack?: () => void; 
-    nextText?: string;
-    backText?: string;
-    light?: boolean;
-    leftLabel?: string;
-    disabled?: boolean;
-  }) => {
-    // Match the background color of the current screen to "punch out" the text from the sidebar
-    const bgColor = light ? '#FFFAF4' : '#000000';
-    
-    return (
-      <div className="mt-auto pt-2 flex justify-between items-center font-display relative z-10 min-h-[32px]">
-        {onBack ? (
-          <button 
-            onClick={onBack} 
-            className={`${light ? 'text-gray-400' : 'text-zinc-500'} text-lg px-2 py-0.5 rounded-sm`}
-            style={{ backgroundColor: bgColor }}
-          >
-            {backText}
-          </button>
-        ) : (
-          <span 
-            className={`text-lg px-2 py-0.5 rounded-sm`}
-            style={{ 
-              color: leftLabel === "Lookbook" ? '#D1BB99' : (light ? '#9CA3AF' : 'rgba(113, 113, 122, 0.5)'),
-              backgroundColor: bgColor
-            }}
-          >
-            {leftLabel}
-          </span>
-        )}
-        
-        {onNext && (
-          <button 
-            onClick={onNext} 
-            disabled={disabled}
-            className={`${light ? 'text-gray-900' : 'text-[#F7EFE5]'} text-lg px-2 py-0.5 rounded-sm transition-opacity ${disabled ? 'opacity-20 cursor-not-allowed' : 'opacity-100'}`}
-            style={{ backgroundColor: bgColor }}
-          >
-            {nextText}
-          </button>
-        )}
-      </div>
-    );
-  };
 
   const FavSidebar = ({ light = true }: { light?: boolean }) => (
     <div className="absolute left-0 top-0 bottom-0 w-24 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
@@ -917,7 +765,7 @@ export default function ResultsPage({ params }: Props) {
                     layoutId={isPrimary ? "primary-style-text" : undefined}
                     className="text-3xl font-display uppercase tracking-tight text-gray-900"
                   >
-                    {formatStyleName(style.style_name)}
+                    {style.style_name}
                   </motion.span>
                 </div>
               </motion.div>
@@ -992,13 +840,13 @@ export default function ResultsPage({ params }: Props) {
             layoutId="primary-style-text"
             className="font-display uppercase tracking-tight text-gray-900"
             style={{
-              fontSize: isGallery ? 'clamp(1.5rem, 8vw, 2.25rem)' : 'clamp(2rem, 12vw, 3.75rem)',
-              marginBottom: isGallery ? '1.5rem' : '0',
-            }}
-            transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
-          >
-            {formatStyleName(results.primary_style)}
-          </motion.div>
+            fontSize: isGallery ? 'clamp(1.5rem, 8vw, 2.25rem)' : 'clamp(2rem, 12vw, 3.75rem)',
+            marginBottom: isGallery ? '1.5rem' : '0',
+          }}
+          transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+        >
+          {results.primary_style}
+        </motion.div>
 
           <AnimatePresence>
           {!isGallery && (
@@ -1127,7 +975,7 @@ export default function ResultsPage({ params }: Props) {
         transition: {
           delay: 0.3 + i * 0.2,
           duration: 0.6,
-          ease: [0.4, 0, 0.2, 1],
+          ease: [0.4, 0, 0.2, 1] as any,
         },
       }),
     };
@@ -1171,7 +1019,7 @@ export default function ResultsPage({ params }: Props) {
         transition: {
           delay: 0.3 + i * 0.2,
           duration: 0.6,
-          ease: [0.4, 0, 0.2, 1],
+          ease: [0.4, 0, 0.2, 1] as any,
         },
       }),
     };
@@ -1879,7 +1727,7 @@ export default function ResultsPage({ params }: Props) {
                   .filter(Boolean)
                   .map((style, i) => (
                     <p key={i} className="text-lg font-display text-[#F7EFE5] leading-tight capitalize">
-                      {style.replace(/_/g, ' ')}
+                      {style}
                     </p>
                   ))}
               </div>
@@ -2016,449 +1864,6 @@ export default function ResultsPage({ params }: Props) {
         <NavigationFooter onNext={onNext} onBack={onBack} light={false} nextText="continue →" />
     </div>
   );
-  };
-
-  const TopOutfitsIntroContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
-    const [phase, setPhase] = useState<'initial' | 'first' | 'transition' | 'second'>('initial');
-
-    useEffect(() => {
-      if (!isActive) {
-        setPhase('initial');
-        return;
-      }
-
-      // Initial delay to wait for the page flip to be fully finished and settled
-      const settleTimer = setTimeout(() => {
-        setPhase('first');
-        
-        // After 1000ms of "Okay, this is it" being visible, start the fade out
-        const transitionTimer = setTimeout(() => {
-          setPhase('transition');
-        }, 1000);
-
-        // After the fade out, show the second line
-        const secondTimer = setTimeout(() => {
-          setPhase('second');
-        }, 1800);
-
-        return () => {
-          clearTimeout(transitionTimer);
-          clearTimeout(secondTimer);
-        };
-      }, 400); // Increased wait time for flip to settle
-
-      return () => clearTimeout(settleTimer);
-    }, [isActive]);
-
-    return (
-      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-[#FFFAF4] text-gray-900">
-        <div className="flex-1 flex flex-col justify-center overflow-hidden">
-          <AnimatePresence mode="wait">
-            {(phase === 'first' || phase === 'transition') && (
-              <motion.h1
-                key="first"
-                className="font-display text-4xl leading-[1.2] text-left"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ 
-                  opacity: phase === 'first' ? 1 : 0, 
-                  y: phase === 'first' ? 0 : -10 
-                }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-              >
-                Okay, this is it.
-              </motion.h1>
-            )}
-
-            {phase === 'second' && (
-              <motion.p
-                key="second"
-                className="font-display text-4xl leading-[1.2] text-left"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-              >
-                Out of your {results.total_outfits_analyzed} photos, here are our <span style={{ color: '#D1BB99' }}> 5 favorite outfits.</span>
-              </motion.p>
-            )}
-          </AnimatePresence>
-        </div>
-        
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: phase === 'second' ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <NavigationFooter onNext={onNext} onBack={onBack} light={true} />
-        </motion.div>
-      </div>
-    );
-  };
-
-  const TopOutfitsPickContent = ({ 
-    onNext, 
-    onBack 
-  }: { 
-    onNext?: () => void; 
-    onBack?: () => void;
-  }) => {
-    // Get top 5 outfits (or fewer if not available)
-    const topFive = results.top_outfits.slice(0, 5);
-    
-    return (
-      <div className="flex flex-col h-[100dvh] px-6 pt-12 pb-4 bg-black text-[#F7EFE5]">
-        <div className="flex-1 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="grid grid-cols-2 gap-3">
-            {/* Top Left: The prompt text */}
-            <div className="aspect-[3/4] flex flex-col justify-start pb-4 pr-2">
-              <h3 className="font-display text-2xl leading-[1.1] text-left">
-                Pick out <br />your <br /> <span style={{ color: '#D1BB99' }}>personal favorite.</span>
-              </h3>
-            </div>
-
-            {/* The rest of the grid: Top 5 outfits */}
-            {topFive.map((outfit, i) => (
-              <motion.button
-                key={outfit.photo_id}
-                onClick={() => setSelectedOutfitIndex(i)}
-                className={`aspect-[3/4] rounded-xl overflow-hidden relative border-2 transition-all ${
-                  selectedOutfitIndex === i 
-                    ? 'border-white shadow-lg scale-[1.02]' 
-                    : 'border-transparent'
-                }`}
-                whileTap={{ scale: 0.98 }}
-              >
-                <img
-                  src={outfit.path}
-                  alt={`Outfit ${i + 1}`}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                {selectedOutfitIndex === i && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute inset-0 bg-white/10 flex items-center justify-center"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                      <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  </motion.div>
-                )}
-                <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs">
-                  #{i + 1}
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-        
-        <NavigationFooter 
-          onNext={onNext} 
-          onBack={onBack} 
-          light={false}
-          nextText="see summary →"
-          disabled={selectedOutfitIndex === null}
-        />
-      </div>
-    );
-  };
-
-  const SummaryContent = ({ onBack }: { onBack?: () => void }) => {
-    const cardRef = useRef<HTMLDivElement>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [shareSupported] = useState(() => 
-      typeof navigator !== 'undefined' && !!navigator.share && !!navigator.canShare
-    );
-
-    // Determine which outfit to show - use user selection if available, else top outfit
-    const signatureOutfit = selectedOutfitIndex !== null 
-      ? results.top_outfits[selectedOutfitIndex] 
-      : results.top_outfits[0];
-
-    // Capture card as data URL
-    const captureCard = async (): Promise<string | null> => {
-      if (!cardRef.current) return null;
-      
-      try {
-        // modern-screenshot is more reliable for modern CSS
-        return await domToPng(cardRef.current, {
-          scale: 2, // Higher resolution for better quality
-          backgroundColor: '#FFFFFF',
-        });
-      } catch (error) {
-        console.error('Failed to capture card:', error);
-        return null;
-      }
-    };
-
-    // Handle download - works on mobile by opening image in new tab
-    const handleDownload = async () => {
-      setIsProcessing(true);
-      try {
-        const dataUrl = await captureCard();
-        if (!dataUrl) {
-          alert('Failed to generate image. Please try again.');
-          return;
-        }
-
-        // Check if iOS Safari (download attribute doesn't work well)
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        
-        if (isIOS) {
-          // On iOS, open image in new tab - user can long-press to save
-          const newTab = window.open();
-          if (newTab) {
-            newTab.document.write(`
-              <html>
-                <head>
-                  <title>Your Lookbook Card</title>
-                  <meta name="viewport" content="width=device-width, initial-scale=1">
-                  <style>
-                    body { 
-                      margin: 0; 
-                      display: flex; 
-                      flex-direction: column;
-                      align-items: center; 
-                      justify-content: center; 
-                      min-height: 100vh; 
-                      background: #f5f5f5;
-                      padding: 20px;
-                      box-sizing: border-box;
-                    }
-                    img { 
-                      max-width: 100%; 
-                      height: auto; 
-                      border-radius: 16px;
-                      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-                    }
-                    p {
-                      margin-top: 20px;
-                      font-family: system-ui, -apple-system, sans-serif;
-                      color: #666;
-                      text-align: center;
-                    }
-                  </style>
-                </head>
-                <body>
-                  <img src="${dataUrl}" alt="Lookbook Card" />
-                  <p>Long press on the image to save it</p>
-                </body>
-              </html>
-            `);
-            newTab.document.close();
-          }
-        } else {
-          // On other devices, trigger download
-          const link = document.createElement('a');
-          link.download = `lookbook-${results.userName.toLowerCase()}-2025.png`;
-          link.href = dataUrl;
-          link.click();
-        }
-      } catch (error) {
-        console.error('Download failed:', error);
-        alert('Download failed. Please try again.');
-      } finally {
-        setIsProcessing(false);
-      }
-    };
-
-    // Handle share - uses Web Share API on mobile
-    const handleShare = async () => {
-      setIsProcessing(true);
-      try {
-        const dataUrl = await captureCard();
-        if (!dataUrl) {
-          alert('Failed to generate image. Please try again.');
-          return;
-        }
-
-        // Convert data URL to blob for sharing
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        
-        const file = new File([blob], `lookbook-${results.userName.toLowerCase()}-2025.png`, { 
-          type: 'image/png' 
-        });
-
-        // Check if we can share files
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: `${results.userName}'s Lookbook 2025`,
-            text: `Check out my 2025 style wrapped! My color palette is "${results.color_aura}" ✨`,
-          });
-        } else if (navigator.share) {
-          // Fallback: share without file (just text/url)
-          await navigator.share({
-            title: `${results.userName}'s Lookbook 2025`,
-            text: `Check out my 2025 style wrapped! My color palette is "${results.color_aura}" ✨`,
-            url: window.location.href,
-          });
-        } else {
-          // No share API - fallback to download
-          handleDownload();
-        }
-      } catch (error) {
-        // User cancelled share or share failed
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Share failed:', error);
-        }
-      } finally {
-        setIsProcessing(false);
-      }
-    };
-
-    return (
-      <div className="flex flex-col h-[100dvh] px-6 pt-8 pb-4 bg-[#FFFAF4]">
-        {/* Shareable Card */}
-        <div className="flex-1 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-4">
-          <div 
-            ref={cardRef}
-            className="w-full max-w-sm mx-auto bg-white rounded-3xl border-4 border-black shadow-2xl overflow-hidden"
-          >
-            {/* Card Inner Content with padding */}
-            <div className="p-5 h-full flex flex-col">
-              {/* Header */}
-              <div className="flex justify-between items-start mb-4">
-                {/* Lookbook branding - vertical text */}
-                <div className="flex flex-col">
-                  <span className="font-display text-2xl leading-none tracking-tighter text-[#4A3B33]">Look</span>
-                  <span className="font-display text-2xl leading-none tracking-tighter text-[#7A5547]">book</span>
-                </div>
-                
-                {/* Title */}
-                <div className="text-right flex-1 ml-4">
-                  <h1 className="font-display text-3xl leading-none tracking-tight text-gray-900 mb-1">
-                    {results.color_aura}
-                  </h1>
-                  <p className="text-xs text-gray-500 tracking-wide">
-                    {results.userName}'s 2025 palette
-                  </p>
-                </div>
-              </div>
-
-              {/* Main photo */}
-              <div className="flex-1 bg-gray-100 rounded-2xl overflow-hidden mb-4 relative min-h-[280px]">
-                {signatureOutfit?.path ? (
-                  <img
-                    src={signatureOutfit.path}
-                    alt="Your signature look"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs text-gray-400 uppercase tracking-wider">
-                      Your signature look
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Info sections */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Left column - colors + info */}
-                <div className="space-y-3">
-                  {/* Colors */}
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-semibold">colours</p>
-                    <div className="flex gap-1.5">
-                      {results.top_colors.slice(0, 4).map((c, i) => (
-                        <div
-                          key={i}
-                          className="w-10 h-10 rounded-lg shadow-sm"
-                          style={{ backgroundColor: c.top_shade_hex }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Style Twin */}
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-semibold">style twin</p>
-                    <p className="text-xs text-gray-900 leading-tight">
-                      {results.top_celeb_match.celeb_name}
-                    </p>
-                  </div>
-
-                  {/* Decade */}
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-semibold">decade</p>
-                    <p className="text-xs text-gray-900">
-                      2020s
-                    </p>
-                  </div>
-
-                  {/* City */}
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-semibold">city</p>
-                    <p className="text-xs text-gray-900">
-                      {results.city_vibe}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right column - aesthetics */}
-                <div className="flex flex-col justify-end">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-semibold">aesthetic</p>
-                  <div className="space-y-1.5">
-                    {results.top_styles.slice(0, 3).map((style, i) => (
-                      <div
-                        key={i}
-                        className="bg-[#F5EFE7] px-3 py-2.5 rounded-lg text-right"
-                      >
-                        <p className="text-sm font-display text-gray-900 leading-none">
-                          {formatStyleName(style.style_name)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Action buttons */}
-        <div className="space-y-3 shrink-0 mb-2">
-          <button 
-            onClick={handleDownload}
-            disabled={isProcessing}
-            className="w-full bg-gray-900 text-white py-4 rounded-xl font-medium text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isProcessing ? (
-              <>
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Processing...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Save to Photos
-              </>
-            )}
-          </button>
-          <button 
-            onClick={handleShare}
-            disabled={isProcessing}
-            className="w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            {shareSupported ? 'Share' : 'Copy Link'}
-          </button>
-        </div>
-        
-        <NavigationFooter onBack={onBack} leftLabel={`${results.userName}'s Lookbook`} />
-      </div>
-    );
   };
 
   // Photo flipping sequence (multiple pages at once)
@@ -2698,7 +2103,14 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <TopOutfitsIntroContent onNext={topOutfitsIntroFlip.flip} onBack={onBack['top-outfits-intro']} isActive={false} />
+              <TopOutfitsSelectionContent 
+                onNext={topOutfitsSelectionFlip.flip} 
+                onBack={onBack['top-outfits-selection']} 
+                isActive={false} 
+                results={results}
+                selectedOutfitIndex={selectedOutfitIndex}
+                setSelectedOutfitIndex={setSelectedOutfitIndex}
+              />
             </div>
             <FlipPage key="city-reveal" isFlipped={cityRevealFlip.isFlipped} zIndex={10}>
               <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} />
@@ -2706,32 +2118,27 @@ export default function ResultsPage({ params }: Props) {
           </FlipContainer>
         );
       
-      case 'top-outfits-intro':
-        return (
-          <FlipContainer>
-            <div className="absolute inset-0 bg-black z-0">
-              <TopOutfitsPickContent onNext={topOutfitsPickFlip.flip} onBack={onBack['top-outfits-pick']} />
-            </div>
-            <FlipPage key="top-outfits-intro" isFlipped={topOutfitsIntroFlip.isFlipped} zIndex={10}>
-              <TopOutfitsIntroContent onNext={topOutfitsIntroFlip.flip} onBack={onBack['top-outfits-intro']} isActive={true} />
-            </FlipPage>
-          </FlipContainer>
-        );
-      
-      case 'top-outfits-pick':
+      case 'top-outfits-selection':
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <SummaryContent onBack={onBack['summary']} />
+              <SummaryContent results={results} selectedOutfitIndex={selectedOutfitIndex} onBack={onBack['summary']} />
             </div>
-            <FlipPage key="top-outfits-pick" isFlipped={topOutfitsPickFlip.isFlipped} zIndex={10}>
-              <TopOutfitsPickContent onNext={topOutfitsPickFlip.flip} onBack={onBack['top-outfits-pick']} />
+            <FlipPage key="top-outfits-selection" isFlipped={topOutfitsSelectionFlip.isFlipped} zIndex={10}>
+              <TopOutfitsSelectionContent 
+                onNext={topOutfitsSelectionFlip.flip} 
+                onBack={onBack['top-outfits-selection']} 
+                isActive={true} 
+                results={results}
+                selectedOutfitIndex={selectedOutfitIndex}
+                setSelectedOutfitIndex={setSelectedOutfitIndex}
+              />
             </FlipPage>
           </FlipContainer>
         );
       
       case 'summary':
-        return <SummaryContent onBack={onBack['summary']} />;
+        return <SummaryContent results={results} selectedOutfitIndex={selectedOutfitIndex} onBack={onBack['summary']} />;
       
       default:
         return null;

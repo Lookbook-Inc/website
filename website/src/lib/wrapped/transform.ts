@@ -138,6 +138,8 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
     color_aura_description: backend.color_aura_description ||
       'Your color personality analysis is coming soon...',
 
+    color_aura_shades: backend.color_aura_shades || [],
+
     style_description: backend.style_description ||
       'Your style profile is being analyzed...',
 

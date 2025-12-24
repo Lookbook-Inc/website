@@ -177,6 +177,7 @@ export interface BackendWrappedInsights {
   color_aura_id: string | null;
   color_aura_description: string | null;
   color_aura_percentage: number | null;
+  color_aura_shades: string[]; // Array of hex color codes
   colors_description: string | null;
 
   // Styles

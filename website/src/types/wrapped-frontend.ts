@@ -91,6 +91,7 @@ export interface WrappedResults {
   clothing_items_description: string;
   color_aura: string;
   color_aura_description: string;
+  color_aura_shades: string[]; // Array of hex color codes
   style_description: string;
   total_clothing_items: number;
   top_outfits: TopOutfit[];

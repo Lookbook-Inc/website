@@ -831,6 +831,13 @@ export default function WrappedWizard() {
             ))}
           </AnimatePresence>
         </div>
+
+        <div className="flex-1" />
+
+        <p className="text-sm text-gray-500 leading-tight mb-6">
+          Make sure to check your spam and "all mail" boxes!
+        </p>
+
       </div>
     );
   };

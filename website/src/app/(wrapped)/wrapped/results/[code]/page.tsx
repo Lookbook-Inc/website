@@ -60,6 +60,7 @@ const mockResults: WrappedResults = {
   total_outfits_analyzed: 3,
   color_aura: 'Candlelit Dinner',
   color_aura_description: 'Deep blacks and cool, muted supporting tones. An intimate, evening-leaning mood that reads polished and understated.',
+  color_aura_shades: ['#2C1810', '#8B4513', '#D4A574', '#F5E6D3', '#1A0F0A'],
   style_description: 'Your style profile is being analyzed...',
   clothing_items_description: 'Cozy but make it fashion. This knit never missed.',
   total_clothing_items: 8,
@@ -741,7 +742,7 @@ export default function ResultsPage({ params }: Props) {
         className="flex-1 flex flex-col"
         initial="hidden"
         animate={shouldAnimate ? "visible" : "hidden"}
-        exit={{ opacity: 0, transition: { duration: 0.2 } }}
+        exit={{ opacity: 0, transition: { duration: 0 } }}
       >
         <h3 className="font-display text-lg text-gray-900 mb-8">Your top 3 aesthetics</h3>
 
@@ -949,8 +950,21 @@ export default function ResultsPage({ params }: Props) {
 
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
-        <StyleSidebar />
-        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-hidden">
+        {/* Show sidebar during shuffle and gallery, hide during reveal */}
+        <AnimatePresence initial={false}>
+          {(phase === 'shuffle' || isGallery) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <StyleSidebar />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className={`flex-1 flex flex-col pt-4 relative z-10 overflow-hidden ${(phase === 'shuffle' || isGallery) ? 'pl-20' : 'pl-0'}`}>
           {/* Phase-based content rendering with AnimatePresence */}
           <AnimatePresence mode="wait">
             {phase === 'shuffle' ? (
@@ -1143,7 +1157,7 @@ export default function ResultsPage({ params }: Props) {
               opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
               // Color transition: gray → actual color
               backgroundColor: isReveal
-                ? (results.top_colors[2]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                ? (results.color_aura_shades[2] || '#F3CD81')  // Change index [0-4] for different colors
                 : '#9CA3AF'  // Gray when inactive
             }}
             transition={{
@@ -1236,7 +1250,7 @@ export default function ResultsPage({ params }: Props) {
               opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
               // Color transition: gray → actual color
               backgroundColor: isReveal
-                ? (results.top_colors[0]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                ? (results.color_aura_shades[0] || '#F3CD81')  // Change index [0-4] for different colors
                 : '#9CA3AF'  // Gray when inactive
             }}
             transition={{
@@ -1270,7 +1284,7 @@ export default function ResultsPage({ params }: Props) {
               opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
               // Color transition: gray → actual color
               backgroundColor: isReveal
-                ? (results.top_colors[2]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                ? (results.color_aura_shades[2] || '#F3CD81')  // Change index [0-4] for different colors
                 : '#9CA3AF'  // Gray when inactive
             }}
             transition={{
@@ -1322,7 +1336,7 @@ export default function ResultsPage({ params }: Props) {
             <motion.div
               className="absolute right-[-15%] top-[15%] w-[40%] h-[70%] rounded-lg"
               animate={{
-                backgroundColor: isReveal ? (results.top_colors[0]?.top_shade_hex || '#F3CD81') : '#9CA3AF',
+                backgroundColor: isReveal ? (results.color_aura_shades[0] || '#F3CD81') : '#9CA3AF',
                 opacity: isReveal ? 0.6 : 0.3
               }}
               transition={{ duration: 0.6 }}
@@ -1332,7 +1346,7 @@ export default function ResultsPage({ params }: Props) {
             <motion.div
               className="absolute left-[-15%] bottom-[-10%] w-[35%] h-[50%] rounded-lg"
               animate={{
-                backgroundColor: isReveal ? (results.top_colors[1]?.top_shade_hex || '#4B5563') : '#9CA3AF',
+                backgroundColor: isReveal ? (results.color_aura_shades[1] || '#4B5563') : '#9CA3AF',
                 opacity: isReveal ? 0.7 : 0.3
               }}
               transition={{ duration: 0.6 }}
@@ -1417,7 +1431,7 @@ export default function ResultsPage({ params }: Props) {
               opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
               // Color transition: gray → actual color
               backgroundColor: isReveal
-                ? (results.top_colors[3]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                ? (results.color_aura_shades[1] || '#F3CD81')  // Change index [0-4] for different colors
                 : '#9CA3AF'  // Gray when inactive
             }}
             transition={{
@@ -1451,7 +1465,7 @@ export default function ResultsPage({ params }: Props) {
               opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
               // Color transition: gray → actual color
               backgroundColor: isReveal
-                ? (results.top_colors[0]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                ? (results.color_aura_shades[0] || '#F3CD81')  // Change index [0-4] for different colors
                 : '#9CA3AF'  // Gray when inactive
             }}
             transition={{
@@ -1485,7 +1499,7 @@ export default function ResultsPage({ params }: Props) {
               opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
               // Color transition: gray → actual color
               backgroundColor: isReveal
-                ? (results.top_colors[2]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                ? (results.color_aura_shades[1] || '#F3CD81')  // Change index [0-4] for different colors
                 : '#9CA3AF'  // Gray when inactive
             }}
             transition={{
@@ -1519,7 +1533,7 @@ export default function ResultsPage({ params }: Props) {
               opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
               // Color transition: gray → actual color
               backgroundColor: isReveal
-                ? (results.top_colors[0]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                ? (results.color_aura_shades[1] || '#F3CD81')  // Change index [0-4] for different colors
                 : '#9CA3AF'  // Gray when inactive
             }}
             transition={{
@@ -1570,7 +1584,7 @@ export default function ResultsPage({ params }: Props) {
             <motion.div
               className="absolute right-[-10%] bottom-[-10%] w-[45%] h-[45%] rounded-lg"
               animate={{
-                backgroundColor: isReveal ? (results.top_colors[2]?.top_shade_hex || '#6B7280') : '#9CA3AF',
+                backgroundColor: isReveal ? (results.color_aura_shades[2] || '#6B7280') : '#9CA3AF',
                 opacity: isReveal ? 0.75 : 0.3
               }}
               transition={{ duration: 0.6 }}
@@ -1629,7 +1643,7 @@ export default function ResultsPage({ params }: Props) {
             <motion.div
               className="absolute left-[-8%] top-[-5%] w-[30%] h-[25%] rounded-lg"
               animate={{
-                backgroundColor: isReveal ? (results.top_colors[3]?.top_shade_hex || '#D1D5DB') : '#9CA3AF',
+                backgroundColor: isReveal ? (results.color_aura_shades[0] || '#D1D5DB') : '#9CA3AF',
                 opacity: isReveal ? 0.5 : 0.3
               }}
               transition={{ duration: 0.6 }}
@@ -1671,7 +1685,7 @@ export default function ResultsPage({ params }: Props) {
               opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
               // Color transition: gray → actual color
               backgroundColor: isReveal
-                ? (results.top_colors[1]?.top_shade_hex || '#F3CD81')  // Change index [0-4] for different colors
+                ? (results.color_aura_shades[1] || '#F3CD81')  // Change index [0-4] for different colors
                 : '#9CA3AF'  // Gray when inactive
             }}
             transition={{
@@ -1990,9 +2004,24 @@ export default function ResultsPage({ params }: Props) {
     const isFinal = phase === 'final';
 
     return (
-      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5] relative overflow-hidden">
+        {/* Background image with low opacity */}
+        {results.decade_photo_url && (
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-20"
+            style={{
+              backgroundImage: `url(${results.decade_photo_url})`,
+              zIndex: 0
+            }}
+          />
+        )}
+
+        {/* Dark overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-black/50" style={{ zIndex: 1 }} />
+
         <motion.div
-          className="flex-1 flex flex-col overflow-hidden"
+          className="flex-1 flex flex-col overflow-hidden relative"
+          style={{ zIndex: 2 }}
           layout
           transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
         >
@@ -2091,6 +2120,8 @@ export default function ResultsPage({ params }: Props) {
 
         {/* Navigation - show after reveal */}
         <motion.div
+          className="relative"
+          style={{ zIndex: 2 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: isActive && (phase === 'reveal' || phase === 'final') ? 1 : 0 }}
           transition={{ delay: 0.3, duration: 0.4 }}

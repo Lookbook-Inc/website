@@ -647,7 +647,7 @@ export default function WrappedWizard() {
         Upload pics of you from this year!
       </h1>
       <p className="text-gray-500 text-md mb-8">
-        We'll analyze your outfits automatically in any photo. Pick <strong>between 10 and 30</strong> pictures for us to analyze.
+        We'll analyze your outfits automatically from any photo. Pick at least 10 pictures for us to work with.
       </p>
       
       {/* Tips & Upload area - hidden during upload */}
@@ -665,20 +665,18 @@ export default function WrappedWizard() {
             className="overflow-hidden"
           >
             {/* Tips */}
-            <div className="space-y-3 mb-8">
-              <div className="flex gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
-                <div>
-                  <p className="font-display text-gray-900 text-md">Prefer pictures that get your full outfit.</p>
-                  <p className="text-gray-500 text-sm">The more of your outfit we can see, the better - but we'll manage with partials, too.</p>
-                </div>
+            <div className="space-y-4 mb-10">
+              <div className="flex gap-3 items-start">
+                <div className="w-1 h-1 rounded-full bg-amber-400 mt-2.5 shrink-0" />
+                <p className="text-gray-600 text-sm leading-relaxed font-semibold">
+                  Prefer pictures that get your outfit clearly.
+                </p>
               </div>
-              <div className="flex gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
-                <div>
-                  <p className="font-display text-gray-900 text-md">Prefer solo pictures.</p>
-                  <p className="text-gray-500 text-sm">If you want to use a group photo, we'll let you crop out other people once you've selected your pictures.</p>
-                </div>
+              <div className="flex gap-3 items-start">
+                <div className="w-1 h-1 rounded-full bg-amber-400 mt-2.5 shrink-0" />
+                <p className="text-gray-600 text-sm leading-relaxed font-semibold">
+                  Solo pictures are best. If using a group photo, tap to crop yourself out.
+                </p>
               </div>
             </div>
 
@@ -761,16 +759,22 @@ export default function WrappedWizard() {
           </div>
         )}
 
+        {photos.length > 0 && !loading && (
+          <p className="text-center text-gray-500 text-sm mb-3">
+            Remember to crop group photos by tapping.
+          </p>
+        )}
+
         <button
           onClick={handleUpload}
           disabled={photos.length < 2 || loading}
-          className={`w-full py-4 rounded-lg font-medium transition-colors ${
+          className={`w-full py-4 rounded-lg text-xl font-display transition-colors ${
             photos.length >= 2 && !loading
               ? 'bg-gray-900 text-white'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}
         >
-          {loading ? 'Uploading...' : 'Upload fits'}
+          {loading ? 'Uploading...' : 'Upload'}
         </button>
         {/* <p className="text-center text-gray-400 text-xs mt-2">
           {photos.length} of 10-30 photos selected

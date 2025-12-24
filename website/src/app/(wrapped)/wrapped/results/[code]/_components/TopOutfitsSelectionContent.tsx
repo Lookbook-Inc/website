@@ -33,6 +33,7 @@ export const TopOutfitsSelectionContent = ({
 }: TopOutfitsSelectionContentProps) => {
   const [isPicking, setIsPicking] = useState(false);
   const [isTextMoving, setIsTextMoving] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [phase, setPhase] = useState<'initial' | 'first' | 'transition' | 'second' | 'transition2' | 'third'>('initial');
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export const TopOutfitsSelectionContent = ({
       setPhase('initial');
       setIsPicking(false);
       setIsTextMoving(false);
+      setIsFinishing(false);
       return;
     }
     if (isPicking) return;
@@ -78,6 +80,15 @@ export const TopOutfitsSelectionContent = ({
     onBack?.();
   };
 
+  const handleNext = () => {
+    if (selectedOutfitIndex === null) return;
+    setIsFinishing(true);
+    // Longer delay to let the fade-out effect settle
+    setTimeout(() => {
+      onNext?.();
+    }, 2500);
+  };
+
   const topFive = results.top_outfits.slice(0, 5);
 
   const photoVariants = {
@@ -85,14 +96,12 @@ export const TopOutfitsSelectionContent = ({
       opacity: 0, 
       y: 15,
       scale: 1,
-      borderColor: "rgba(255, 255, 255, 0)",
-      transition: { duration: 0 } // Hide immediately when not in picking phase
+      transition: { duration: 0.5 } 
     },
     enter: (i: number) => ({
       opacity: 1,
       y: 0,
       scale: 1,
-      borderColor: "rgba(255, 255, 255, 0)",
       transition: {
         opacity: { delay: 0.4 + i * 0.1, duration: 0.5 },
         y: { delay: 0.4 + i * 0.1, duration: 0.5 },
@@ -102,21 +111,48 @@ export const TopOutfitsSelectionContent = ({
       opacity: 1,
       y: 0,
       scale: 1,
-      borderColor: "rgba(255, 255, 255, 0)",
       transition: { duration: 0.2 }
     },
     selected: {
       opacity: 1,
       y: 0,
       scale: 1.02,
-      borderColor: "rgba(255, 255, 255, 1)",
       transition: { duration: 0.2 }
     }
   };
 
   return (
     <div className={`flex flex-col h-full transition-colors duration-1000 ease-in-out ${isPicking ? 'bg-black' : 'bg-[#FFFAF4]'} pt-12 pb-4 px-10`}>
-      <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
+      <AnimatePresence>
+        {isFinishing && selectedOutfitIndex !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[100] flex items-center justify-center p-12 pointer-events-none"
+          >
+            <motion.div
+              layoutId={`outfit-card-${topFive[selectedOutfitIndex].photo_id}`}
+              className="w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-2 border-white/20"
+              transition={{
+                layout: { duration: 0.8, ease: [0.4, 0, 0.2, 1] }
+              }}
+            >
+              <motion.img
+                layoutId={`outfit-image-${topFive[selectedOutfitIndex].photo_id}`}
+                src={topFive[selectedOutfitIndex].path}
+                className="w-full h-full object-cover"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div 
+        className="flex-1 flex flex-col overflow-hidden relative min-h-0"
+        animate={{ opacity: isFinishing ? 0 : 1 }}
+        transition={{ duration: 0.8 }}
+      >
         
         {/* Phase 1 & 2: Introductory Sequential Lines */}
         <div className="absolute inset-0 flex flex-col justify-center pointer-events-none">
@@ -168,10 +204,10 @@ export const TopOutfitsSelectionContent = ({
                     : 'top-[35%] left-0 w-full justify-center items-start'
                 }`}
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={{ opacity: isFinishing ? 0 : 1, y: 0 }}
                 transition={{ 
                   layout: { duration: 0.8, ease: [0.4, 0, 0.2, 1] },
-                  opacity: { duration: 0.5 }
+                  opacity: { duration: 0.8 }
                 }}
               >
                 <motion.h3
@@ -202,7 +238,9 @@ export const TopOutfitsSelectionContent = ({
               let variant = "hidden";
               if (isPicking) {
                 if (isSelected) {
-                  variant = "selected";
+                  variant = isFinishing ? "hidden" : "selected";
+                } else if (isFinishing) {
+                  variant = "hidden";
                 } else {
                   // Use "enter" for the first appearance, "active" for subsequent unselected states
                   variant = "enter"; 
@@ -212,26 +250,31 @@ export const TopOutfitsSelectionContent = ({
               return (
                 <motion.button
                   key={outfit.photo_id}
-                  onClick={() => setSelectedOutfitIndex(i)}
+                  onClick={() => !isFinishing && setSelectedOutfitIndex(i)}
                   variants={photoVariants}
                   initial="hidden"
                   animate={variant}
                   custom={i}
-                  className={`aspect-[3/4] rounded-xl overflow-hidden relative border-2 ${
-                    isSelected ? 'shadow-lg' : ''
-                  }`}
+                  className="aspect-[3/4] rounded-xl overflow-hidden relative"
                   whileTap={{ scale: 0.98 }}
                 >
-                  <img
+                  <motion.img
+                    layoutId={`outfit-image-${outfit.photo_id}`}
                     src={outfit.path}
                     alt={`Outfit ${i + 1}`}
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   {isSelected && (
                     <motion.div 
+                      layoutId={`outfit-card-${outfit.photo_id}`}
+                      className="absolute inset-0 border-2 border-white rounded-xl shadow-lg z-20 pointer-events-none"
+                    />
+                  )}
+                  {isSelected && !isFinishing && (
+                    <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="absolute inset-0 bg-white/10 flex items-center justify-center"
+                      className="absolute inset-0 bg-white/10 flex items-center justify-center z-30"
                     >
                       <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
                         <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,28 +283,30 @@ export const TopOutfitsSelectionContent = ({
                       </div>
                     </motion.div>
                   )}
-                  <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs text-white">
-                    #{i + 1}
-                  </div>
+                  {!isFinishing && (
+                    <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs text-white z-30">
+                      #{i + 1}
+                    </div>
+                  )}
                 </motion.button>
               );
             })}
           </div>
         </div>
-      </div>
+      </motion.div>
       
       {/* Navigation Footer - Disabled until selection is made */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: isPicking ? 1 : 0 }}
-        transition={{ duration: 0.5 }}
+        animate={{ opacity: (isPicking && !isFinishing) ? 1 : 0 }}
+        transition={{ duration: 0.8 }}
       >
         <NavigationFooter 
-          onNext={onNext} 
+          onNext={handleNext} 
           onBack={handleBack} 
           light={!isPicking} 
           nextText="see summary →"
-          disabled={selectedOutfitIndex === null}
+          disabled={selectedOutfitIndex === null || isFinishing}
         />
       </motion.div>
     </div>

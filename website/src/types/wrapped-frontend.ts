@@ -77,6 +77,7 @@ export interface WrappedResults {
   userCity: string | null;
   city_vibe: string;
   city_vibe_description: string;
+  city_vibe_similarity_score: number;
   city_photo_url: string | null;
   primary_style: string;
   top_styles: StyleResult[];
@@ -99,6 +100,7 @@ export interface WrappedResults {
   top_decade: string;
   decade_description: string;
   decade_photo_url: string | null;
+  completedAt: string | null;
 }
 
 export type Step = 'welcome' | 'intro' | 'photo-flip' | 'fav-item' | 'fav-pairings' | 'unworn-pairings' | 'top-styles' | 'colors' | 'color-aura' | 'decade' | 'celebrity' | 'city-intro' | 'city-reveal' | 'top-outfits-selection' | 'summary';

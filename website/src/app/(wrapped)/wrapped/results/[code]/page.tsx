@@ -34,6 +34,7 @@ const mockResults: WrappedResults = {
   userCity: 'San Francisco',
   city_vibe: 'San Francisco',
   city_vibe_description: "You dress like you're late to something important and you'll still be the best-dressed person there.",
+  city_vibe_similarity_score: 88,
   city_photo_url: null,
   primary_style: 'Minimalist',
   top_styles: [
@@ -69,16 +70,16 @@ const mockResults: WrappedResults = {
     { color: 'Black', top_shade: 'Black', top_shade_hex: '#151515', piece_count: 5 },
     { color: 'Gray', top_shade: 'Grout', top_shade_hex: '#ced4d7', piece_count: 3 },
     { color: 'Blue', top_shade: 'Bluebird', top_shade_hex: '#758fbf', piece_count: 1 },
-    { color: 'Green', top_shade: 'Satin Moss', top_shade_hex: '#2b4234', piece_count: 1 },
-    { color: 'White', top_shade: 'Ice', top_shade_hex: '#FFFFFF', piece_count: 1 }
+    { color: 'White', top_shade: 'Bone', top_shade_hex: '#FDFDFD', piece_count: 1 },
+    { color: 'Off-White', top_shade: 'Linen', top_shade_hex: '#F5F5F0', piece_count: 1 }
   ],
   top_shades: [
     { color: 'Black', photo_ids: ['4a7e547f-bca7-4c8e-9326-7fcf216161a8', 'cc3144a8-b42f-47b7-8b47-c58d5ad1c723', 'd6473945-b446-41e0-800d-b4792f869b8d'], shade_hex: '#151515', shade_name: 'Black', importance_score: 9 },
-    { color: 'Black', photo_ids: ['246970f9-304c-40ec-9e15-654469e023b0', '640ea6fa-8c56-4eef-9767-0ddf37f45e18'], shade_hex: '#2a2a2c', shade_name: 'Caviar', importance_score: 5 }
+    { color: 'Off-White', photo_ids: ['246970f9-304c-40ec-9e15-654469e023b0'], shade_hex: '#F9F9F7', shade_name: 'Alabaster', importance_score: 5 }
   ],
   top_celeb_match: {
     celeb_name: 'Anirudh Satish',
-    celeb_portrait_url: '',
+    celeb_portrait_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
     description: 'Brown man looking for his place in the world.',
     similarity_score: 32.78,
     categories: ['Engineer'],
@@ -130,7 +131,8 @@ const mockResults: WrappedResults = {
   ],
   top_decade: '2020s',
   decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.',
-  decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80'
+  decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+  completedAt: '2025-12-23T12:00:00Z',
 };
 
 type Props = {
@@ -388,7 +390,7 @@ export default function ResultsPage({ params }: Props) {
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
         <FavSidebar />
-        <div className="flex-1 flex flex-col justify-center pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 flex flex-col justify-center pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">One piece anchored your outfits this year...</h3>
           <p className="text-md text-gray-500 leading-snug mb-8 text-right">
               This piece was a constant in your rotation - and for good reason.
@@ -453,7 +455,7 @@ export default function ResultsPage({ params }: Props) {
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
         <FavSidebar />
-        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h3 className="font-display text-2xl text-gray-900 mb-8">You've paired it with:</h3>
           
           <motion.div 
@@ -559,7 +561,7 @@ export default function ResultsPage({ params }: Props) {
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-black text-white">
         <FavSidebar light={false} />
-        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h3 className="font-display text-2xl text-[#F7EFE5] mb-8 text-right">You haven't worn it with these yet...</h3>
           
           <motion.div 
@@ -997,7 +999,7 @@ export default function ResultsPage({ params }: Props) {
 
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
-        <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h1 className="font-display text-5xl text-gray-900 leading-[1.1] mb-8">
             <motion.span
               className="block"
@@ -1041,7 +1043,7 @@ export default function ResultsPage({ params }: Props) {
 
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
-        <div className="flex-1 flex flex-col justify-center overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h1 className="font-display text-5xl text-gray-900 leading-[1.1] mb-8">
             <motion.span
               className="block"
@@ -1095,9 +1097,11 @@ export default function ResultsPage({ params }: Props) {
           </div>
         )}
       </div>
-      <p className="mt-4 font-display text-gray-400">
-        {photo ? 'Your Outfit' : `Style Moment ${pageNum}`}
-      </p>
+      {!photo && (
+        <p className="mt-4 font-display text-gray-400">
+          Style Moment {pageNum}
+        </p>
+      )}
     </div>
   );
 
@@ -1750,6 +1754,15 @@ export default function ResultsPage({ params }: Props) {
     onViewChange: (view: 'colors' | 'shades') => void;
     isActive?: boolean;
   }) => {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Reset scroll position when view changes
+    useEffect(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+      }
+    }, [view]);
+
     const isLightColor = (hex: string) => {
       const color = hex.replace('#', '');
       const r = parseInt(color.substring(0, 2), 16);
@@ -1844,7 +1857,7 @@ export default function ResultsPage({ params }: Props) {
     // Colors inner content
     const ColorsInner = () => (
       <motion.div
-        className="flex-1 flex flex-col"
+        className="flex-1 flex flex-col pb-10"
         variants={containerVariants}
         initial="hidden"
         animate={isActive ? "visible" : "hidden"}
@@ -1859,16 +1872,21 @@ export default function ResultsPage({ params }: Props) {
                 key={i}
                 custom={direction}
                 variants={itemVariants}
-                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
+                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-6 ${
                   light ? 'text-black' : 'text-white'
                 }`}
-                style={{ backgroundColor: c.top_shade_hex }}
+                style={{ 
+                  backgroundColor: c.top_shade_hex,
+                  backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 100%)',
+                  boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.1)'
+                }}
               >
-                <div className="flex flex-col items-center transform -rotate-270 origin-center whitespace-nowrap">
-                  <span className="font-mono text-sm uppercase tracking-widest opacity-80 mb-1 leading-none font-bold">
+                <div className="flex flex-col items-start">
+                <span className="font-mono text-sm uppercase tracking-wide leading-tight font-semibold">
                     {c.color}
                   </span>
-                  <span className="font-mono text-xs opacity-60 uppercase leading-none">
+                  <span className="font-mono text-sm font-bold tracking-wide opacity-60 uppercase leading-none mt-1">
+                    
                     {c.top_shade_hex}
                   </span>
                 </div>
@@ -1888,7 +1906,7 @@ export default function ResultsPage({ params }: Props) {
     // Shades inner content
     const ShadesInner = () => (
       <motion.div
-        className="flex-1 flex flex-col"
+        className="flex-1 flex flex-col pb-10"
         variants={containerVariants}
         initial="hidden"
         animate={isActive ? "visible" : "hidden"}
@@ -1912,17 +1930,21 @@ export default function ResultsPage({ params }: Props) {
                 key={i}
                 custom={direction}
                 variants={itemVariants}
-                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-5 ${
+                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-6 ${
                   light ? 'text-black' : 'text-white'
                 }`}
-                style={{ backgroundColor: c.shade_hex }}
+                style={{ 
+                  backgroundColor: c.shade_hex,
+                  backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 100%)',
+                  boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.1)'
+                }}
               >
-                <div className="flex flex-col items-center transform -rotate-270 origin-center whitespace-nowrap">
-                  <span className="font-mono text-sm uppercase tracking-widest opacity-80 mb-1 leading-none font-bold">
-                    {c.shade_name}
-                  </span>
-                  <span className="font-mono text-xs opacity-60 uppercase leading-none">
+                <div className="flex flex-col items-start">
+                  <span className="font-mono text-sm font-bold tracking-wide opacity-60 uppercase leading-none">
                     {c.shade_hex}
+                  </span>
+                  <span className="font-mono text-sm uppercase tracking-wide leading-tight font-semibold mt-1">
+                    {c.shade_name}
                   </span>
                 </div>
               </motion.div>
@@ -1937,7 +1959,10 @@ export default function ResultsPage({ params }: Props) {
         <ColorSidebar />
         
         {/* Animated content area */}
-        <div className="flex-1 flex flex-col pt-4 relative z-10 overflow-hidden">
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 flex flex-col pt-4 relative z-10 overflow-y-auto overflow-x-hidden min-h-0 [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           <AnimatePresence mode="wait" custom={direction}>
             {view === 'colors' ? (
               <ColorsInner key="colors" />
@@ -2316,7 +2341,7 @@ export default function ResultsPage({ params }: Props) {
 
   const CityIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-      <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
+      <div className="flex-1 flex flex-col justify-center items-center overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <h1 className="font-display text-3xl leading-[1.1] text-center">
         You're based in {results.userCity || 'your city'}—but what do your outfits say?
       </h1>
@@ -2327,97 +2352,70 @@ export default function ResultsPage({ params }: Props) {
   );
 
   const CityRevealContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
-    // Get today's date formatted
-    const today = new Date();
-    const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    // Use the completion date from results, fallback to today if null
+    const displayDate = results.completedAt ? new Date(results.completedAt) : new Date();
+    const dateStr = displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     
-    // City-specific data mapping
-    const cityData: Record<string, { airport: string; fromAirport: string; price: string; reason: string }> = {
-      'San Francisco': {
-        airport: 'SFO',
-        fromAirport: 'JFK',
-        price: '$155',
-        reason: "You dress like you're late to something important and you'll still be the best-dressed person there."
-      },
-      'New York': {
-        airport: 'JFK',
-        fromAirport: 'SFO',
-        price: '$155',
-        reason: "You dress like you're late to something important and you'll still be the best-dressed person there."
-      },
-      'Los Angeles': {
-        airport: 'LAX',
-        fromAirport: 'SFO',
-        price: '$89',
-        reason: "Your laid-back style with unexpected polish screams West Coast creative."
-      },
-      'Paris': {
-        airport: 'CDG',
-        fromAirport: 'SFO',
-        price: '$485',
-        reason: "Your effortless elegance and neutral palette would blend right in on the Left Bank."
-      },
-      'Tokyo': {
-        airport: 'NRT',
-        fromAirport: 'SFO',
-        price: '$650',
-        reason: "Your avant-garde sensibility and attention to detail match Tokyo's fashion-forward streets."
-      },
-    };
-
     const city = results.city_vibe || 'New York';
-    const data = cityData[city] || cityData['New York'];
+
+    // Compress 90-100% band into 90-97% (taking 70% of the value above 90)
+    const rawScore = results.city_vibe_similarity_score || 0;
+    const bufferedScore = rawScore > 90 
+      ? 90 + (rawScore - 90) * 0.7 
+      : rawScore;
 
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-        <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
-            Your look would fit right into <span className="italic">{city}</span>.
-          </h1>
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-col pb-20">
+            <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
+              Your look gives... <br /><span className="italic">{city}</span>.
+            </h1>
 
-          {/* City Image */}
-          <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative mb-8 shrink-0">
-            {results.city_photo_url ? (
-              <img
-                src={results.city_photo_url}
-                alt={city}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-zinc-500 text-sm uppercase tracking-widest">
-                  {city}
-                </span>
-              </div>
-            )}
-          </div>
-          
-          {/* Why this city? */}
-          <div className="mb-6 shrink-0">
-            <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Why {city}?</h3>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              {results.city_vibe_description}
-            </p>
-          </div>
-
-          {/* Flight Info */}
-          <div className="flex gap-8 mb-6 shrink-0">
-            <div>
-              <p className="font-display text-sm text-[#F7EFE5] mb-1">{data.fromAirport} → {data.airport}</p>
-              <p className="text-xs text-zinc-500">{data.price} (one-way)</p>
+            {/* City Image */}
+            <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative mb-4 shrink-0">
+              {results.city_photo_url ? (
+                <img
+                  src={results.city_photo_url}
+                  alt={city}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-zinc-500 text-sm uppercase tracking-widest">
+                    {city}
+                  </span>
+                </div>
+              )}
             </div>
-            <div>
-              <p className="font-display text-sm text-[#F7EFE5] mb-1">Date</p>
-              <p className="text-xs text-zinc-500">{dateStr}</p>
-        </div>
-      </div>
-      
-          {/* Disclaimer */}
-          <div className="mt-auto shrink-0">
-            <p className="font-display text-xs text-zinc-500 mb-1">Disclaimer</p>
-            <p className="text-[10px] text-zinc-600 leading-relaxed">
-              Lookbook Wrapped is not a licensed travel agency and cannot be held responsible for any spontaneous relocation decisions made after viewing this result.
-            </p>
+            
+            {/* Why this city? */}
+            <div className="mb-6 shrink-0">
+              <h3 className="font-display text-lg text-[#F7EFE5] mb-2">Why {city}?</h3>
+              <p className="text-sm font-medium text-zinc-400 leading-snug">
+                {results.city_vibe_description}
+              </p>
+            </div>
+
+            {/* Match Score & Date */}
+            <div className="flex gap-12 mb-6 shrink-0">
+              <div>
+                <p className="font-display text-md text-[#F7EFE5] mb-1">Match Score</p>
+                <p className="text-xl font-display italic text-[#D1BB99]">{bufferedScore.toFixed(2)}%</p>
+              </div>
+              <div>
+                <p className="font-display text-md text-[#F7EFE5] mb-1">Date Booked</p>
+                <p className="text-xl font-display italic text-[#D1BB99]">{dateStr}</p>
+              </div>
+            </div>
+        
+            {/* Disclaimer
+            <div className="mt-12 shrink-0">
+              <p className="font-display text-xs text-zinc-500 mb-1">Disclaimer:</p>
+              <p className="text-[10px] text-zinc-600 leading-relaxed">
+                Lookbook is not a travel agency and is not responsible for any life-altering relocation decisions made after viewing this result.
+              </p>
+            </div> */}
           </div>
         </div>
         

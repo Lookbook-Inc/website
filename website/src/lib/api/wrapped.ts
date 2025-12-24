@@ -29,7 +29,7 @@ export async function getAuthToken(supabase: any): Promise<string | null> {
  */
 export async function uploadPhoto(
   originalFile: File,
-  croppedFile: File | null,
+  croppedFile: File | Blob | null,
   authToken: string,
   batchId?: string,
   totalPhotosInBatch?: number

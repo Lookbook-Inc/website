@@ -46,10 +46,12 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
     // User info
     userName: backend.user_first_name || 'User',
     userCity: backend.user_city || null,
+    completedAt: backend.completed_at || null,
 
     // City vibe
     city_vibe: formatStyleName(backend.city_vibe),
     city_vibe_description: backend.city_vibe_description || '',
+    city_vibe_similarity_score: backend.city_vibe_similarity_score || 0,
     city_photo_url: backend.city_photo_url || null,
 
     // Styles

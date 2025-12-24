@@ -21,6 +21,8 @@ export const SummaryContent = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [heroScale, setHeroScale] = useState(1);
+  const [isSettled, setIsSettled] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [shareSupported] = useState(() => 
     typeof navigator !== 'undefined' && !!navigator.share && !!navigator.canShare
@@ -30,15 +32,25 @@ export const SummaryContent = ({
   useEffect(() => {
     const updateScale = () => {
       if (!containerRef.current) return;
-      const containerWidth = containerRef.current.offsetWidth;
+      
+      // Get the full available area from the parent flex-1 container
+      const parent = containerRef.current.parentElement;
+      if (!parent) return;
+      
+      const containerWidth = parent.offsetWidth;
+      const containerHeight = parent.offsetHeight;
       const targetWidth = 360;
-      const containerHeight = containerRef.current.offsetHeight;
       const targetHeight = 640;
       
       const widthScale = (containerWidth - 32) / targetWidth;
-      const heightScale = (containerHeight - 32) / targetHeight;
       
-      setScale(Math.min(1, widthScale, heightScale));
+      // Final Scale: Leaves room for buttons at the bottom (approx 100px)
+      const finalHeightScale = (containerHeight - 100 - 32) / targetHeight;
+      setScale(Math.min(1, widthScale, finalHeightScale));
+
+      // Hero Scale: Uses the full available height
+      const fullHeightScale = (containerHeight - 32) / targetHeight;
+      setHeroScale(Math.min(1.05, widthScale, fullHeightScale));
     };
 
     updateScale();
@@ -50,6 +62,21 @@ export const SummaryContent = ({
       clearTimeout(timer);
     };
   }, []);
+
+  // Settlement timer triggers after the flip finishes
+  useEffect(() => {
+    if (isActive) {
+      const timer = setTimeout(() => {
+        setIsSettled(true);
+      }, 3000); // 3.5 seconds of "Hero" view before shrinking
+      return () => clearTimeout(timer);
+    } else {
+      setIsSettled(false);
+    }
+  }, [isActive]);
+
+  // Determine the current scale based on state
+  const currentDisplayScale = !isActive || !isSettled ? heroScale : scale;
 
   // Determine which outfit to show - use user selection if available, else top outfit
   const signatureOutfit = selectedOutfitIndex !== null 
@@ -196,28 +223,57 @@ export const SummaryContent = ({
   
   // Get top color info
   const topColor = results.top_colors[0];
-  const topColorName = topColor?.top_shade || 'signature shade';
+  const topColorGroup = topColor?.color || 'Color';
+  const topShadeName = topColor?.top_shade || 'signature shade';
   const topColorHex = topColor?.top_shade_hex || '#888888';
+
+  // Determine if the background color is light or dark for text contrast
+  const getBrightness = (hex: string) => {
+    if (!hex || hex.length < 7) return 0;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  };
+
+  const getContrastColor = (hex: string) => {
+    return getBrightness(hex) > 160 ? '#000000' : '#FFFFFF';
+  };
+  const contrastColor = getContrastColor(topColorHex);
+
+  // Sort styles by points descending and take top 3
+  const sortedTopStyles = [...results.top_styles]
+    .sort((a, b) => (b.points || 0) - (a.points || 0))
+    .slice(0, 3);
+
+  // Helper for color dots - 4 on left (shades), 4 on right (colors)
+  const leftDots = results.top_shades?.length > 0 
+    ? Array.from({ length: 4 }, (_, i) => results.top_shades[i % results.top_shades.length].shade_hex)
+    : Array(4).fill('#D1D1D1');
+
+  const rightDots = results.top_colors?.length > 0
+    ? Array.from({ length: 4 }, (_, i) => results.top_colors[i % results.top_colors.length].top_shade_hex)
+    : Array(4).fill('#A1A1A1');
 
   return (
     <div className="flex flex-col h-[100dvh] px-4 pt-6 pb-4 bg-[#FFFAF4]">
       
       {/* Centered Group: Card + Buttons */}
-      <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
+      <div className="flex-1 flex flex-col justify-center items-center overflow-hidden relative">
         
         {/* Shareable Card Container */}
         <div 
           ref={containerRef}
-          className="w-full flex items-center justify-center overflow-hidden"
+          className="w-full flex-1 flex items-center justify-center overflow-hidden"
         >
           {/* Scaling Wrapper - This applies the visual scale and entry animation */}
           <div
             style={{
-              transform: `scale(${isActive ? scale : scale * 1.1})`,
+              transform: `scale(${currentDisplayScale}) translateY(${isSettled ? -40 : 0}px)`,
               opacity: isActive ? 1 : 0,
               transformOrigin: 'center center',
               transition: isActive 
-                ? 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease-out' 
+                ? 'transform 1.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease-out' 
                 : 'none',
             }}
           >
@@ -235,70 +291,70 @@ export const SummaryContent = ({
                 className="absolute inset-0 bg-[#F7F7F7] overflow-hidden shadow-2xl"
                 style={{
                   borderRadius: '32px',
-                  border: '8px solid #000000',
+                  border: '4px solid #000000',
                   boxSizing: 'border-box'
                 }}
               >
                 {/* Card Inner Content */}
-                <div className="relative p-5 h-full flex flex-col justify-between overflow-hidden">
+                <div className="relative pt-4 pr-6 pb-6 pl-6 h-full flex flex-col justify-between overflow-hidden">
                   
-                  {/* Vertical Lookbook branding - Adjusted for inside-border alignment */}
-                  <div
-                    className="absolute left-[-55px] top-[140px] w-[200px]"
-                    style={{ 
-                      transform: 'rotate(-90deg)',
-                      transformOrigin: 'center center',
-                      zIndex: 20
-                    }}
-                  >
-                    <span
-                      className="font-display text-[54px] tracking-tight leading-none block text-center"
-                      style={{
-                        fontWeight: 400,
-                        color: '#C4B8A8', 
-                        letterSpacing: '-0.05em',
-                      }}
-                    >
-                      Lookbook
-                    </span>
-                  </div>
+                  {/* Top Header Section: Lookbook branding + Aesthetics */}
+                  <div className="flex justify-between items-start mb-0 relative z-20">
+                    {/* Lookbook branding - Vertical but in a contained box */}
+                    <div className="flex flex-col items-start pt-1 -ml-4">
+                      <div 
+                        className="relative"
+                        style={{ 
+                          height: '140px', 
+                          width: '40px',
+                        }}
+                      >
+                        <span
+                          className="font-display text-3xl tracking-tight leading-none block absolute top-0 left-0 origin-top-left"
+                          style={{
+                            fontWeight: 400,
+                            letterSpacing: '-0.05em',
+                            transform: 'rotate(90deg) translateY(-100%)',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          <span style={{ color: '#000000' }}>Look</span><span style={{ color: '#D1BB99' }}>book</span>
+                        </span>
+                      </div>
+                    </div>
 
-                  {/* Main content area */}
-                  <div className="flex-1 flex flex-col justify-between ml-9">
-                    
-                    {/* Header - Name's Top Aesthetics */}
-                    <div className="mb-2">
+                    {/* Aesthetics Header */}
+                    <div className="flex-1 flex flex-col items-end">
                       <p
-                        className="text-[9px] uppercase tracking-[0.15em] mb-3 text-right"
-                        style={{ color: '#A5A5A5' }}
+                        className="text-[12px] uppercase tracking-wider mb-1 text-right"
+                        style={{ color: '#A5A5A5', fontWeight: 800 }}
                       >
                         {results.userName.toUpperCase()}'S TOP AESTHETICS
                       </p>
 
                       {/* Aesthetics with highlight bars */}
                       <div className="flex flex-col items-end gap-0.5">
-                        {results.top_styles.slice(0, 3).map((style, i) => (
+                        {sortedTopStyles.map((style, i) => (
                           <div
                             key={i}
                             className="relative flex items-center justify-end"
                           >
-                            {/* Background bar */}
+                            {/* Background bar - top bar is longest */}
                             <div 
-                              className="absolute right-0 h-3 rounded-sm" 
+                              className="absolute right-0 h-[10px]" 
                               style={{ 
-                                backgroundColor: '#D4C8B8',
-                                width: i === 0 ? '120px' : i === 1 ? '150px' : '180px',
-                                transform: 'translateY(4px)',
+                                backgroundColor: i === 0 ? 'rgba(209, 187, 153, 0.4)' : i === 1 ? 'rgba(209, 187, 153, 0.3)' : 'rgba(209, 187, 153, 0.2)',
+                                width: i === 0 ? '180px' : i === 1 ? '140px' : '110px',
+                                transform: 'translateY(8px)',
                                 zIndex: 0
                               }} 
                             />
                             <span
-                              className="font-display text-[32px] lowercase relative z-10"
+                              className="font-display text-2xl lowercase relative z-10"
                               style={{
-                                fontWeight: 700,
+                                fontWeight: 400,
                                 color: '#000000',
-                                letterSpacing: '-0.03em',
-                                lineHeight: '1.1'
+                                lineHeight: '1.05'
                               }}
                             >
                               {style.style_name.toLowerCase()}
@@ -307,37 +363,40 @@ export const SummaryContent = ({
                         ))}
                       </div>
                     </div>
+                  </div>
 
+                  {/* Main content area - No longer restricted by the sidebar margin */}
+                  <div className="flex-1 flex flex-col justify-between">
                     {/* Main photo with side info */}
-                    <div className="flex gap-4 mb-2">
+                    <div className="flex gap-3 mb-2">
                       {/* Left side info panels */}
-                      <div className="flex flex-col justify-between py-1 shrink-0" style={{ width: '80px' }}>
+                      <div className="flex flex-col justify-center gap-4 py-1 shrink-0" style={{ width: '90px' }}>
                         {/* Top Decade */}
                         <div className="text-right">
                           <p 
-                            className="text-[8px] uppercase tracking-[0.12em] mb-0.5"
+                            className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
                             style={{ color: '#9A9A9A' }}
                           >
-                            TOP DECADE
+                            NOSTALGIC FOR
                           </p>
                           <p 
-                            className="text-base font-medium"
+                            className="text-[12px] font-medium leading-tight"
                             style={{ color: '#3D3D3D' }}
                           >
-                            {results.top_decade || '2010s'}
+                            {results.top_decade}
                           </p>
                         </div>
 
                         {/* Top Item */}
                         <div className="text-right">
                           <p 
-                            className="text-[8px] uppercase tracking-[0.12em] mb-0.5"
+                            className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
                             style={{ color: '#9A9A9A' }}
                           >
-                            TOP ITEM
+                            WARDROBE MVP
                           </p>
                           <p 
-                            className="text-[11px] font-medium leading-tight line-clamp-2"
+                            className="text-[12px] font-medium leading-tight"
                             style={{ color: '#3D3D3D' }}
                           >
                             {topItemName}
@@ -346,23 +405,17 @@ export const SummaryContent = ({
 
                         {/* Top Color */}
                         <div className="text-right">
-                          <p 
-                            className="text-[8px] uppercase tracking-[0.12em] mb-0.5"
+                          <p
+                            className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
                             style={{ color: '#9A9A9A' }}
                           >
-                            TOP COLOR
+                            FAVORITE COLOR
                           </p>
                           <p 
-                            className="text-[11px] font-medium leading-tight"
+                            className="text-[12px] font-medium leading-tight"
                             style={{ color: '#3D3D3D' }}
                           >
-                            {topColorName}
-                          </p>
-                          <p 
-                            className="text-[9px] uppercase font-mono tracking-tighter"
-                            style={{ color: '#AAAAAA' }}
-                          >
-                            {topColorHex}
+                            {topColorGroup}
                           </p>
                         </div>
                       </div>
@@ -370,12 +423,14 @@ export const SummaryContent = ({
                       {/* Main photo */}
                       <div 
                         className="flex-1 relative"
-                        style={{ aspectRatio: '3/4' }}
+                        style={{ aspectRatio: '3/4',
+                          marginTop: '-30px',
+                         }}
                       >
                         <div 
                           className="absolute inset-0 bg-[#E8E4DE] rounded-[20px] overflow-hidden z-10"
                           style={{ 
-                            boxShadow: '4px 4px 0px #E0DCD6, 0 4px 20px rgba(0,0,0,0.08)',
+                            boxShadow: '4px 4px 0px rgb(225, 219, 209), 0 4px 20px rgba(0,0,0,0.08)',
                           }}
                         >
                           {signatureOutfit?.path ? (
@@ -395,32 +450,39 @@ export const SummaryContent = ({
                       </div>
                     </div>
 
-                    {/* Color dots row */}
-                    <div className="flex justify-center gap-1 mb-2">
-                      {results.top_colors.slice(0, 3).map((c, i) => (
+                    {/* Color dots row - 4 shades, separator (pill), 4 colors */}
+                    <div className="flex justify-center items-center gap-1 mt-1 mb-1">
+                      {leftDots.map((hex, i) => (
                         <div
-                          key={i}
-                          className="w-4 h-4 rounded-full"
+                          key={`left-${i}`}
+                          className="w-3 h-2.5 rounded-full"
                           style={{
-                            backgroundColor: c.top_shade_hex,
-                            border: c.top_shade_hex.toLowerCase() === '#ffffff' ? '1px solid #ddd' : 'none',
+                            backgroundColor: hex,
+                            border: getBrightness(hex) > 230 ? `0.5px solid ${getContrastColor(hex)}` : 'none',
                           }}
                         />
                       ))}
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{
-                          backgroundColor: 'transparent',
-                          border: '1px solid #9A9A9A',
-                        }}
-                      />
-                      {results.top_colors.slice(3, 6).map((c, i) => (
+                      
+                      {/* Top Color Pill as separator */}
+                      <div 
+                        className="px-2 h-3.5 rounded-full shadow-sm flex items-center justify-center border border-black/5 mx-0.5"
+                        style={{ backgroundColor: topColorHex }}
+                      >
+                        <span 
+                          className="text-[7px] font-bold uppercase tracking-wider"
+                          style={{ color: contrastColor }}
+                        >
+                          {topShadeName}
+                        </span>
+                      </div>
+
+                      {rightDots.map((hex, i) => (
                         <div
-                          key={i + 3}
-                          className="w-4 h-4 rounded-full"
+                          key={`right-${i}`}
+                          className="w-3 h-2.5 rounded-full"
                           style={{
-                            backgroundColor: c.top_shade_hex,
-                            border: c.top_shade_hex.toLowerCase() === '#ffffff' ? '1px solid #ddd' : 'none',
+                            backgroundColor: hex,
+                            border: getBrightness(hex) > 230 ? `0.5px solid ${getContrastColor(hex)}` : 'none',
                           }}
                         />
                       ))}
@@ -429,12 +491,11 @@ export const SummaryContent = ({
                     {/* Color Aura name - script/display font */}
                     <div className="text-center mb-3">
                       <p
-                        className="font-display text-[42px] italic"
+                        className="font-display text-2xl italic"
                         style={{
-                          color: '#1D1B20',
-                          fontWeight: 600,
-                          letterSpacing: '-0.02em',
-                          lineHeight: '1',
+                          color: '#000000',
+                          fontWeight: 400,
+                          lineHeight: '0.9',
                         }}
                       >
                         {results.color_aura}
@@ -442,26 +503,26 @@ export const SummaryContent = ({
                     </div>
 
                     {/* Bottom section - Celebrity Twin & Style Destination */}
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 px-6">
                       {/* Celebrity Twin */}
                       <div className="flex-1">
                         <p 
-                          className="text-[8px] uppercase tracking-[0.12em] mb-1.5 text-center"
+                          className="text-[9px] font-bold uppercase tracking-wider mb-1 text-center"
                           style={{ color: '#9A9A9A' }}
                         >
                           CELEBRITY TWIN
                         </p>
                         <div 
-                          className="relative overflow-hidden mb-1.5 shadow-sm"
+                          className="relative overflow-hidden mb-1 shadow-sm"
                           style={{ 
-                            aspectRatio: '4/5',
+                            aspectRatio: '1/1',
                             backgroundColor: '#E0DCD6',
                             borderRadius: '20px',
                           }}
                         >
-                          {results.top_celeb_match.celeb_photo_url ? (
+                          {results.top_celeb_match.celeb_portrait_url ? (
                             <img
-                              src={results.top_celeb_match.celeb_photo_url}
+                              src={results.top_celeb_match.celeb_portrait_url}
                               alt={results.top_celeb_match.celeb_name}
                               className="absolute inset-0 w-full h-full object-cover"
                             />
@@ -484,15 +545,15 @@ export const SummaryContent = ({
                       {/* Style Destination */}
                       <div className="flex-1">
                         <p 
-                          className="text-[8px] uppercase tracking-[0.12em] mb-1.5 text-center"
+                          className="text-[9px] font-bold uppercase tracking-wider mb-1 text-center"
                           style={{ color: '#9A9A9A' }}
                         >
                           STYLE DESTINATION
                         </p>
                         <div 
-                          className="relative overflow-hidden mb-1.5 shadow-sm"
+                          className="relative overflow-hidden mb-1 shadow-sm"
                           style={{ 
-                            aspectRatio: '4/5',
+                            aspectRatio: '1/1',
                             backgroundColor: '#E0DCD6',
                             borderRadius: '20px',
                           }}
@@ -527,12 +588,14 @@ export const SummaryContent = ({
           </div>
         </div>
 
-        {/* Action buttons - Moved closer to the card visually */}
+        {/* Action buttons - Absolute positioned to reveal after shrink */}
         <div 
-          className="flex gap-3 w-full max-w-[320px] px-4 mt-6 mb-2"
+          className="absolute bottom-6 flex gap-3 w-full max-w-[320px] px-4 z-30"
           style={{ 
-            opacity: isActive ? 1 : 0,
-            transition: 'opacity 0.6s ease-out 0.4s'
+            opacity: (isActive && isSettled) ? 1 : 0,
+            transform: `translateY(${(isActive && isSettled) ? 0 : 20}px)`,
+            transition: 'opacity 0.8s ease-out 0.8s, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s',
+            pointerEvents: (isActive && isSettled) ? 'auto' : 'none'
           }}
         >
           <button 

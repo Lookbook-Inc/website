@@ -8,6 +8,7 @@ import { uploadPhoto, getAuthToken } from '@/lib/api/wrapped';
 import { AnimatePresence, motion } from 'framer-motion';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { LandingCollage } from './_components/LandingCollage';
 
 type Step = 'landing' | 'verify' | 'name' | 'city' | 'upload' | 'processing' | 'done';
 
@@ -367,7 +368,7 @@ export default function WrappedWizard() {
         try {
           await uploadPhoto(
             photo,
-            croppedPhoto, // Send cropped version if available
+            croppedPhoto as any, // Send cropped version if available
             token,
             batchId!,
             photos.length
@@ -464,10 +465,8 @@ export default function WrappedWizard() {
   // --- Render helpers ---
   const renderLanding = () => (
     <div className="flex flex-col min-h-screen p-4">
-      {/* Media placeholder */}
-      <div className="flex-1 bg-[#F7EFE5] rounded-xl mb-8 relative overflow-hidden min-h-[400px]">
-        {/* Placeholder for video/image */}
-      </div>
+      {/* for more animated landing page, remove isStatic. */}
+      <LandingCollage isStatic /> 
       
       <div className="px-6 pb-6">
         <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-8">
@@ -648,7 +647,7 @@ export default function WrappedWizard() {
         Upload pics of you from this year!
       </h1>
       <p className="text-gray-500 text-md mb-8">
-        We want to see your favorite looks from this year. Pick <strong>between 10 and 30</strong> pictures for us to analyze.
+        We'll analyze your outfits automatically in any photo. Pick <strong>between 10 and 30</strong> pictures for us to analyze.
       </p>
       
       {/* Tips & Upload area - hidden during upload */}

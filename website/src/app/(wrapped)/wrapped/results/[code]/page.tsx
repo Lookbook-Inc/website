@@ -33,6 +33,7 @@ const mockResults: WrappedResults = {
   userName: 'Anirudh',
   userCity: 'San Francisco',
   city_vibe: 'San Francisco',
+  city_vibe_description: "You dress like you're late to something important and you'll still be the best-dressed person there.",
   city_photo_url: null,
   primary_style: 'Minimalist',
   top_styles: [
@@ -1696,12 +1697,12 @@ export default function ResultsPage({ params }: Props) {
             }}
             transition={{ duration: 0.6, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
-            <div className="flex-1 rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
+            <div className="flex-1 aspect-[3/4] mx-auto max-w-full rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
               {results.top_celeb_match.celeb_photo_url ? (
                 <img
                   src={results.top_celeb_match.celeb_photo_url}
                   alt={results.top_celeb_match.celeb_name}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover object-top"
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
@@ -1758,7 +1759,7 @@ export default function ResultsPage({ params }: Props) {
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
       <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
         <h1 className="font-display text-3xl leading-[1.1] text-center">
-        You're based in [San Francisco]—but what do your outfits say?
+        You're based in {results.userCity || 'your city'}—but what do your outfits say?
       </h1>
       </div>
 
@@ -1812,7 +1813,7 @@ export default function ResultsPage({ params }: Props) {
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
         <div className="flex-1 flex flex-col overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
-            Your look would fit right into <span className="italic">[{city}]</span>.
+            Your look would fit right into <span className="italic">{city}</span>.
           </h1>
 
           {/* City Image */}
@@ -1836,7 +1837,7 @@ export default function ResultsPage({ params }: Props) {
           <div className="mb-6 shrink-0">
             <h3 className="font-display text-sm text-[#F7EFE5] mb-2">Why {city}?</h3>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              {data.reason}
+              {results.city_vibe_description}
             </p>
           </div>
 
@@ -1896,10 +1897,39 @@ export default function ResultsPage({ params }: Props) {
   // Show loading state
   if (loading) {
     return (
-      <div className="flex flex-col h-[100dvh] items-center justify-center px-10 bg-[#FFFAF4]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin"></div>
-          <p className="text-gray-600 text-sm">Loading your Wrapped...</p>
+      <div className="flex flex-col h-[100dvh] items-center justify-center bg-[#FFFAF4] relative overflow-hidden">
+        {/* Pulsing "wave" background with linear center mask */}
+        <div 
+          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none"
+          style={{
+            maskImage: 'linear-gradient(to bottom, black 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.1) 60%, black 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.5) 60%, black 100%)'
+          }}
+        >
+          {Array.from({ length: 14 }).map((_, i) => (
+            <motion.span
+              key={i}
+              className="font-display text-[86px] leading-[0.85] tracking-tight text-[#2D242F]"
+              initial={{ opacity: 0.03 }}
+              animate={{
+                opacity: [0.03, 0.25, 0.03],
+              }}
+              transition={{
+                duration: 2.5,
+                repeat: Infinity,
+                delay: i * 0.12,
+                ease: "easeInOut"
+              }}
+            >
+              Lookbook
+            </motion.span>
+          ))}
+        </div>
+
+        {/* Loading content on top */}
+        <div className="flex flex-col items-center gap-6 relative z-10">
+          <div className="w-14 h-14 border-4 border-gray-900/10 border-t-gray-900 rounded-full animate-spin"></div>
+          <p className="text-gray-900/60 text-sm font-medium tracking-wide">Loading your Wrapped...</p>
         </div>
       </div>
     );
@@ -2122,7 +2152,12 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-              <SummaryContent results={results} selectedOutfitIndex={selectedOutfitIndex} onBack={onBack['summary']} />
+              <SummaryContent 
+                results={results} 
+                selectedOutfitIndex={selectedOutfitIndex} 
+                onBack={onBack['summary']} 
+                isActive={false}
+              />
             </div>
             <FlipPage key="top-outfits-selection" isFlipped={topOutfitsSelectionFlip.isFlipped} zIndex={10}>
               <TopOutfitsSelectionContent 
@@ -2138,7 +2173,14 @@ export default function ResultsPage({ params }: Props) {
         );
       
       case 'summary':
-        return <SummaryContent results={results} selectedOutfitIndex={selectedOutfitIndex} onBack={onBack['summary']} />;
+        return (
+          <SummaryContent 
+            results={results} 
+            selectedOutfitIndex={selectedOutfitIndex} 
+            onBack={onBack['summary']} 
+            isActive={true}
+          />
+        );
       
       default:
         return null;

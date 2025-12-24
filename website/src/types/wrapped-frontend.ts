@@ -76,6 +76,7 @@ export interface WrappedResults {
   userName: string;
   userCity: string | null;
   city_vibe: string;
+  city_vibe_description: string;
   city_photo_url: string | null;
   primary_style: string;
   top_styles: StyleResult[];

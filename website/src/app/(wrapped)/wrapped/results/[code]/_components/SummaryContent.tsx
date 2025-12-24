@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { domToPng } from 'modern-screenshot';
 import { WrappedResults } from '@/types/wrapped-frontend';
 import { NavigationFooter } from './NavigationFooter';
@@ -9,18 +9,47 @@ interface SummaryContentProps {
   results: WrappedResults;
   selectedOutfitIndex: number | null;
   onBack?: () => void;
+  isActive?: boolean;
 }
 
 export const SummaryContent = ({ 
   results, 
   selectedOutfitIndex, 
-  onBack 
+  onBack,
+  isActive = true
 }: SummaryContentProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [shareSupported] = useState(() => 
     typeof navigator !== 'undefined' && !!navigator.share && !!navigator.canShare
   );
+
+  // Update scale whenever the window resizes
+  useEffect(() => {
+    const updateScale = () => {
+      if (!containerRef.current) return;
+      const containerWidth = containerRef.current.offsetWidth;
+      const targetWidth = 360;
+      const containerHeight = containerRef.current.offsetHeight;
+      const targetHeight = 640;
+      
+      const widthScale = (containerWidth - 32) / targetWidth;
+      const heightScale = (containerHeight - 32) / targetHeight;
+      
+      setScale(Math.min(1, widthScale, heightScale));
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    const timer = setTimeout(updateScale, 100);
+    
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      clearTimeout(timer);
+    };
+  }, []);
 
   // Determine which outfit to show - use user selection if available, else top outfit
   const signatureOutfit = selectedOutfitIndex !== null 
@@ -34,8 +63,10 @@ export const SummaryContent = ({
     try {
       // modern-screenshot is more reliable for modern CSS
       return await domToPng(cardRef.current, {
-        scale: 2, // Higher resolution for better quality
-        backgroundColor: '#F5F0EB',
+        width: 360,
+        height: 640,
+        scale: 4, // Maximum quality
+        backgroundColor: 'transparent',
       });
     } catch (error) {
       console.error('Failed to capture card:', error);
@@ -170,327 +201,373 @@ export const SummaryContent = ({
 
   return (
     <div className="flex flex-col h-[100dvh] px-4 pt-6 pb-4 bg-[#FFFAF4]">
-      {/* Shareable Card */}
-      <div className="flex-1 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-4">
+      
+      {/* Centered Group: Card + Buttons */}
+      <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
+        
+        {/* Shareable Card Container */}
         <div 
-          ref={cardRef}
-          className="w-full max-w-sm mx-auto overflow-hidden"
-          style={{ 
-            backgroundColor: '#F5F0EB',
-            borderRadius: '0px',
-          }}
+          ref={containerRef}
+          className="w-full flex items-center justify-center overflow-hidden"
         >
-          {/* Card Inner Content */}
-          <div className="relative p-4 pb-6">
-            
-            {/* Vertical Lookbook branding - left side */}
-            <div 
-              className="absolute left-3 top-12 bottom-12 flex items-center justify-center"
-              style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+          {/* Scaling Wrapper - This applies the visual scale and entry animation */}
+          <div
+            style={{
+              transform: `scale(${isActive ? scale : scale * 1.1})`,
+              opacity: isActive ? 1 : 0,
+              transformOrigin: 'center center',
+              transition: isActive 
+                ? 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease-out' 
+                : 'none',
+            }}
+          >
+            {/* Capture Target - This stays at 100% scale for perfect capture */}
+            <div
+              ref={cardRef}
+              className="shrink-0 overflow-hidden relative"
+              style={{
+                width: '360px',
+                height: '640px',
+              }}
             >
-              <span 
-                className="font-display text-3xl tracking-tight"
-                style={{ 
-                  fontWeight: 400,
-                  color: '#3D3D3D',
-                  transform: 'rotate(180deg)',
-                  letterSpacing: '-0.02em',
+              {/* The actual card with its border and background */}
+              <div
+                className="absolute inset-0 bg-[#F7F7F7] overflow-hidden shadow-2xl"
+                style={{
+                  borderRadius: '32px',
+                  border: '8px solid #000000',
+                  boxSizing: 'border-box'
                 }}
               >
-                Lookbook
-              </span>
-            </div>
-
-            {/* Main content area - offset for vertical branding */}
-            <div className="ml-10">
-              
-              {/* Header - Name's Top Aesthetics */}
-              <div className="mb-3">
-                <p 
-                  className="text-[10px] uppercase tracking-[0.15em] mb-2"
-                  style={{ color: '#8A8A8A' }}
-                >
-                  {results.userName.toUpperCase()}'S TOP AESTHETICS
-                </p>
-                
-                {/* Aesthetics with highlight bars */}
-                <div className="flex flex-col items-end gap-0.5">
-                  {results.top_styles.slice(0, 3).map((style, i) => (
-                    <div 
-                      key={i}
-                      className="flex items-center"
+                {/* Card Inner Content */}
+                <div className="relative p-5 h-full flex flex-col justify-between overflow-hidden">
+                  
+                  {/* Vertical Lookbook branding - Adjusted for inside-border alignment */}
+                  <div
+                    className="absolute left-[-55px] top-[140px] w-[200px]"
+                    style={{ 
+                      transform: 'rotate(-90deg)',
+                      transformOrigin: 'center center',
+                      zIndex: 20
+                    }}
+                  >
+                    <span
+                      className="font-display text-[54px] tracking-tight leading-none block text-center"
+                      style={{
+                        fontWeight: 400,
+                        color: '#C4B8A8', 
+                        letterSpacing: '-0.05em',
+                      }}
                     >
-                      <div 
-                        className="h-7 px-2 flex items-center"
-                        style={{ backgroundColor: '#D4C8B8' }}
+                      Lookbook
+                    </span>
+                  </div>
+
+                  {/* Main content area */}
+                  <div className="flex-1 flex flex-col justify-between ml-9">
+                    
+                    {/* Header - Name's Top Aesthetics */}
+                    <div className="mb-2">
+                      <p
+                        className="text-[9px] uppercase tracking-[0.15em] mb-3 text-right"
+                        style={{ color: '#A5A5A5' }}
                       >
-                        <span 
-                          className="font-display text-lg lowercase italic"
+                        {results.userName.toUpperCase()}'S TOP AESTHETICS
+                      </p>
+
+                      {/* Aesthetics with highlight bars */}
+                      <div className="flex flex-col items-end gap-0.5">
+                        {results.top_styles.slice(0, 3).map((style, i) => (
+                          <div
+                            key={i}
+                            className="relative flex items-center justify-end"
+                          >
+                            {/* Background bar */}
+                            <div 
+                              className="absolute right-0 h-3 rounded-sm" 
+                              style={{ 
+                                backgroundColor: '#D4C8B8',
+                                width: i === 0 ? '120px' : i === 1 ? '150px' : '180px',
+                                transform: 'translateY(4px)',
+                                zIndex: 0
+                              }} 
+                            />
+                            <span
+                              className="font-display text-[32px] lowercase relative z-10"
+                              style={{
+                                fontWeight: 700,
+                                color: '#000000',
+                                letterSpacing: '-0.03em',
+                                lineHeight: '1.1'
+                              }}
+                            >
+                              {style.style_name.toLowerCase()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Main photo with side info */}
+                    <div className="flex gap-4 mb-2">
+                      {/* Left side info panels */}
+                      <div className="flex flex-col justify-between py-1 shrink-0" style={{ width: '80px' }}>
+                        {/* Top Decade */}
+                        <div className="text-right">
+                          <p 
+                            className="text-[8px] uppercase tracking-[0.12em] mb-0.5"
+                            style={{ color: '#9A9A9A' }}
+                          >
+                            TOP DECADE
+                          </p>
+                          <p 
+                            className="text-base font-medium"
+                            style={{ color: '#3D3D3D' }}
+                          >
+                            {results.top_decade || '2010s'}
+                          </p>
+                        </div>
+
+                        {/* Top Item */}
+                        <div className="text-right">
+                          <p 
+                            className="text-[8px] uppercase tracking-[0.12em] mb-0.5"
+                            style={{ color: '#9A9A9A' }}
+                          >
+                            TOP ITEM
+                          </p>
+                          <p 
+                            className="text-[11px] font-medium leading-tight line-clamp-2"
+                            style={{ color: '#3D3D3D' }}
+                          >
+                            {topItemName}
+                          </p>
+                        </div>
+
+                        {/* Top Color */}
+                        <div className="text-right">
+                          <p 
+                            className="text-[8px] uppercase tracking-[0.12em] mb-0.5"
+                            style={{ color: '#9A9A9A' }}
+                          >
+                            TOP COLOR
+                          </p>
+                          <p 
+                            className="text-[11px] font-medium leading-tight"
+                            style={{ color: '#3D3D3D' }}
+                          >
+                            {topColorName}
+                          </p>
+                          <p 
+                            className="text-[9px] uppercase font-mono tracking-tighter"
+                            style={{ color: '#AAAAAA' }}
+                          >
+                            {topColorHex}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Main photo */}
+                      <div 
+                        className="flex-1 relative"
+                        style={{ aspectRatio: '3/4' }}
+                      >
+                        <div 
+                          className="absolute inset-0 bg-[#E8E4DE] rounded-[20px] overflow-hidden z-10"
                           style={{ 
-                            fontWeight: 700,
-                            color: '#2D2D2D',
-                            letterSpacing: '-0.01em',
+                            boxShadow: '4px 4px 0px #E0DCD6, 0 4px 20px rgba(0,0,0,0.08)',
                           }}
                         >
-                          {style.style_name.toLowerCase()}
-                        </span>
+                          {signatureOutfit?.path ? (
+                            <img
+                              src={signatureOutfit.path}
+                              alt="Your signature look"
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-xs text-gray-400 uppercase tracking-wider">
+                                Your Look
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
 
-              {/* Main photo with side info */}
-              <div className="flex gap-2 mb-3">
-                {/* Left side info panels */}
-                <div className="flex flex-col justify-between py-2 shrink-0" style={{ width: '72px' }}>
-                  {/* Top Decade */}
-                  <div className="text-right">
-                    <p 
-                      className="text-[8px] uppercase tracking-[0.1em] mb-0.5"
-                      style={{ color: '#9A9A9A' }}
-                    >
-                      TOP DECADE
-                    </p>
-                    <p 
-                      className="text-sm font-medium"
-                      style={{ color: '#3D3D3D' }}
-                    >
-                      {results.top_decade || '2020s'}
-                    </p>
-                  </div>
-
-                  {/* Top Item */}
-                  <div className="text-right">
-                    <p 
-                      className="text-[8px] uppercase tracking-[0.1em] mb-0.5"
-                      style={{ color: '#9A9A9A' }}
-                    >
-                      TOP ITEM
-                    </p>
-                    <p 
-                      className="text-xs leading-tight"
-                      style={{ color: '#3D3D3D' }}
-                    >
-                      {topItemName.length > 24 
-                        ? topItemName.substring(0, 24) + '...' 
-                        : topItemName}
-                    </p>
-                  </div>
-
-                  {/* Top Color */}
-                  <div className="text-right">
-                    <p 
-                      className="text-[8px] uppercase tracking-[0.1em] mb-0.5"
-                      style={{ color: '#9A9A9A' }}
-                    >
-                      TOP COLOR
-                    </p>
-                    <p 
-                      className="text-xs leading-tight"
-                      style={{ color: '#3D3D3D' }}
-                    >
-                      {topColorName}
-                    </p>
-                    <p 
-                      className="text-[9px] uppercase"
-                      style={{ color: '#AAAAAA' }}
-                    >
-                      {topColorHex}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Main photo */}
-                <div 
-                  className="flex-1 relative overflow-hidden"
-                  style={{ 
-                    aspectRatio: '3/4',
-                    backgroundColor: '#E8E4DE',
-                    borderRadius: '4px',
-                    boxShadow: '4px 4px 0px rgba(0,0,0,0.08)',
-                  }}
-                >
-                  {signatureOutfit?.path ? (
-                    <img
-                      src={signatureOutfit.path}
-                      alt="Your signature look"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs text-gray-400 uppercase tracking-wider">
-                        Your Look
-                      </span>
+                    {/* Color dots row */}
+                    <div className="flex justify-center gap-1 mb-2">
+                      {results.top_colors.slice(0, 3).map((c, i) => (
+                        <div
+                          key={i}
+                          className="w-4 h-4 rounded-full"
+                          style={{
+                            backgroundColor: c.top_shade_hex,
+                            border: c.top_shade_hex.toLowerCase() === '#ffffff' ? '1px solid #ddd' : 'none',
+                          }}
+                        />
+                      ))}
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: '1px solid #9A9A9A',
+                        }}
+                      />
+                      {results.top_colors.slice(3, 6).map((c, i) => (
+                        <div
+                          key={i + 3}
+                          className="w-4 h-4 rounded-full"
+                          style={{
+                            backgroundColor: c.top_shade_hex,
+                            border: c.top_shade_hex.toLowerCase() === '#ffffff' ? '1px solid #ddd' : 'none',
+                          }}
+                        />
+                      ))}
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Color dots row */}
-              <div className="flex justify-center gap-1.5 mb-3">
-                {results.top_colors.slice(0, 4).map((c, i) => (
-                  <div
-                    key={i}
-                    className="w-5 h-5 rounded-full"
-                    style={{ 
-                      backgroundColor: c.top_shade_hex,
-                      border: c.top_shade_hex.toLowerCase() === '#ffffff' ? '1px solid #ddd' : 'none',
-                    }}
-                  />
-                ))}
-                {/* Outline dot for contrast */}
-                <div
-                  className="w-5 h-5 rounded-full"
-                  style={{ 
-                    backgroundColor: 'transparent',
-                    border: '1.5px solid #C0C0C0',
-                  }}
-                />
-                {/* Additional accent colors */}
-                {results.top_colors.slice(4, 7).map((c, i) => (
-                  <div
-                    key={i + 4}
-                    className="w-5 h-5 rounded-full"
-                    style={{ 
-                      backgroundColor: c.top_shade_hex,
-                      border: c.top_shade_hex.toLowerCase() === '#ffffff' ? '1px solid #ddd' : 'none',
-                    }}
-                  />
-                ))}
-              </div>
+                    {/* Color Aura name - script/display font */}
+                    <div className="text-center mb-3">
+                      <p
+                        className="font-display text-[42px] italic"
+                        style={{
+                          color: '#1D1B20',
+                          fontWeight: 600,
+                          letterSpacing: '-0.02em',
+                          lineHeight: '1',
+                        }}
+                      >
+                        {results.color_aura}
+                      </p>
+                    </div>
 
-              {/* Color Aura name - script/display font */}
-              <div className="text-center mb-4">
-                <p 
-                  className="font-display text-3xl italic"
-                  style={{ 
-                    color: '#2D2D2D',
-                    fontWeight: 400,
-                  }}
-                >
-                  {results.color_aura}
-                </p>
-              </div>
-
-              {/* Bottom section - Celebrity Twin & Style Destination */}
-              <div className="flex gap-3">
-                {/* Celebrity Twin */}
-                <div className="flex-1">
-                  <p 
-                    className="text-[8px] uppercase tracking-[0.12em] mb-1.5 text-center"
-                    style={{ color: '#9A9A9A' }}
-                  >
-                    CELEBRITY TWIN
-                  </p>
-                  <div 
-                    className="relative overflow-hidden mb-1.5"
-                    style={{ 
-                      aspectRatio: '4/5',
-                      backgroundColor: '#E0DCD6',
-                      borderRadius: '12px',
-                    }}
-                  >
-                    {results.top_celeb_match.celeb_photo_url ? (
-                      <img
-                        src={results.top_celeb_match.celeb_photo_url}
-                        alt={results.top_celeb_match.celeb_name}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[10px] text-gray-400 uppercase">
-                          {results.top_celeb_match.celeb_name.charAt(0)}
-                        </span>
+                    {/* Bottom section - Celebrity Twin & Style Destination */}
+                    <div className="flex gap-4">
+                      {/* Celebrity Twin */}
+                      <div className="flex-1">
+                        <p 
+                          className="text-[8px] uppercase tracking-[0.12em] mb-1.5 text-center"
+                          style={{ color: '#9A9A9A' }}
+                        >
+                          CELEBRITY TWIN
+                        </p>
+                        <div 
+                          className="relative overflow-hidden mb-1.5 shadow-sm"
+                          style={{ 
+                            aspectRatio: '4/5',
+                            backgroundColor: '#E0DCD6',
+                            borderRadius: '20px',
+                          }}
+                        >
+                          {results.top_celeb_match.celeb_photo_url ? (
+                            <img
+                              src={results.top_celeb_match.celeb_photo_url}
+                              alt={results.top_celeb_match.celeb_name}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-[10px] text-gray-400 uppercase">
+                                {results.top_celeb_match.celeb_name.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <p 
+                          className="text-[9px] text-center uppercase tracking-wider font-medium"
+                          style={{ color: '#3D3D3D' }}
+                        >
+                          {results.top_celeb_match.celeb_name.toUpperCase()}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                  <p 
-                    className="text-[10px] text-center uppercase tracking-wide"
-                    style={{ color: '#4D4D4D' }}
-                  >
-                    {results.top_celeb_match.celeb_name.toUpperCase()}
-                  </p>
-                </div>
 
-                {/* Style Destination */}
-                <div className="flex-1">
-                  <p 
-                    className="text-[8px] uppercase tracking-[0.12em] mb-1.5 text-center"
-                    style={{ color: '#9A9A9A' }}
-                  >
-                    STYLE DESTINATION
-                  </p>
-                  <div 
-                    className="relative overflow-hidden mb-1.5"
-                    style={{ 
-                      aspectRatio: '4/5',
-                      backgroundColor: '#E0DCD6',
-                      borderRadius: '12px',
-                    }}
-                  >
-                    {results.city_photo_url ? (
-                      <img
-                        src={results.city_photo_url}
-                        alt={results.city_vibe}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[10px] text-gray-400 uppercase">
-                          {results.city_vibe?.charAt(0) || 'C'}
-                        </span>
+                      {/* Style Destination */}
+                      <div className="flex-1">
+                        <p 
+                          className="text-[8px] uppercase tracking-[0.12em] mb-1.5 text-center"
+                          style={{ color: '#9A9A9A' }}
+                        >
+                          STYLE DESTINATION
+                        </p>
+                        <div 
+                          className="relative overflow-hidden mb-1.5 shadow-sm"
+                          style={{ 
+                            aspectRatio: '4/5',
+                            backgroundColor: '#E0DCD6',
+                            borderRadius: '20px',
+                          }}
+                        >
+                          {results.city_photo_url ? (
+                            <img
+                              src={results.city_photo_url}
+                              alt={results.city_vibe}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-[10px] text-gray-400 uppercase">
+                                {results.city_vibe?.charAt(0) || 'C'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <p 
+                          className="text-[9px] text-center uppercase tracking-wider font-medium"
+                          style={{ color: '#3D3D3D' }}
+                        >
+                          {(results.city_vibe || 'Your City').toUpperCase()}
+                        </p>
                       </div>
-                    )}
+                    </div>
+
                   </div>
-                  <p 
-                    className="text-[10px] text-center uppercase tracking-wide"
-                    style={{ color: '#4D4D4D' }}
-                  >
-                    {(results.city_vibe || 'Your City').toUpperCase()}
-                  </p>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
-      </div>
-      
-      {/* Action buttons */}
-      <div className="space-y-3 shrink-0 mb-2">
-        <button 
-          onClick={handleDownload}
-          disabled={isProcessing}
-          className="w-full bg-gray-900 text-white py-4 rounded-xl font-medium text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+
+        {/* Action buttons - Moved closer to the card visually */}
+        <div 
+          className="flex gap-3 w-full max-w-[320px] px-4 mt-6 mb-2"
+          style={{ 
+            opacity: isActive ? 1 : 0,
+            transition: 'opacity 0.6s ease-out 0.4s'
+          }}
         >
-          {isProcessing ? (
-            <>
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              Processing...
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Save to Photos
-            </>
-          )}
-        </button>
-        <button 
-          onClick={handleShare}
-          disabled={isProcessing}
-          className="w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-          </svg>
-          {shareSupported ? 'Share' : 'Copy Link'}
-        </button>
+          <button 
+            onClick={handleDownload}
+            disabled={isProcessing}
+            className="flex-1 bg-gray-900 text-white py-4 rounded-xl font-medium text-xs shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isProcessing ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Wait...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Save
+              </>
+            )}
+          </button>
+          <button 
+            onClick={handleShare}
+            disabled={isProcessing}
+            className="flex-1 border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-medium text-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            {shareSupported ? 'Share' : 'Link'}
+          </button>
+        </div>
       </div>
       
       <NavigationFooter onBack={onBack} leftLabel={`${results.userName}'s Lookbook`} />

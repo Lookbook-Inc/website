@@ -49,6 +49,7 @@ export function transformWrappedInsights(backend: BackendWrappedInsights) {
 
     // City vibe
     city_vibe: formatStyleName(backend.city_vibe),
+    city_vibe_description: backend.city_vibe_description || '',
     city_photo_url: backend.city_photo_url || null,
 
     // Styles

@@ -10,7 +10,7 @@ const TIMINGS = {
   GAP_BETWEEN_LINES: 800,
   SECOND_LINE_DURATION: 2000,
   GAP_TO_THIRD_LINE: 800,
-  THIRD_LINE_PAUSE: 1200, // Time before text starts "flying"
+  THIRD_LINE_PAUSE: 2000, // Time before text starts "flying"
   FLY_TO_GRID_DURATION: 800, // Duration of the text movement
 };
 
@@ -80,9 +80,43 @@ export const TopOutfitsSelectionContent = ({
 
   const topFive = results.top_outfits.slice(0, 5);
 
+  const photoVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 15,
+      scale: 1,
+      borderColor: "rgba(255, 255, 255, 0)",
+      transition: { duration: 0 } // Hide immediately when not in picking phase
+    },
+    enter: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      borderColor: "rgba(255, 255, 255, 0)",
+      transition: {
+        opacity: { delay: 0.4 + i * 0.1, duration: 0.5 },
+        y: { delay: 0.4 + i * 0.1, duration: 0.5 },
+      }
+    }),
+    active: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      borderColor: "rgba(255, 255, 255, 0)",
+      transition: { duration: 0.2 }
+    },
+    selected: {
+      opacity: 1,
+      y: 0,
+      scale: 1.02,
+      borderColor: "rgba(255, 255, 255, 1)",
+      transition: { duration: 0.2 }
+    }
+  };
+
   return (
-    <div className={`flex flex-col h-[100dvh] transition-colors duration-1000 ease-in-out ${isPicking ? 'bg-black' : 'bg-[#FFFAF4]'} pt-12 pb-4 px-10`}>
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+    <div className={`flex flex-col h-full transition-colors duration-1000 ease-in-out ${isPicking ? 'bg-black' : 'bg-[#FFFAF4]'} pt-12 pb-4 px-10`}>
+      <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
         
         {/* Phase 1 & 2: Introductory Sequential Lines */}
         <div className="absolute inset-0 flex flex-col justify-center pointer-events-none">
@@ -155,53 +189,65 @@ export const TopOutfitsSelectionContent = ({
           </AnimatePresence>
         </div>
 
-        {/* Picking Grid - Fades in after text starts moving */}
-        <motion.div 
-          className="flex-1 overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-0"
-          animate={{ opacity: isPicking ? 1 : 0 }}
-          initial={{ opacity: 0 }}
-          transition={{ duration: 1.8, delay: 0.3 }}
-        >
+        {/* Picking Grid - Elements animate individually */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-0 z-10 min-h-0 relative">
           <div className="grid grid-cols-2 gap-3 pt-4">
             {/* Spacer for the persistent text in the top-left slot */}
             <div className="aspect-[3/4] pointer-events-none" />
 
-            {topFive.map((outfit, i) => (
-              <motion.button
-                key={outfit.photo_id}
-                onClick={() => setSelectedOutfitIndex(i)}
-                className={`aspect-[3/4] rounded-xl overflow-hidden relative border-2 transition-all ${
-                  selectedOutfitIndex === i 
-                    ? 'border-white shadow-lg scale-[1.02]' 
-                    : 'border-transparent'
-                }`}
-                whileTap={{ scale: 0.98 }}
-              >
-                <img
-                  src={outfit.path}
-                  alt={`Outfit ${i + 1}`}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                {selectedOutfitIndex === i && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute inset-0 bg-white/10 flex items-center justify-center"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                      <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  </motion.div>
-                )}
-                <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs text-white">
-                  #{i + 1}
-                </div>
-              </motion.button>
-            ))}
+            {topFive.map((outfit, i) => {
+              const isSelected = selectedOutfitIndex === i;
+              
+              // Determine the current variant
+              let variant = "hidden";
+              if (isPicking) {
+                if (isSelected) {
+                  variant = "selected";
+                } else {
+                  // Use "enter" for the first appearance, "active" for subsequent unselected states
+                  variant = "enter"; 
+                }
+              }
+
+              return (
+                <motion.button
+                  key={outfit.photo_id}
+                  onClick={() => setSelectedOutfitIndex(i)}
+                  variants={photoVariants}
+                  initial="hidden"
+                  animate={variant}
+                  custom={i}
+                  className={`aspect-[3/4] rounded-xl overflow-hidden relative border-2 ${
+                    isSelected ? 'shadow-lg' : ''
+                  }`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <img
+                    src={outfit.path}
+                    alt={`Outfit ${i + 1}`}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {isSelected && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 bg-white/10 flex items-center justify-center"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
+                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    </motion.div>
+                  )}
+                  <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs text-white">
+                    #{i + 1}
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
-        </motion.div>
+        </div>
       </div>
       
       {/* Navigation Footer - Disabled until selection is made */}

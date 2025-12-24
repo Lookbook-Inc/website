@@ -918,7 +918,7 @@ export default function ResultsPage({ params }: Props) {
                         },
                       },
                     }}
-                    className={`w-[45vw] max-w-[220px] aspect-[3/4] rounded-xl overflow-hidden bg-[#F1EDE7] shadow-lg relative shrink-0 ${
+                    className={`w-[45vw] max-w-[220px] max-h-[calc((100dvh-150px)/3)] aspect-[3/4] rounded-xl overflow-hidden bg-[#F1EDE7] shadow-lg relative shrink-0 ${
                       i % 2 === 0 ? 'self-end mr-4' : 'self-start'
                     }`}
                     style={{
@@ -1127,7 +1127,7 @@ export default function ResultsPage({ params }: Props) {
         return () => clearTimeout(timer);
       } else if (phase === 'reveal') {
         // reveal -> collage after 2.5s
-        const timer = setTimeout(() => setPhase('collage'), 2500);
+        const timer = setTimeout(() => setPhase('collage'), 1500);
         return () => clearTimeout(timer);
       }
     }, [isActive, phase]);
@@ -1407,7 +1407,8 @@ export default function ResultsPage({ params }: Props) {
 
             {/* Description - fades in after the name */}
             <motion.p
-              className="font-light text-md text-gray-900 leading-tight px-4"
+              className="font-light text-md text-gray-900 leading-tight px-4 py-2 bg-[#FFFAF4]/80 backdrop-blur-md rounded-xl shadow-sm mx-auto max-w-md"
+              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
               initial={{ opacity: 0, y: 15 }}
               animate={{
                 opacity: isReveal ? 1 : 0,

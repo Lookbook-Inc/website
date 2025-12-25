@@ -3,21 +3,11 @@
 import { useState, useEffect, ReactNode, useRef } from 'react';
 import { FlipPage } from './_components/FlipPage';
 import { useFlip } from '@/hooks/useFlip';
-import { domToPng } from 'modern-screenshot';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getInsightsByShareCode } from '@/lib/api/wrapped';
 import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
 import { 
-  ClothingItem, 
-  ColorGroup, 
-  ColorResult, 
-  CelebMatch, 
   UploadedPhoto, 
-  TopOutfit, 
-  Pairing, 
-  StyleResult, 
-  TopOutfitForStyle, 
-  UnwornPairing, 
   WrappedResults,
   Step 
 } from '@/types/wrapped-frontend';
@@ -300,7 +290,7 @@ export default function ResultsPage({ params }: Props) {
     if (!prevStep) return;
 
     // Mapping of step to the flip hook that needs to be reset (when going BACK to this step)
-    const flipHooks: Record<string, any> = {
+    const flipHooks: Record<string, ReturnType<typeof useFlip>> = {
       'fav-item': favItemFlip,
       'fav-pairings': favPairingsFlip,
       'unworn-pairings': unwornPairingsFlip,
@@ -456,7 +446,7 @@ export default function ResultsPage({ params }: Props) {
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
         <FavSidebar />
         <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <h3 className="font-display text-2xl text-gray-900 mb-8">You've paired it with:</h3>
+          <h3 className="font-display text-2xl text-gray-900 mb-8">You&apos;ve paired it with:</h3>
           
           <motion.div 
             className="flex-1 flex flex-col pb-10"
@@ -562,7 +552,7 @@ export default function ResultsPage({ params }: Props) {
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-black text-white">
         <FavSidebar light={false} />
         <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <h3 className="font-display text-2xl text-[#F7EFE5] mb-8 text-right">You haven't worn it with these yet...</h3>
+          <h3 className="font-display text-2xl text-[#F7EFE5] mb-8 text-right">You haven&apos;t worn it with these yet...</h3>
           
           <motion.div 
             className="flex-1 flex flex-col pb-10"
@@ -756,7 +746,7 @@ export default function ResultsPage({ params }: Props) {
           className="space-y-10"
           variants={containerVariants}
         >
-          {results.top_styles.slice(0, 3).map((style, i) => {
+          {results.top_styles.slice(0, 3).map((style) => {
             const isPrimary = style.style_name === results.primary_style;
             return (
               <motion.div
@@ -863,7 +853,7 @@ export default function ResultsPage({ params }: Props) {
               transition={{
                 duration: 0.35,
                 delay: 1.0,
-                ease: [0.4, 0, 0.2, 1],
+                ease: [0.4, 0, 0.2, 1] as const,
               }}
             >
               Looking good!
@@ -917,7 +907,7 @@ export default function ResultsPage({ params }: Props) {
                         opacity: 1,
                         transition: {
                           duration: 0.5,
-                          ease: [0.4, 0, 0.2, 1],
+                          ease: [0.4, 0, 0.2, 1] as const,
                         },
                       },
                     }}
@@ -992,7 +982,7 @@ export default function ResultsPage({ params }: Props) {
         transition: {
           delay: 0.3 + i * 0.2,
           duration: 0.6,
-          ease: [0.4, 0, 0.2, 1] as any,
+          ease: [0.4, 0, 0.2, 1] as const,
         },
       }),
     };
@@ -1036,7 +1026,7 @@ export default function ResultsPage({ params }: Props) {
         transition: {
           delay: 0.3 + i * 0.2,
           duration: 0.6,
-          ease: [0.4, 0, 0.2, 1] as any,
+          ease: [0.4, 0, 0.2, 1] as const,
         },
       }),
     };
@@ -1980,33 +1970,11 @@ export default function ResultsPage({ params }: Props) {
     );
   };
 
-  // Legacy wrappers for compatibility with existing flip system (inactive by default)
-  const ColorsContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
-    <ColorsShadesContent view="colors" onNext={onNext} onBack={onBack} onViewChange={() => {}} isActive={false} />
-  );
-
-  const ShadesContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
-    <ColorsShadesContent view="shades" onNext={onNext} onBack={onBack} onViewChange={() => {}} isActive={false} />
-  );
-
   const DecadeContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
     // Animation state: 'intro' -> 'reveal' -> 'final'
     const [phase, setPhase] = useState<'intro' | 'reveal' | 'final'>('intro');
 
-    // Decade styling information
-    const decadeStyles: Record<string, { vibe: string; icon: string; color: string }> = {
-      '1950s': { vibe: 'Classic elegance meets rebellion', icon: '🎸', color: '#E8D5B7' },
-      '1960s': { vibe: 'Mod culture and psychedelic dreams', icon: '✌️', color: '#F5A623' },
-      '1970s': { vibe: 'Disco nights and bohemian days', icon: '🪩', color: '#D4A574' },
-      '1980s': { vibe: 'Power shoulders and neon lights', icon: '📼', color: '#FF6B9D' },
-      '1990s': { vibe: 'Grunge meets minimalism', icon: '📟', color: '#7B8D8E' },
-      '2000s': { vibe: 'Y2K dreams and low-rise everything', icon: '💿', color: '#C0C0C0' },
-      '2010s': { vibe: 'Athleisure and Instagram aesthetics', icon: '📱', color: '#4A90A4' },
-      '2020s': { vibe: 'Quiet luxury meets bold individuality', icon: '✨', color: '#2C3E50' },
-    };
-
     const decade = results.top_decade || '2020s';
-    const style = decadeStyles[decade] || decadeStyles['2020s'];
 
     // Trigger phase transitions after delays - only when active
     useEffect(() => {
@@ -2066,7 +2034,7 @@ export default function ResultsPage({ params }: Props) {
               animate={{ opacity: isActive ? 1 : 0, y: isActive ? 0 : 20 }}
               transition={{
                 duration: 0.6,
-                ease: [0.4, 0, 0.2, 1],
+                ease: [0.4, 0, 0.2, 1] as const,
                 layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] }
               }}
             >
@@ -2083,7 +2051,7 @@ export default function ResultsPage({ params }: Props) {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{
                     duration: 0.7,
-                    ease: [0.4, 0, 0.2, 1],
+                    ease: [0.4, 0, 0.2, 1] as const,
                     layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] }
                   }}
                 >
@@ -2343,7 +2311,7 @@ export default function ResultsPage({ params }: Props) {
     <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
       <div className="flex-1 flex flex-col justify-center items-center overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <h1 className="font-display text-3xl leading-[1.1] text-center">
-        You're based in {results.userCity || 'your city'}—but what do your outfits say?
+        You&apos;re based in {results.userCity || 'your city'}—but what do your outfits say?
       </h1>
       </div>
 

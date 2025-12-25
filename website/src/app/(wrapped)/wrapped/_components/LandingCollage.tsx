@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 // Import images from the screens folder
 import Image79 from '../../screens/image 79.png';
@@ -51,9 +51,10 @@ const ALL_THEME_COLORS = Object.values(THEME_PALETTES).flat();
 
 interface LandingCollageProps {
   isStatic?: boolean;
+  className?: string;
 }
 
-export function LandingCollage({ isStatic = false }: LandingCollageProps) {
+export function LandingCollage({ isStatic = false, className }: LandingCollageProps) {
   const [imageIndices, setImageIndices] = useState<Set<number>>(new Set());
   const [cardColors, setCardColors] = useState<string[]>([]);
   const [isMounted, setIsMounted] = useState(false);
@@ -121,7 +122,7 @@ export function LandingCollage({ isStatic = false }: LandingCollageProps) {
 
   return (
     <div 
-      className="flex-1 bg-[#F7EFE5] rounded-xl mb-8 relative overflow-hidden min-h-[400px]"
+      className={`bg-[#F7EFE5] rounded-xl mb-8 relative overflow-hidden min-h-[300px] ${className || 'flex-1'}`}
       style={{
         maskImage: 'radial-gradient(circle at center, black 0%, black 100%)', // Fallback for some browsers
         WebkitMaskImage: 'radial-gradient(circle at center, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.9) 100%)',

@@ -5,6 +5,8 @@ import { domToPng } from 'modern-screenshot';
 import { WrappedResults } from '@/types/wrapped-frontend';
 import { NavigationFooter } from './NavigationFooter';
 
+const WRAPPED_URL = 'lookbook.inc/wrapped';
+
 interface SummaryContentProps {
   results: WrappedResults;
   selectedOutfitIndex: number | null;
@@ -82,6 +84,10 @@ export const SummaryContent = ({
   const signatureOutfit = selectedOutfitIndex !== null 
     ? results.top_outfits[selectedOutfitIndex] 
     : results.top_outfits[0];
+
+  // Calculate top style and palette for sharing
+  const topStyle = results.top_styles.sort((a, b) => (b.points || 0) - (a.points || 0))[0]?.style_name.toLowerCase() || 'unique style';
+  const palette = results.color_aura.toLowerCase();
 
   // Capture card as data URL
   const captureCard = async (): Promise<string | null> => {
@@ -190,19 +196,21 @@ export const SummaryContent = ({
         type: 'image/png' 
       });
 
+      const shareText = `My top style was ${topStyle} and my palette was ${palette}. Try yours at ${WRAPPED_URL}`;
+
       // Check if we can share files
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `${results.userName}'s Lookbook 2025`,
-          text: `Check out my 2025 style wrapped! My color palette is "${results.color_aura}" ✨`,
+          title: `${results.userName}'s 2025 Lookbook Wrapped`,
+          text: shareText,
         });
       } else if (navigator.share) {
         // Fallback: share without file (just text/url)
         await navigator.share({
           title: `${results.userName}'s Lookbook 2025`,
-          text: `Check out my 2025 style wrapped! My color palette is "${results.color_aura}" ✨`,
-          url: window.location.href,
+          text: shareText,
+          url: `https://${WRAPPED_URL}`,
         });
       } else {
         // No share API - fallback to download
@@ -329,7 +337,7 @@ export const SummaryContent = ({
                         className="text-[12px] uppercase tracking-wider mb-1 text-right"
                         style={{ color: '#A5A5A5', fontWeight: 800 }}
                       >
-                        {results.userName.toUpperCase()}'S TOP AESTHETICS
+                        {results.userName.toUpperCase()}&apos;S TOP AESTHETICS
                       </p>
 
                       {/* Aesthetics with highlight bars */}

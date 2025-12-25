@@ -7,13 +7,16 @@
  * Authentication: All requests include Authorization header with Supabase JWT token
  */
 
+import { SupabaseClient } from '@supabase/supabase-js'
+import { BackendWrappedInsights, BackendClothingItem, BackendUploadedPhoto } from '@/types/wrapped-api'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_WRAPPED_BACKEND_URL // || 'http://localhost:8002'
 
 /**
  * Helper to get auth token from Supabase session
  * This should be called before making any API request
  */
-export async function getAuthToken(supabase: any): Promise<string | null> {
+export async function getAuthToken(supabase: SupabaseClient): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession()
   return session?.access_token || null
 }
@@ -33,7 +36,7 @@ export async function uploadPhoto(
   authToken: string,
   batchId?: string,
   totalPhotosInBatch?: number
-): Promise<any> {
+): Promise<{ detail: string }> {
   const formData = new FormData()
   formData.append('original_file', originalFile)
   if (croppedFile) {
@@ -68,7 +71,7 @@ export async function uploadPhoto(
  *
  * @param authToken - Supabase JWT token
  */
-export async function getUserPhotos(authToken: string): Promise<any> {
+export async function getUserPhotos(authToken: string): Promise<BackendUploadedPhoto[]> {
   const response = await fetch(`${API_BASE_URL}/wrapped/photos`, {
     method: 'GET',
     headers: {
@@ -89,7 +92,7 @@ export async function getUserPhotos(authToken: string): Promise<any> {
  *
  * @param authToken - Supabase JWT token
  */
-export async function getClothingItems(authToken: string): Promise<any> {
+export async function getClothingItems(authToken: string): Promise<BackendClothingItem[]> {
   const response = await fetch(`${API_BASE_URL}/wrapped/clothing-items`, {
     method: 'GET',
     headers: {
@@ -110,7 +113,7 @@ export async function getClothingItems(authToken: string): Promise<any> {
  *
  * @param authToken - Supabase JWT token
  */
-export async function getWrappedInsights(authToken: string): Promise<any> {
+export async function getWrappedInsights(authToken: string): Promise<BackendWrappedInsights> {
   const response = await fetch(`${API_BASE_URL}/wrapped/insights`, {
     method: 'GET',
     headers: {
@@ -132,7 +135,7 @@ export async function getWrappedInsights(authToken: string): Promise<any> {
  *
  * @param shareCode - 6-character share code (e.g., "VTKZEY")
  */
-export async function getInsightsByShareCode(shareCode: string): Promise<any> {
+export async function getInsightsByShareCode(shareCode: string): Promise<BackendWrappedInsights> {
   const response = await fetch(`${API_BASE_URL}/wrapped/insights/code/${shareCode.toUpperCase()}`, {
     method: 'GET',
   })
@@ -148,7 +151,7 @@ export async function getInsightsByShareCode(shareCode: string): Promise<any> {
 /**
  * Health check for wrapped backend
  */
-export async function healthCheck(): Promise<any> {
+export async function healthCheck(): Promise<{ status: string }> {
   const response = await fetch(`${API_BASE_URL}/wrapped/health`, {
     method: 'GET',
   })

@@ -67,8 +67,8 @@ export default function WrappedWizard() {
     const devStep = params.get('step') as Step | null;
     if (devStep) {
       setStep(devStep);
-      if (devStep === 'processing' && !name) {
-        setName('Dev User');
+      if (devStep === 'processing') {
+        setName(prev => prev || 'Dev User');
       }
     }
     // Check for mock mode
@@ -368,7 +368,7 @@ export default function WrappedWizard() {
         try {
           await uploadPhoto(
             photo,
-            croppedPhoto as any, // Send cropped version if available
+            croppedPhoto, // Send cropped version if available
             token,
             batchId!,
             photos.length
@@ -464,31 +464,34 @@ export default function WrappedWizard() {
 
   // --- Render helpers ---
   const renderLanding = () => (
-    <div className="flex flex-col min-h-screen p-4">
+    <div className="flex flex-col h-[100dvh] p-4 overflow-hidden">
       {/* for more animated landing page, remove isStatic. */}
-      <LandingCollage isStatic /> 
+      <LandingCollage isStatic className="w-full aspect-[9/16] max-h-[60vh] flex-1 min-h-0 mb-6" /> 
       
-      <div className="px-6 pb-6">
-        <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-8">
-          Your 2025 Styles,<br />Wrapped.
-        </h1>
-        
-        <div className="space-y-4 mb-16">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="What's your email?"
-            className="w-full bg-[#F7EFE5] rounded-lg px-4 py-3 text-gray-900 text-md placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 transition-all"
-            disabled={loading}
-          />
+      <div className="px-6 pb-6 flex flex-col justify-between flex-1 min-h-0">
+        <div>
+          <p className="text-gray-400 font-mono tracking-tight uppercase text-sm mb-2">Dec 25 to Jan 14</p>
+          <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-6">
+            Your 2025 Styles,<br />Wrapped.
+          </h1>
           
-          {error && (
-            <p className="text-red-600 text-sm px-1">{error}</p>
-          )}
+          <div className="space-y-4 mb-8">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="What's your email?"
+              className="w-full bg-[#F7EFE5] rounded-lg px-4 py-3 text-gray-900 text-md placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 transition-all"
+              disabled={loading}
+            />
+            
+            {error && (
+              <p className="text-red-600 text-sm px-1">{error}</p>
+            )}
+          </div>
         </div>
         
-        <div className="flex items-end justify-between font-display">
+        <div className="flex items-end justify-between font-display pb-2">
           <div className="flex items-center gap-4">
             <span className="text-gray-400 text-xl mb-1">Lookbook</span>
           </div>
@@ -506,7 +509,7 @@ export default function WrappedWizard() {
   );
 
   const renderVerify = () => (
-    <div className="flex flex-col min-h-screen p-4">
+    <div className="flex flex-col h-[100dvh] p-4">
       <div className="flex-1 flex flex-col justify-center px-6">
         <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
           Check your email
@@ -554,7 +557,7 @@ export default function WrappedWizard() {
   );
 
   const renderName = () => (
-    <div className="flex flex-col min-h-screen p-4">
+    <div className="flex flex-col h-[100dvh] p-4">
       <div className="flex-1 flex flex-col justify-center px-6">
         <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
           Welcome to Lookbook Wrapped.
@@ -594,13 +597,13 @@ export default function WrappedWizard() {
   );
 
   const renderCity = () => (
-    <div className="flex flex-col min-h-screen p-4">
+    <div className="flex flex-col h-[100dvh] p-4">
       <div className="flex-1 flex flex-col justify-center px-6">
         <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
           Which city are you based in?
         </h1>
         <p className="text-gray-500 text-md mb-4">
-          We will only use this to help personalize your Lookbook wrapped for 2025 :)
+          We only use this to help personalize your Lookbook Wrapped for 2025 :)
         </p>
         
         <input
@@ -647,7 +650,7 @@ export default function WrappedWizard() {
         Upload pics of you from this year!
       </h1>
       <p className="text-gray-500 text-md mb-8">
-        We'll analyze your outfits automatically from any photo. Pick at least 10 pictures for us to work with.
+        We&apos;ll analyze your outfits automatically from any photo. Pick at least 10 pictures for us to work with.
       </p>
       
       {/* Tips & Upload area - hidden during upload */}
@@ -797,7 +800,7 @@ export default function WrappedWizard() {
         <div className="h-[45vh]" />
 
         <h1 className="font-display text-4xl text-gray-900 leading-tight mb-6">
-          Analyzing... we will send you an email when we're done
+          Analyzing... we will send you an email when we&apos;re done
         </h1>
 
         {/* Checklist - Animated slide-up carousel */}
@@ -838,7 +841,7 @@ export default function WrappedWizard() {
         <div className="flex-1" />
 
         <p className="text-sm text-gray-500 leading-tight mb-6">
-          Make sure to check your spam and "all mail" boxes!
+          Make sure to check your spam and &quot;all mail&quot; boxes!
         </p>
 
       </div>
@@ -866,10 +869,10 @@ export default function WrappedWizard() {
         </div>
         
         <h1 className="font-display text-2xl text-gray-900 mb-4">
-          You're all set, {name}!
+          You&apos;re all set, {name}!
         </h1>
         <p className="text-gray-500">
-          We'll send your Lookbook Wrapped to<br />
+          We&apos;ll send your Lookbook Wrapped to<br />
           <span className="text-gray-900 font-medium">{email}</span>
         </p>
       </div>

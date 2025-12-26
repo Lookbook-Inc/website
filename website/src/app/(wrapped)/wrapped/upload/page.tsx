@@ -360,7 +360,7 @@ export default function UploadPage() {
   };
 
   const handleUpload = async () => {
-    if (photos.length < 2) {
+    if (photos.length < 10) {
       setError('Please upload at least 10 photos');
       return;
     }
@@ -664,9 +664,9 @@ export default function UploadPage() {
 
             <button
               onClick={handleUpload}
-              disabled={photos.length < 2 || loading}
+              disabled={photos.length < 10 || loading}
               className={`w-full py-4 rounded-lg text-xl font-display transition-colors ${
-                photos.length >= 2 && !loading
+                photos.length >= 10 && !loading
                   ? 'bg-gray-900 text-white'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}

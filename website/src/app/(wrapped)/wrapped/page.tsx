@@ -135,6 +135,9 @@ export default function WrappedWizard() {
           Check your email
         </h1>
         <p className="text-gray-500 text-md mb-8">
+          It might be in your spam!
+        </p>
+        <p className="text-gray-500 text-md mb-8">
           We sent a 6-digit code to<br />
           <span className="text-gray-900 font-medium">{email}</span>
         </p>

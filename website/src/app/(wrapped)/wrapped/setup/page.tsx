@@ -69,11 +69,24 @@ export default function SetupPage() {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/wrapped');
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FFFAF4' }}>
       <div className="w-full max-w-md mx-auto bg-[#FFFAF4] min-h-screen">
         {step === 'name' ? (
           <div className="flex flex-col h-[100dvh] p-4">
+            <div className="px-6 pt-4">
+              <button
+                onClick={handleSignOut}
+                className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
+              >
+                Use different email?
+              </button>
+            </div>
             <div className="flex-1 flex flex-col justify-center px-6">
               <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
                 Welcome to Lookbook Wrapped.
@@ -112,6 +125,14 @@ export default function SetupPage() {
           </div>
         ) : (
           <div className="flex flex-col h-[100dvh] p-4">
+            <div className="px-6 pt-4">
+              <button
+                onClick={handleSignOut}
+                className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
+              >
+                Use different email?
+              </button>
+            </div>
             <div className="flex-1 flex flex-col justify-center px-6">
               <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
                 Which city are you based in?

@@ -204,6 +204,11 @@ export default function UploadPage() {
     closeCropModal();
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/wrapped');
+  };
+
   const handleUpload = async () => {
     if (photos.length < 2) {
       setError('Please upload at least 10 photos');
@@ -368,6 +373,16 @@ export default function UploadPage() {
               <span className="text-amber-800 text-xs font-medium">Mock Mode</span>
             </div>
           )}
+
+          {/* Sign out button */}
+          <div className="mb-6">
+            <button
+              onClick={handleSignOut}
+              className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
+            >
+              Use different email?
+            </button>
+          </div>
 
           <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
             Upload pics of you from this year!

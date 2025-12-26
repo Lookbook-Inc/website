@@ -17,6 +17,7 @@ export default function UploadPage() {
   // Photo state
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
+  const [resizedBlobs, setResizedBlobs] = useState<(Blob | null)[]>([]); // Store resized JPEGs for upload
 
   // Cropping state
   const [croppedPhotos, setCroppedPhotos] = useState<(Blob | null)[]>([]);
@@ -83,7 +84,7 @@ export default function UploadPage() {
 
 
   // Resize image for preview (reduces memory usage on mobile)
-  const resizeImageForPreview = async (file: File): Promise<{ url: string; originalSize: number; resizedSize: number }> => {
+  const resizeImageForPreview = async (file: File): Promise<{ url: string; blob: Blob; originalSize: number; resizedSize: number }> => {
     // Check if file is HEIC and convert to JPEG first
     const isHEIC = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
     let fileToProcess = file;
@@ -163,7 +164,7 @@ export default function UploadPage() {
                 const resizedKB = blob.size / 1024;
                 const savings = ((1 - blob.size / file.size) * 100).toFixed(0);
                 console.log(`[WRAPPED] ${file.name}: ${originalKB.toFixed(0)}KB → ${resizedKB.toFixed(0)}KB (${savings}% smaller)`);
-                resolve({ url, originalSize: file.size, resizedSize: blob.size });
+                resolve({ url, blob, originalSize: file.size, resizedSize: blob.size });
               } else {
                 reject(new Error('Failed to create blob'));
               }
@@ -192,42 +193,66 @@ export default function UploadPage() {
 
       if (filesToAdd.length === 0) return; // Already at limit
 
-      // Add only new photos
-      const newPhotos = [...photos, ...filesToAdd];
-      setPhotos(newPhotos);
-
       // Generate resized preview URLs for new photos (saves memory!)
       const results = await Promise.all(
         filesToAdd.map(async (file) => {
           try {
             return await resizeImageForPreview(file);
           } catch (err) {
-            console.error(`[WRAPPED] Failed to resize ${file.name}:`, err);
-            // Fallback to original if resize fails
-            return { url: URL.createObjectURL(file), originalSize: file.size, resizedSize: file.size };
+            console.error(`[WRAPPED] Failed to process ${file.name}:`, err);
+
+            // If it's a HEIC file that failed to convert, skip it
+            const isHEIC = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+            if (isHEIC) {
+              console.warn(`[WRAPPED] ⚠️ Skipping unsupported HEIC file: ${file.name}`);
+              return null;
+            }
+
+            // For non-HEIC files that fail, try using original as fallback
+            const blob = new Blob([file], { type: file.type });
+            return { url: URL.createObjectURL(blob), blob, originalSize: file.size, resizedSize: file.size };
           }
         })
       );
 
+      // Filter out failed HEIC files
+      const successfulResults = results.filter((r): r is NonNullable<typeof r> => r !== null);
+      const failedCount = results.length - successfulResults.length;
+
+      // Only add successfully processed files to photos array
+      const successfulFiles = filesToAdd.filter((_, index) => results[index] !== null);
+      const newPhotos = [...photos, ...successfulFiles];
+      setPhotos(newPhotos);
+
+      if (failedCount > 0) {
+        setError(`⚠️ ${failedCount} HEIC file(s) could not be processed and were skipped. For best results, convert photos to JPG/PNG`);
+      } else if (error) {
+        // Clear any previous errors if all photos processed successfully
+        setError(null);
+      }
+
       // Calculate totals
-      const totalOriginal = results.reduce((sum, r) => sum + r.originalSize, 0);
-      const totalResized = results.reduce((sum, r) => sum + r.resizedSize, 0);
-      const totalSavings = ((1 - totalResized / totalOriginal) * 100).toFixed(0);
+      const totalOriginal = successfulResults.reduce((sum, r) => sum + r.originalSize, 0);
+      const totalResized = successfulResults.reduce((sum, r) => sum + r.resizedSize, 0);
+      const totalSavings = totalOriginal > 0 ? ((1 - totalResized / totalOriginal) * 100).toFixed(0) : '0';
 
       console.log(`\n[WRAPPED] 📊 COMPRESSION SUMMARY:`);
       console.log(`[WRAPPED] Original total: ${(totalOriginal / 1048576).toFixed(2)} MB`);
       console.log(`[WRAPPED] Compressed total: ${(totalResized / 1048576).toFixed(2)} MB`);
       console.log(`[WRAPPED] Total savings: ${totalSavings}% smaller\n`);
 
-      const newUrls = results.map(r => r.url);
-      setPhotoPreviewUrls([...photoPreviewUrls, ...newUrls]);
+      const newUrls = successfulResults.map(r => r.url);
+      const newBlobs = successfulResults.map(r => r.blob);
 
-      // Initialize cropped photos array with nulls for new photos only
-      const newCroppedPhotos = [...croppedPhotos, ...new Array(filesToAdd.length).fill(null)];
+      setPhotoPreviewUrls([...photoPreviewUrls, ...newUrls]);
+      setResizedBlobs([...resizedBlobs, ...newBlobs]);
+
+      // Initialize cropped photos array with nulls for new successful photos
+      const newCroppedPhotos = [...croppedPhotos, ...new Array(successfulResults.length).fill(null)];
       setCroppedPhotos(newCroppedPhotos);
 
-      // Initialize crop selections array with undefined for new photos only
-      const newCropSelections = [...cropSelections, ...new Array(filesToAdd.length).fill(undefined)];
+      // Initialize crop selections array with undefined for new successful photos
+      const newCropSelections = [...cropSelections, ...new Array(successfulResults.length).fill(undefined)];
       setCropSelections(newCropSelections);
     } catch (err) {
       console.error('[WRAPPED] Error in handleFileSelect:', err);
@@ -239,6 +264,7 @@ export default function UploadPage() {
     URL.revokeObjectURL(photoPreviewUrls[index]);
     setPhotos(photos.filter((_, i) => i !== index));
     setPhotoPreviewUrls(photoPreviewUrls.filter((_, i) => i !== index));
+    setResizedBlobs(resizedBlobs.filter((_, i) => i !== index));
     setCroppedPhotos(croppedPhotos.filter((_, i) => i !== index));
     setCropSelections(cropSelections.filter((_, i) => i !== index));
   };
@@ -358,17 +384,18 @@ export default function UploadPage() {
 
         for (let i = 0; i < photos.length; i++) {
           const original = photos[i];
+          const resized = resizedBlobs[i];
           const cropped = croppedPhotos[i];
 
           console.log(`[WRAPPED] Photo ${i + 1}/${photos.length}:`);
           console.log(`  Original: ${original.name} (${(original.size / 1024).toFixed(1)} KB)`);
 
+          if (resized) {
+            console.log(`  Resized:  YES (${(resized.size / 1024).toFixed(1)} KB) - THIS WILL BE UPLOADED`);
+          }
+
           if (cropped) {
             console.log(`  Cropped:  YES (${(cropped.size / 1024).toFixed(1)} KB)`);
-            const debugUrl = URL.createObjectURL(cropped);
-            console.log(`  Preview:  ${debugUrl}`);
-          } else {
-            console.log(`  Cropped:  NO (will use original)`);
           }
 
           await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
@@ -376,7 +403,7 @@ export default function UploadPage() {
         }
 
         console.log('[WRAPPED] ===== UPLOAD COMPLETE =====');
-        console.log(`[WRAPPED] Summary: ${photos.length} total, ${croppedCount} cropped, ${photos.length - croppedCount} original`);
+        console.log(`[WRAPPED] Summary: ${photos.length} total, ${croppedCount} cropped`);
         router.push('/wrapped/processing');
         return;
       }
@@ -391,13 +418,21 @@ export default function UploadPage() {
 
       // Upload photos one by one
       for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i];
+        const originalFile = photos[i];
+        const resizedBlob = resizedBlobs[i];
         const croppedPhoto = croppedPhotos[i] || null;
-        console.log(`[WRAPPED] Uploading photo ${i + 1}/${photos.length}${croppedPhoto ? ' (cropped)' : ''}`);
+
+        // Use resized JPEG blob for upload (not original file)
+        // Convert Blob to File for upload
+        const photoToUpload = resizedBlob
+          ? new File([resizedBlob], originalFile.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' })
+          : originalFile;
+
+        console.log(`[WRAPPED] Uploading photo ${i + 1}/${photos.length}${croppedPhoto ? ' (cropped)' : ''} (${(photoToUpload.size / 1024).toFixed(0)}KB)`);
 
         try {
           await uploadPhoto(
-            photo,
+            photoToUpload,
             croppedPhoto,
             token,
             batchId!,

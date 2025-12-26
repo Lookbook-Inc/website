@@ -81,34 +81,158 @@ export default function UploadPage() {
     }
   }, []);
 
+
+  // Resize image for preview (reduces memory usage on mobile)
+  const resizeImageForPreview = async (file: File): Promise<{ url: string; originalSize: number; resizedSize: number }> => {
+    // Check if file is HEIC and convert to JPEG first
+    const isHEIC = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+    let fileToProcess = file;
+
+    if (isHEIC) {
+      try {
+        console.log(`[WRAPPED] Converting HEIC to JPEG: ${file.name}`);
+
+        // Dynamic import - only loads heic2any when needed (in browser)
+        const heic2any = (await import('heic2any')).default;
+
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: 'image/jpeg',
+          quality: 0.9
+        });
+        // heic2any can return Blob or Blob[], handle both
+        const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+        fileToProcess = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
+        console.log(`[WRAPPED] ✅ HEIC converted successfully`);
+      } catch (err) {
+        console.error(`[WRAPPED] Failed to convert HEIC ${file.name}:`, err);
+        throw new Error(`Failed to convert HEIC file ${file.name}`);
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      const img = document.createElement('img');
+      const reader = new FileReader();
+
+      reader.onerror = () => reject(new Error(`Failed to read ${fileToProcess.name}`));
+
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+
+      img.onerror = () => reject(new Error(`Failed to load image ${fileToProcess.name}`));
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_DIMENSION = 1920;
+
+          let width = img.width;
+          let height = img.height;
+
+          // Calculate new dimensions (maintain aspect ratio)
+          if (width > height) {
+            if (width > MAX_DIMENSION) {
+              height = (height * MAX_DIMENSION) / width;
+              width = MAX_DIMENSION;
+            }
+          } else {
+            if (height > MAX_DIMENSION) {
+              width = (width * MAX_DIMENSION) / height;
+              height = MAX_DIMENSION;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to blob with compression
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const url = URL.createObjectURL(blob);
+                const originalKB = file.size / 1024;
+                const resizedKB = blob.size / 1024;
+                const savings = ((1 - blob.size / file.size) * 100).toFixed(0);
+                console.log(`[WRAPPED] ${file.name}: ${originalKB.toFixed(0)}KB → ${resizedKB.toFixed(0)}KB (${savings}% smaller)`);
+                resolve({ url, originalSize: file.size, resizedSize: blob.size });
+              } else {
+                reject(new Error('Failed to create blob'));
+              }
+            },
+            'image/jpeg',
+            0.85
+          );
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      reader.readAsDataURL(fileToProcess);
+    });
+  };
+
   // --- Photo handlers ---
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
 
-    // Limit to 20 photos total
-    const newPhotos = [...photos, ...files].slice(0, 20);
-    setPhotos(newPhotos);
+      // Calculate how many new photos we can add
+      const availableSlots = 24 - photos.length;
+      const filesToAdd = files.slice(0, availableSlots);
 
-    // Generate preview URLs
-    const newUrls = newPhotos.map(file => URL.createObjectURL(file));
-    // Cleanup old URLs
-    photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
-    setPhotoPreviewUrls(newUrls);
+      if (filesToAdd.length === 0) return; // Already at limit
 
-    // Initialize cropped photos array with nulls for new photos
-    const newCroppedPhotos = [...croppedPhotos];
-    while (newCroppedPhotos.length < newPhotos.length) {
-      newCroppedPhotos.push(null);
+      // Add only new photos
+      const newPhotos = [...photos, ...filesToAdd];
+      setPhotos(newPhotos);
+
+      // Generate resized preview URLs for new photos (saves memory!)
+      const results = await Promise.all(
+        filesToAdd.map(async (file) => {
+          try {
+            return await resizeImageForPreview(file);
+          } catch (err) {
+            console.error(`[WRAPPED] Failed to resize ${file.name}:`, err);
+            // Fallback to original if resize fails
+            return { url: URL.createObjectURL(file), originalSize: file.size, resizedSize: file.size };
+          }
+        })
+      );
+
+      // Calculate totals
+      const totalOriginal = results.reduce((sum, r) => sum + r.originalSize, 0);
+      const totalResized = results.reduce((sum, r) => sum + r.resizedSize, 0);
+      const totalSavings = ((1 - totalResized / totalOriginal) * 100).toFixed(0);
+
+      console.log(`\n[WRAPPED] 📊 COMPRESSION SUMMARY:`);
+      console.log(`[WRAPPED] Original total: ${(totalOriginal / 1048576).toFixed(2)} MB`);
+      console.log(`[WRAPPED] Compressed total: ${(totalResized / 1048576).toFixed(2)} MB`);
+      console.log(`[WRAPPED] Total savings: ${totalSavings}% smaller\n`);
+
+      const newUrls = results.map(r => r.url);
+      setPhotoPreviewUrls([...photoPreviewUrls, ...newUrls]);
+
+      // Initialize cropped photos array with nulls for new photos only
+      const newCroppedPhotos = [...croppedPhotos, ...new Array(filesToAdd.length).fill(null)];
+      setCroppedPhotos(newCroppedPhotos);
+
+      // Initialize crop selections array with undefined for new photos only
+      const newCropSelections = [...cropSelections, ...new Array(filesToAdd.length).fill(undefined)];
+      setCropSelections(newCropSelections);
+    } catch (err) {
+      console.error('[WRAPPED] Error in handleFileSelect:', err);
+      setError('Failed to load photos. Try selecting fewer photos at once.');
     }
-    setCroppedPhotos(newCroppedPhotos.slice(0, newPhotos.length));
-
-    // Initialize crop selections array with undefined for new photos
-    const newCropSelections = [...cropSelections];
-    while (newCropSelections.length < newPhotos.length) {
-      newCropSelections.push(undefined);
-    }
-    setCropSelections(newCropSelections.slice(0, newPhotos.length));
   };
 
   const removePhoto = (index: number) => {

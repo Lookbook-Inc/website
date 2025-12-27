@@ -288,25 +288,32 @@ export const SummaryContent = ({
             {/* Capture Target - This stays at 100% scale for perfect capture */}
             <div
               ref={cardRef}
-              className="shrink-0 overflow-hidden relative"
+              className="shrink-0 relative"
               style={{
                 width: '360px',
                 height: '640px',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale',
               }}
             >
               {/* The actual card with its border and background */}
               <div
-                className="absolute inset-0 bg-[#F7F7F7] overflow-hidden shadow-2xl"
-                style={{
-                  borderRadius: '32px',
-                  border: '4px solid #000000',
-                  boxSizing: 'border-box'
-                }}
+                className="absolute inset-0 shadow-2xl rounded-[32px] isolation-isolate"
               >
-                {/* Card Inner Content */}
-                <div className="relative pt-4 pr-6 pb-6 pl-6 h-full flex flex-col justify-between overflow-hidden">
-                  
-                  {/* Top Header Section: Lookbook branding + Aesthetics */}
+                <div 
+                  className="absolute inset-0 bg-[#F7F7F7]"
+                  style={{
+                    borderRadius: '32px',
+                    border: '4px solid #000000',
+                    boxSizing: 'border-box',
+                    clipPath: 'inset(0 round 32px)',
+                    WebkitClipPath: 'inset(0 round 32px)'
+                  }}
+                >
+                  {/* Card Inner Content */}
+                  <div className="relative pt-4 pr-6 pb-6 pl-6 h-full flex flex-col justify-between">
+                    
+                    {/* Top Header Section: Lookbook branding + Aesthetics */}
                   <div className="flex justify-between items-start mb-0 relative z-20">
                     {/* Lookbook branding - Vertical but in a contained box */}
                     <div className="flex flex-col items-start pt-1 -ml-4">
@@ -430,15 +437,19 @@ export const SummaryContent = ({
 
                       {/* Main photo */}
                       <div 
-                        className="flex-1 relative"
-                        style={{ aspectRatio: '3/4',
+                        className="flex-1 relative isolation-isolate"
+                        style={{ 
+                          aspectRatio: '3/4',
                           marginTop: '-30px',
-                         }}
+                          boxShadow: '4px 4px 0px rgb(225, 219, 209), 0 4px 20px rgba(0,0,0,0.08)',
+                          borderRadius: '20px',
+                        }}
                       >
                         <div 
-                          className="absolute inset-0 bg-[#E8E4DE] rounded-[20px] overflow-hidden z-10"
+                          className="absolute inset-0 bg-[#E8E4DE] rounded-[20px] z-10"
                           style={{ 
-                            boxShadow: '4px 4px 0px rgb(225, 219, 209), 0 4px 20px rgba(0,0,0,0.08)',
+                            clipPath: 'inset(0 round 20px)',
+                            WebkitClipPath: 'inset(0 round 20px)'
                           }}
                         >
                           {signatureOutfit?.path ? (
@@ -446,6 +457,7 @@ export const SummaryContent = ({
                               src={signatureOutfit.path}
                               alt="Your signature look"
                               className="absolute inset-0 w-full h-full object-cover"
+                              style={{ borderRadius: '20px' }}
                             />
                           ) : (
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -521,26 +533,33 @@ export const SummaryContent = ({
                           CELEBRITY TWIN
                         </p>
                         <div 
-                          className="relative overflow-hidden mb-1 shadow-sm"
+                          className="relative mb-1 shadow-sm rounded-[20px] isolation-isolate"
                           style={{ 
                             aspectRatio: '1/1',
-                            backgroundColor: '#E0DCD6',
-                            borderRadius: '20px',
                           }}
                         >
-                          {results.top_celeb_match.celeb_portrait_url ? (
-                            <img
-                              src={results.top_celeb_match.celeb_portrait_url}
-                              alt={results.top_celeb_match.celeb_name}
-                              className="absolute inset-0 w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className="text-[10px] text-gray-400 uppercase">
-                                {results.top_celeb_match.celeb_name.charAt(0)}
-                              </span>
-                            </div>
-                          )}
+                          <div 
+                            className="absolute inset-0 bg-[#E0DCD6] rounded-[20px]"
+                            style={{ 
+                              clipPath: 'inset(0 round 20px)',
+                              WebkitClipPath: 'inset(0 round 20px)'
+                            }}
+                          >
+                            {results.top_celeb_match.celeb_portrait_url ? (
+                              <img
+                                src={results.top_celeb_match.celeb_portrait_url}
+                                alt={results.top_celeb_match.celeb_name}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                style={{ borderRadius: '20px' }}
+                              />
+                            ) : (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-[10px] text-gray-400 uppercase">
+                                  {results.top_celeb_match.celeb_name.charAt(0)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <p 
                           className="text-[9px] text-center uppercase tracking-wider font-medium"
@@ -559,26 +578,33 @@ export const SummaryContent = ({
                           STYLE DESTINATION
                         </p>
                         <div 
-                          className="relative overflow-hidden mb-1 shadow-sm"
+                          className="relative mb-1 shadow-sm rounded-[20px] isolation-isolate"
                           style={{ 
                             aspectRatio: '1/1',
-                            backgroundColor: '#E0DCD6',
-                            borderRadius: '20px',
                           }}
                         >
-                          {results.city_photo_url ? (
-                            <img
-                              src={results.city_photo_url}
-                              alt={results.city_vibe}
-                              className="absolute inset-0 w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className="text-[10px] text-gray-400 uppercase">
-                                {results.city_vibe?.charAt(0) || 'C'}
-                              </span>
-                            </div>
-                          )}
+                          <div 
+                            className="absolute inset-0 bg-[#E0DCD6] rounded-[20px]"
+                            style={{ 
+                              clipPath: 'inset(0 round 20px)',
+                              WebkitClipPath: 'inset(0 round 20px)'
+                            }}
+                          >
+                            {results.city_photo_url ? (
+                              <img
+                                src={results.city_photo_url}
+                                alt={results.city_vibe}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                style={{ borderRadius: '20px' }}
+                              />
+                            ) : (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-[10px] text-gray-400 uppercase">
+                                  {results.city_vibe?.charAt(0) || 'C'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <p 
                           className="text-[9px] text-center uppercase tracking-wider font-medium"
@@ -588,13 +614,13 @@ export const SummaryContent = ({
                         </p>
                       </div>
                     </div>
-
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
         {/* Action buttons - Absolute positioned to reveal after shrink */}
         <div 

@@ -380,25 +380,26 @@ export default function ResultsPage({ params }: Props) {
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
         <FavSidebar />
-        <div className="flex-1 flex flex-col justify-center pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">One piece anchored your outfits this year...</h3>
-          <p className="text-md text-gray-500 leading-snug mb-8 text-right">
-              This piece was a constant in your rotation - and for good reason.
-            </p>
-          <div className="flex flex-col rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm shrink-0 mb-4">
-            <div className="w-full aspect-[3/4] relative overflow-hidden">
-              <img
-                src={results.most_worn_item.path}
-                alt={results.most_worn_item.name}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            </div>
-            <div className="p-6 pt-4 text-center">
-              <p className="font-sans text-xs font-bold uppercase text-gray-900/50 tracking-[0.1em]">{displayName}</p>
-              {/* <p className="font-display text-sm text-gray-900/50 lowercase">{displayName}</p> */}
+        <div className="flex-1 flex flex-col pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="my-auto py-8">
+            <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">One piece anchored your outfits this year...</h3>
+            <p className="text-md text-gray-500 leading-snug mb-8 text-right">
+                This piece was a constant in your rotation - and for good reason.
+              </p>
+            <div className="flex flex-col rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm shrink-0 mb-4 ml-auto w-[30vh] min-w-[100px] max-w-full">
+              <div className="w-full aspect-square relative overflow-hidden">
+                <img
+                  src={results.most_worn_item.path}
+                  alt={results.most_worn_item.name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-4 text-center">
+                <p className="font-sans text-xs font-bold uppercase text-gray-900/50 tracking-[0.1em] break-words">{displayName}</p>
+                {/* <p className="font-display text-sm text-gray-900/50 lowercase">{displayName}</p> */}
+              </div>
             </div>
           </div>
-
         </div>
         
         <NavigationFooter onNext={onNext} />

@@ -152,6 +152,12 @@ export default function ResultsPage({ params }: Props) {
 
   const TOTAL_FLIP_PAGES = 10;
 
+  // Hardcoded page durations for the photo flip sequence
+  const getPageDuration = (index: number) => {
+    const durations = [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.3, 0.5, 0.7, 1.2];
+    return durations[index - 1] || 0.3;
+  };
+
   // Helper function to preload images
   const preloadImages = (imagePaths: (string | null | undefined)[]): Promise<void> => {
     // Filter out null/undefined paths
@@ -325,15 +331,12 @@ export default function ResultsPage({ params }: Props) {
   // Handle the photo flipping sequence
   useEffect(() => {
     if (step === 'photo-flip') {
-      // // Flip intro page first (index 0)
-      // setFlippedPages(prev => {
-      //   const next = [...prev];
-      //   next[0] = true;
-      //   return next;
-      // });
-
-      // Then flip each photo page with delays
+      let cumulativeDelay = 0;
+      
       for (let i = 1; i <= TOTAL_FLIP_PAGES; i++) {
+        const pageDuration = getPageDuration(i);
+        const currentDelay = cumulativeDelay;
+
         setTimeout(() => {
           setFlippedPages(prev => {
             const next = [...prev];
@@ -341,13 +344,17 @@ export default function ResultsPage({ params }: Props) {
             return next;
           });
           
-          // After last page flips, transition to fav-item
           if (i === TOTAL_FLIP_PAGES) {
+            // Wait for the final flip to actually finish before moving on
             setTimeout(() => {
               setStep('fav-item');
-            }, 600);
+            }, pageDuration * 1000 + 100);
           }
-        }, i * 300); // Slower flip for better visibility
+        }, currentDelay);
+        
+        // Increase the delay by the duration of the current flip
+        // to ensure the next one starts exactly when this one ends
+        cumulativeDelay += (pageDuration * 1000);
       }
     }
   }, [step, TOTAL_FLIP_PAGES]);
@@ -374,7 +381,7 @@ export default function ResultsPage({ params }: Props) {
     </div>
   );
 
-  const FavItemContent = ({ onNext }: { onNext?: () => void }) => {
+  const FavItemContent = ({ onNext, isActive = true }: { onNext?: () => void; isActive?: boolean }) => {
     const displayName = results.most_worn_item.name.split('(')[0].trim();
 
     return (
@@ -382,23 +389,61 @@ export default function ResultsPage({ params }: Props) {
         <FavSidebar />
         <div className="flex-1 flex flex-col pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="my-auto py-8">
-            <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">One piece anchored your outfits this year...</h3>
-            <p className="text-md text-gray-500 leading-snug mb-8 text-right">
+            <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">
+              One piece anchored your outfits this year...
+            </h3>
+            
+            <motion.div
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.8,
+                    delayChildren: 0.6
+                  }
+                }
+              }}
+            >
+              <motion.p 
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  visible: { 
+                    opacity: 1, 
+                    y: 0,
+                    transition: { duration: 1.2, ease: [0.4, 0, 0.2, 1] }
+                  }
+                }}
+                className="text-md text-gray-500 leading-snug mb-8 text-right"
+              >
                 This piece was a constant in your rotation - and for good reason.
-              </p>
-            <div className="flex flex-col rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm shrink-0 mb-4 ml-auto w-[30vh] min-w-[100px] max-w-full">
-              <div className="w-full aspect-square relative overflow-hidden">
-                <img
-                  src={results.most_worn_item.path}
-                  alt={results.most_worn_item.name}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4 text-center">
-                <p className="font-sans text-xs font-bold uppercase text-gray-900/50 tracking-[0.1em] break-words">{displayName}</p>
-                {/* <p className="font-display text-sm text-gray-900/50 lowercase">{displayName}</p> */}
-              </div>
-            </div>
+              </motion.p>
+              
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { 
+                    opacity: 1, 
+                    y: 0,
+                    transition: { duration: 1.2, ease: [0.4, 0, 0.2, 1] }
+                  }
+                }}
+                className="flex flex-col rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm shrink-0 mb-4 ml-auto w-[30vh] min-w-[100px] max-w-full"
+              >
+                <div className="w-full aspect-square relative overflow-hidden">
+                  <img
+                    src={results.most_worn_item.path}
+                    alt={results.most_worn_item.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-4 text-center">
+                  <p className="font-sans text-xs font-bold uppercase text-gray-900/50 tracking-[0.1em] break-words">{displayName}</p>
+                </div>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
         
@@ -1073,12 +1118,13 @@ export default function ResultsPage({ params }: Props) {
 
   const PhotoPageContent = ({ photo, pageNum }: { photo?: UploadedPhoto; pageNum: number }) => (
     <div className="flex flex-col h-full items-center justify-center p-8">
-      <div className="w-full aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 shadow-xl relative">
+      <div className="w-full aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 shadow-lg relative border border-black/5">
         {photo ? (
           <img
             src={photo.signed_url}
             alt={`Uploaded photo ${pageNum}`}
             className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-[#FFFAF4] border-2 border-dashed border-gray-200">
@@ -2394,31 +2440,43 @@ export default function ResultsPage({ params }: Props) {
   };
 
   // Photo flipping sequence (multiple pages at once)
-  const renderPhotoFlipSequence = () => (
-    <FlipContainer>
-      {/* Base layer: Fav Item content (revealed as last photo flips) */}
-      <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-        <FavItemContent onNext={favItemFlip.flip} />
-      </div>
+  const renderPhotoFlipSequence = () => {
+    // Find the current active page (first one not yet flipped)
+    const firstUnflippedIndex = flippedPages.findIndex((flipped, i) => i > 0 && !flipped);
+    const activeIndex = firstUnflippedIndex === -1 ? TOTAL_FLIP_PAGES : firstUnflippedIndex;
 
-      {/* Photo pages - Page 1 on top, Page 10 at bottom */}
-      {Array.from({ length: TOTAL_FLIP_PAGES }, (_, i) => {
-        const pageNum = i + 1;
-        const zIndex = (TOTAL_FLIP_PAGES - i) * 10;
-        const photo = results.all_uploaded_photos[i];
+    return (
+      <FlipContainer>
+        {/* Base layer: Fav Item content (revealed as last photo flips) */}
+        <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+          <FavItemContent onNext={favItemFlip.flip} isActive={firstUnflippedIndex === -1} />
+        </div>
 
-        return (
-          <FlipPage
-            key={pageNum}
-            isFlipped={flippedPages[pageNum]}
-            zIndex={zIndex}
-          >
-            <PhotoPageContent photo={photo} pageNum={pageNum} />
-          </FlipPage>
-        );
-      })}
-    </FlipContainer>
-  );
+        {/* Photo pages - Page 1 on top, Page 10 at bottom */}
+        {Array.from({ length: TOTAL_FLIP_PAGES }, (_, i) => {
+          const pageNum = i + 1;
+          
+          // Only render current, next, and previous pages for performance
+          const isVisible = pageNum >= activeIndex - 1 && pageNum <= activeIndex + 1;
+          if (!isVisible) return null;
+
+          const zIndex = (TOTAL_FLIP_PAGES - i) * 10;
+          const photo = results.all_uploaded_photos[i];
+
+          return (
+            <FlipPage
+              key={pageNum}
+              isFlipped={flippedPages[pageNum]}
+              zIndex={zIndex}
+              duration={getPageDuration(pageNum)}
+            >
+              <PhotoPageContent photo={photo} pageNum={pageNum} />
+            </FlipPage>
+          );
+        })}
+      </FlipContainer>
+    );
+  };
 
   // Show loading state
   if (loading) {
@@ -2521,7 +2579,7 @@ export default function ResultsPage({ params }: Props) {
               />
             </div>
             <FlipPage key="fav-item" isFlipped={favItemFlip.isFlipped} zIndex={10}>
-              <FavItemContent onNext={favItemFlip.flip} />
+              <FavItemContent onNext={favItemFlip.flip} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );

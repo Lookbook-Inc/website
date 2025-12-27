@@ -26,6 +26,8 @@ export const SummaryContent = ({
   const [heroScale, setHeroScale] = useState(1);
   const [isSettled, setIsSettled] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [preCapturedDataUrl, setPreCapturedDataUrl] = useState<string | null>(null);
+  const [isImageSwapped, setIsImageSwapped] = useState(false);
   const [shareSupported] = useState(() => 
     typeof navigator !== 'undefined' && !!navigator.share && !!navigator.canShare
   );
@@ -68,14 +70,39 @@ export const SummaryContent = ({
   // Settlement timer triggers after the flip finishes
   useEffect(() => {
     if (isActive) {
-      const timer = setTimeout(() => {
+      // Timer to start the "shrink" animation
+      const settlementTimer = setTimeout(() => {
         setIsSettled(true);
-      }, 3000); // 3.5 seconds of "Hero" view before shrinking
-      return () => clearTimeout(timer);
+      }, 3000); // 3 seconds of "Hero" view before shrinking
+
+      // Timer to swap DOM for Image (after animation finishes: 3s + 1.8s)
+      const swapTimer = setTimeout(() => {
+        setIsImageSwapped(true);
+      }, 4800);
+
+      // Pre-capture the card in the background so share/save is instant
+      const captureTimer = setTimeout(async () => {
+        const url = await captureCard();
+        setPreCapturedDataUrl(url);
+      }, 1000); // Capture after 1s while still in "Hero" view
+
+      return () => {
+        clearTimeout(settlementTimer);
+        clearTimeout(swapTimer);
+        clearTimeout(captureTimer);
+      };
     } else {
       setIsSettled(false);
+      setIsImageSwapped(false);
+      setPreCapturedDataUrl(null);
     }
-  }, [isActive]);
+  }, [isActive, selectedOutfitIndex]);
+
+  // Clear the pre-captured image if the outfit changes to allow re-capture
+  useEffect(() => {
+    setPreCapturedDataUrl(null);
+    setIsImageSwapped(false);
+  }, [selectedOutfitIndex]);
 
   // Determine the current scale based on state
   const currentDisplayScale = !isActive || !isSettled ? heroScale : scale;
@@ -111,7 +138,7 @@ export const SummaryContent = ({
   const handleDownload = async () => {
     setIsProcessing(true);
     try {
-      const dataUrl = await captureCard();
+      const dataUrl = preCapturedDataUrl || await captureCard();
       if (!dataUrl) {
         alert('Failed to generate image. Please try again.');
         return;
@@ -182,15 +209,21 @@ export const SummaryContent = ({
   const handleShare = async () => {
     setIsProcessing(true);
     try {
-      const dataUrl = await captureCard();
+      const dataUrl = preCapturedDataUrl || await captureCard();
       if (!dataUrl) {
         alert('Failed to generate image. Please try again.');
         return;
       }
 
-      // Convert data URL to blob for sharing
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
+      // Convert data URL to blob for sharing - sync conversion to keep gesture alive
+      const byteString = atob(dataUrl.split(',')[1]);
+      const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
       
       const file = new File([blob], `lookbook-${results.userName.toLowerCase()}-2025.png`, { 
         type: 'image/png' 
@@ -277,7 +310,7 @@ export const SummaryContent = ({
           {/* Scaling Wrapper - This applies the visual scale and entry animation */}
           <div
             style={{
-              transform: `scale(${currentDisplayScale}) translateY(${isSettled ? -40 : 0}px)`,
+              transform: `scale(${currentDisplayScale}) translateY(${isSettled ? -60 : 0}px)`,
               opacity: isActive ? 1 : 0,
               transformOrigin: 'center center',
               transition: isActive 
@@ -296,346 +329,363 @@ export const SummaryContent = ({
                 MozOsxFontSmoothing: 'grayscale',
               }}
             >
-              {/* The actual card with its border and background */}
-              <div
-                className="absolute inset-0 shadow-2xl rounded-[32px] isolation-isolate"
-              >
-                <div 
-                  className="absolute inset-0 bg-[#F7F7F7]"
-                  style={{
+              {preCapturedDataUrl && isImageSwapped ? (
+                /* Render the high-quality captured image instead of complex DOM */
+                <img 
+                  src={preCapturedDataUrl} 
+                  alt={`${results.userName}'s Lookbook Card`}
+                  className="w-full h-full rounded-[32px] shadow-2xl"
+                  style={{ 
+                    display: 'block',
                     borderRadius: '32px',
-                    border: '4px solid #000000',
-                    boxSizing: 'border-box',
-                    clipPath: 'inset(0 round 32px)',
-                    WebkitClipPath: 'inset(0 round 32px)'
+                    imageRendering: 'auto'
                   }}
+                />
+              ) : (
+                /* The actual card with its border and background (used for capture) */
+                <div
+                  className="absolute inset-0 shadow-2xl rounded-[32px] isolation-isolate"
                 >
-                  {/* Card Inner Content */}
-                  <div className="relative pt-4 pr-6 pb-6 pl-6 h-full flex flex-col justify-between">
-                    
-                    {/* Top Header Section: Lookbook branding + Aesthetics */}
-                  <div className="flex justify-between items-start mb-0 relative z-20">
-                    {/* Lookbook branding - Vertical but in a contained box */}
-                    <div className="flex flex-col items-start pt-1 -ml-4">
-                      <div 
-                        className="relative"
-                        style={{ 
-                          height: '140px', 
-                          width: '40px',
-                        }}
-                      >
-                        <span
-                          className="font-display text-3xl tracking-tight leading-none block absolute top-0 left-0 origin-top-left"
-                          style={{
-                            fontWeight: 400,
-                            letterSpacing: '-0.05em',
-                            transform: 'rotate(90deg) translateY(-100%)',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          <span style={{ color: '#000000' }}>Look</span><span style={{ color: '#D1BB99' }}>book</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Aesthetics Header */}
-                    <div className="flex-1 flex flex-col items-end">
-                      <p
-                        className="text-[12px] uppercase tracking-wider mb-1 text-right"
-                        style={{ color: '#A5A5A5', fontWeight: 800 }}
-                      >
-                        {results.userName.toUpperCase()}&apos;S TOP AESTHETICS
-                      </p>
-
-                      {/* Aesthetics with highlight bars */}
-                      <div className="flex flex-col items-end gap-0.5">
-                        {sortedTopStyles.map((style, i) => (
-                          <div
-                            key={i}
-                            className="relative flex items-center justify-end"
-                          >
-                            {/* Background bar - top bar is longest */}
-                            <div 
-                              className="absolute right-0 h-[10px]" 
-                              style={{ 
-                                backgroundColor: i === 0 ? 'rgba(209, 187, 153, 0.4)' : i === 1 ? 'rgba(209, 187, 153, 0.3)' : 'rgba(209, 187, 153, 0.2)',
-                                width: i === 0 ? '180px' : i === 1 ? '140px' : '110px',
-                                transform: 'translateY(8px)',
-                                zIndex: 0
-                              }} 
-                            />
-                            <span
-                              className="font-display text-2xl lowercase relative z-10"
-                              style={{
-                                fontWeight: 400,
-                                color: '#000000',
-                                lineHeight: '1.05'
-                              }}
-                            >
-                              {style.style_name.toLowerCase()}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Main content area - No longer restricted by the sidebar margin */}
-                  <div className="flex-1 flex flex-col justify-between">
-                    {/* Main photo with side info */}
-                    <div className="flex gap-3 mb-2">
-                      {/* Left side info panels */}
-                      <div className="flex flex-col justify-center gap-4 py-1 shrink-0" style={{ width: '90px' }}>
-                        {/* Top Decade */}
-                        <div className="text-right">
-                          <p 
-                            className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
-                            style={{ color: '#9A9A9A' }}
-                          >
-                            NOSTALGIC FOR
-                          </p>
-                          <p 
-                            className="text-[12px] font-medium leading-tight"
-                            style={{ color: '#3D3D3D' }}
-                          >
-                            {results.top_decade}
-                          </p>
-                        </div>
-
-                        {/* Top Item */}
-                        <div className="text-right">
-                          <p 
-                            className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
-                            style={{ color: '#9A9A9A' }}
-                          >
-                            WARDROBE MVP
-                          </p>
-                          <p 
-                            className="text-[12px] font-medium leading-tight"
-                            style={{ color: '#3D3D3D' }}
-                          >
-                            {topItemName}
-                          </p>
-                        </div>
-
-                        {/* Top Color */}
-                        <div className="text-right">
-                          <p
-                            className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
-                            style={{ color: '#9A9A9A' }}
-                          >
-                            FAVORITE COLOR
-                          </p>
-                          <p 
-                            className="text-[12px] font-medium leading-tight"
-                            style={{ color: '#3D3D3D' }}
-                          >
-                            {topColorGroup}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Main photo */}
-                      <div 
-                        className="flex-1 relative isolation-isolate"
-                        style={{ 
-                          aspectRatio: '3/4',
-                          marginTop: '-30px',
-                          boxShadow: '4px 4px 0px rgb(225, 219, 209), 0 4px 20px rgba(0,0,0,0.08)',
-                          borderRadius: '20px',
-                        }}
-                      >
+                  <div 
+                    className="absolute inset-0 bg-[#F7F7F7]"
+                    style={{
+                      borderRadius: '32px',
+                      border: '4px solid #000000',
+                      boxSizing: 'border-box',
+                      clipPath: 'inset(0 round 32px)',
+                      WebkitClipPath: 'inset(0 round 32px)'
+                    }}
+                  >
+                    {/* Card Inner Content */}
+                    <div className="relative pt-4 pr-6 pb-6 pl-6 h-full flex flex-col justify-between">
+                      
+                      {/* Top Header Section: Lookbook branding + Aesthetics */}
+                    <div className="flex justify-between items-start mb-0 relative z-20">
+                      {/* Lookbook branding - Vertical but in a contained box */}
+                      <div className="flex flex-col items-start pt-1 -ml-4">
                         <div 
-                          className="absolute inset-0 bg-[#E8E4DE] rounded-[20px] z-10"
+                          className="relative"
                           style={{ 
-                            clipPath: 'inset(0 round 20px)',
-                            WebkitClipPath: 'inset(0 round 20px)'
+                            height: '140px', 
+                            width: '40px',
                           }}
                         >
-                          {signatureOutfit?.path ? (
-                            <img
-                              src={signatureOutfit.path}
-                              alt="Your signature look"
-                              className="absolute inset-0 w-full h-full object-cover"
-                              style={{ borderRadius: '20px' }}
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className="text-xs text-gray-400 uppercase tracking-wider">
-                                Your Look
+                          <span
+                            className="font-display text-3xl tracking-tight leading-none block absolute top-0 left-0 origin-top-left"
+                            style={{
+                              fontWeight: 400,
+                              letterSpacing: '-0.05em',
+                              transform: 'rotate(90deg) translateY(-100%)',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            <span style={{ color: '#000000' }}>Look</span><span style={{ color: '#D1BB99' }}>book</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Aesthetics Header */}
+                      <div className="flex-1 flex flex-col items-end">
+                        <p
+                          className="text-[12px] uppercase tracking-wider mb-1 text-right"
+                          style={{ color: '#A5A5A5', fontWeight: 800 }}
+                        >
+                          {results.userName.toUpperCase()}&apos;S TOP AESTHETICS
+                        </p>
+
+                        {/* Aesthetics with highlight bars */}
+                        <div className="flex flex-col items-end gap-0.5">
+                          {sortedTopStyles.map((style, i) => (
+                            <div
+                              key={i}
+                              className="relative flex items-center justify-end"
+                            >
+                              {/* Background bar - top bar is longest */}
+                              <div 
+                                className="absolute right-0 h-[10px]" 
+                                style={{ 
+                                  backgroundColor: i === 0 ? 'rgba(209, 187, 153, 0.4)' : i === 1 ? 'rgba(209, 187, 153, 0.3)' : 'rgba(209, 187, 153, 0.2)',
+                                  width: i === 0 ? '180px' : i === 1 ? '140px' : '110px',
+                                  transform: 'translateY(8px)',
+                                  zIndex: 0
+                                }} 
+                              />
+                              <span
+                                className="font-display text-2xl lowercase relative z-10"
+                                style={{
+                                  fontWeight: 400,
+                                  color: '#000000',
+                                  lineHeight: '1.05'
+                                }}
+                              >
+                                {style.style_name.toLowerCase()}
                               </span>
                             </div>
-                          )}
+                          ))}
                         </div>
                       </div>
                     </div>
 
-                    {/* Color dots row - 4 shades, separator (pill), 4 colors */}
-                    <div className="flex justify-center items-center gap-1 mt-1 mb-1">
-                      {leftDots.map((hex, i) => (
-                        <div
-                          key={`left-${i}`}
-                          className="w-3 h-2.5 rounded-full"
-                          style={{
-                            backgroundColor: hex,
-                            border: getBrightness(hex) > 230 ? `0.5px solid ${getContrastColor(hex)}` : 'none',
-                          }}
-                        />
-                      ))}
-                      
-                      {/* Top Color Pill as separator */}
-                      <div 
-                        className="px-2 h-3.5 rounded-full shadow-sm flex items-center justify-center border border-black/5 mx-0.5"
-                        style={{ backgroundColor: topColorHex }}
-                      >
-                        <span 
-                          className="text-[7px] font-bold uppercase tracking-wider"
-                          style={{ color: contrastColor }}
-                        >
-                          {topShadeName}
-                        </span>
-                      </div>
+                    {/* Main content area - No longer restricted by the sidebar margin */}
+                    <div className="flex-1 flex flex-col justify-between">
+                      {/* Main photo with side info */}
+                      <div className="flex gap-3 mb-2">
+                        {/* Left side info panels */}
+                        <div className="flex flex-col justify-center gap-4 py-1 shrink-0" style={{ width: '90px' }}>
+                          {/* Top Decade */}
+                          <div className="text-right">
+                            <p 
+                              className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
+                              style={{ color: '#9A9A9A' }}
+                            >
+                              NOSTALGIC FOR
+                            </p>
+                            <p 
+                              className="text-[12px] font-medium leading-tight"
+                              style={{ color: '#3D3D3D' }}
+                            >
+                              {results.top_decade}
+                            </p>
+                          </div>
 
-                      {rightDots.map((hex, i) => (
-                        <div
-                          key={`right-${i}`}
-                          className="w-3 h-2.5 rounded-full"
-                          style={{
-                            backgroundColor: hex,
-                            border: getBrightness(hex) > 230 ? `0.5px solid ${getContrastColor(hex)}` : 'none',
-                          }}
-                        />
-                      ))}
-                    </div>
+                          {/* Top Item */}
+                          <div className="text-right">
+                            <p 
+                              className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
+                              style={{ color: '#9A9A9A' }}
+                            >
+                              WARDROBE MVP
+                            </p>
+                            <p 
+                              className="text-[12px] font-medium leading-tight"
+                              style={{ color: '#3D3D3D' }}
+                            >
+                              {topItemName}
+                            </p>
+                          </div>
 
-                    {/* Color Aura name - script/display font */}
-                    <div className="text-center mb-3">
-                      <p
-                        className="font-display text-2xl italic"
-                        style={{
-                          color: '#000000',
-                          fontWeight: 400,
-                          lineHeight: '0.9',
-                        }}
-                      >
-                        {results.color_aura}
-                      </p>
-                    </div>
+                          {/* Top Color */}
+                          <div className="text-right">
+                            <p
+                              className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
+                              style={{ color: '#9A9A9A' }}
+                            >
+                              FAVORITE COLOR
+                            </p>
+                            <p 
+                              className="text-[12px] font-medium leading-tight"
+                              style={{ color: '#3D3D3D' }}
+                            >
+                              {topColorGroup}
+                            </p>
+                          </div>
+                        </div>
 
-                    {/* Bottom section - Celebrity Twin & Style Destination */}
-                    <div className="flex gap-4 px-6">
-                      {/* Celebrity Twin */}
-                      <div className="flex-1">
-                        <p 
-                          className="text-[9px] font-bold uppercase tracking-wider mb-1 text-center"
-                          style={{ color: '#9A9A9A' }}
-                        >
-                          CELEBRITY TWIN
-                        </p>
+                        {/* Main photo */}
                         <div 
-                          className="relative mb-1 shadow-sm rounded-[20px] isolation-isolate"
+                          className="flex-1 relative isolation-isolate"
                           style={{ 
-                            aspectRatio: '1/1',
+                            aspectRatio: '3/4',
+                            marginTop: '-30px',
+                            boxShadow: '4px 4px 0px rgb(225, 219, 209), 0 4px 20px rgba(0,0,0,0.08)',
+                            borderRadius: '20px',
                           }}
                         >
                           <div 
-                            className="absolute inset-0 bg-[#E0DCD6] rounded-[20px]"
+                            className="absolute inset-0 bg-[#E8E4DE] rounded-[20px] z-10"
                             style={{ 
                               clipPath: 'inset(0 round 20px)',
                               WebkitClipPath: 'inset(0 round 20px)'
                             }}
                           >
-                            {results.top_celeb_match.celeb_portrait_url ? (
+                            {signatureOutfit?.path ? (
                               <img
-                                src={results.top_celeb_match.celeb_portrait_url}
-                                alt={results.top_celeb_match.celeb_name}
+                                src={signatureOutfit.path}
+                                alt="Your signature look"
                                 className="absolute inset-0 w-full h-full object-cover"
                                 style={{ borderRadius: '20px' }}
                               />
                             ) : (
                               <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-[10px] text-gray-400 uppercase">
-                                  {results.top_celeb_match.celeb_name.charAt(0)}
+                                <span className="text-xs text-gray-400 uppercase tracking-wider">
+                                  Your Look
                                 </span>
                               </div>
                             )}
                           </div>
                         </div>
-                        <p 
-                          className="text-[9px] text-center uppercase tracking-wider font-medium"
-                          style={{ color: '#3D3D3D' }}
+                      </div>
+
+                      {/* Color dots row - 4 shades, separator (pill), 4 colors */}
+                      <div className="flex justify-center items-center gap-1 mt-1 mb-1">
+                        {leftDots.map((hex, i) => (
+                          <div
+                            key={`left-${i}`}
+                            className="w-3 h-2.5 rounded-full"
+                            style={{
+                              backgroundColor: hex,
+                              border: getBrightness(hex) > 230 ? '0.5px solid rgba(0,0,0,0.1)' : 'none',
+                            }}
+                          />
+                        ))}
+                        
+                        {/* Top Color Pill as separator */}
+                        <div 
+                          className="px-2 h-3.5 rounded-full shadow-sm flex items-center justify-center border border-black/5 mx-0.5"
+                          style={{ backgroundColor: topColorHex }}
                         >
-                          {results.top_celeb_match.celeb_name.toUpperCase()}
+                          <span 
+                            className="text-[7px] font-bold uppercase tracking-wider"
+                            style={{ color: contrastColor }}
+                          >
+                            {topShadeName}
+                          </span>
+                        </div>
+
+                        {rightDots.map((hex, i) => (
+                          <div
+                            key={`right-${i}`}
+                            className="w-3 h-2.5 rounded-full"
+                            style={{
+                              backgroundColor: hex,
+                              border: getBrightness(hex) > 230 ? '0.5px solid rgba(0,0,0,0.1)' : 'none',
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Color Aura name - script/display font */}
+                      <div className="text-center mb-3">
+                        <p
+                          className="font-display text-2xl italic"
+                          style={{
+                            color: '#000000',
+                            fontWeight: 400,
+                            lineHeight: '0.9',
+                          }}
+                        >
+                          {results.color_aura}
                         </p>
                       </div>
 
-                      {/* Style Destination */}
-                      <div className="flex-1">
-                        <p 
-                          className="text-[9px] font-bold uppercase tracking-wider mb-1 text-center"
-                          style={{ color: '#9A9A9A' }}
-                        >
-                          STYLE DESTINATION
-                        </p>
-                        <div 
-                          className="relative mb-1 shadow-sm rounded-[20px] isolation-isolate"
-                          style={{ 
-                            aspectRatio: '1/1',
-                          }}
-                        >
+                      {/* Bottom section - Celebrity Twin & Style Destination */}
+                      <div className="flex gap-4 px-6">
+                        {/* Celebrity Twin */}
+                        <div className="flex-1">
+                          <p 
+                            className="text-[9px] font-bold uppercase tracking-wider mb-1 text-center"
+                            style={{ color: '#9A9A9A' }}
+                          >
+                            CELEBRITY TWIN
+                          </p>
                           <div 
-                            className="absolute inset-0 bg-[#E0DCD6] rounded-[20px]"
+                            className="relative mb-1 shadow-sm rounded-[20px] isolation-isolate"
                             style={{ 
-                              clipPath: 'inset(0 round 20px)',
-                              WebkitClipPath: 'inset(0 round 20px)'
+                              aspectRatio: '1/1',
                             }}
                           >
-                            {results.city_photo_url ? (
-                              <img
-                                src={results.city_photo_url}
-                                alt={results.city_vibe}
-                                className="absolute inset-0 w-full h-full object-cover"
-                                style={{ borderRadius: '20px' }}
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-[10px] text-gray-400 uppercase">
-                                  {results.city_vibe?.charAt(0) || 'C'}
-                                </span>
-                              </div>
-                            )}
+                            <div 
+                              className="absolute inset-0 bg-[#E0DCD6] rounded-[20px]"
+                              style={{ 
+                                clipPath: 'inset(0 round 20px)',
+                                WebkitClipPath: 'inset(0 round 20px)'
+                              }}
+                            >
+                              {results.top_celeb_match.celeb_portrait_url ? (
+                                <img
+                                  src={results.top_celeb_match.celeb_portrait_url}
+                                  alt={results.top_celeb_match.celeb_name}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                  style={{ borderRadius: '20px' }}
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className="text-[10px] text-gray-400 uppercase">
+                                    {results.top_celeb_match.celeb_name.charAt(0)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
+                          <p 
+                            className="text-[9px] text-center uppercase tracking-wider font-medium"
+                            style={{ color: '#3D3D3D' }}
+                          >
+                            {results.top_celeb_match.celeb_name.toUpperCase()}
+                          </p>
                         </div>
-                        <p 
-                          className="text-[9px] text-center uppercase tracking-wider font-medium"
-                          style={{ color: '#3D3D3D' }}
-                        >
-                          {(results.city_vibe || 'Your City').toUpperCase()}
-                        </p>
+
+                        {/* Style Destination */}
+                        <div className="flex-1">
+                          <p 
+                            className="text-[9px] font-bold uppercase tracking-wider mb-1 text-center"
+                            style={{ color: '#9A9A9A' }}
+                          >
+                            STYLE DESTINATION
+                          </p>
+                          <div 
+                            className="relative mb-1 shadow-sm rounded-[20px] isolation-isolate"
+                            style={{ 
+                              aspectRatio: '1/1',
+                            }}
+                          >
+                            <div 
+                              className="absolute inset-0 bg-[#E0DCD6] rounded-[20px]"
+                              style={{ 
+                                clipPath: 'inset(0 round 20px)',
+                                WebkitClipPath: 'inset(0 round 20px)'
+                              }}
+                            >
+                              {results.city_photo_url ? (
+                                <img
+                                  src={results.city_photo_url}
+                                  alt={results.city_vibe}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                  style={{ borderRadius: '20px' }}
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className="text-[10px] text-gray-400 uppercase">
+                                    {results.city_vibe?.charAt(0) || 'C'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <p 
+                            className="text-[9px] text-center uppercase tracking-wider font-medium"
+                            style={{ color: '#3D3D3D' }}
+                          >
+                            {(results.city_vibe || 'Your City').toUpperCase()}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
 
         {/* Action buttons - Absolute positioned to reveal after shrink */}
         <div 
-          className="absolute bottom-6 flex gap-3 w-full max-w-[320px] px-4 z-30"
+          className="absolute bottom-6 flex flex-col items-center gap-2 w-full max-w-[320px] px-4 z-30"
           style={{ 
             opacity: (isActive && isSettled) ? 1 : 0,
             transform: `translateY(${(isActive && isSettled) ? 0 : 20}px)`,
-            transition: 'opacity 0.8s ease-out 0.8s, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s',
-            pointerEvents: (isActive && isSettled) ? 'auto' : 'none'
+            transition: 'opacity 0.8s ease-out, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+            pointerEvents: isActive ? 'auto' : 'none'
           }}
         >
+          <p className="text-[10px] text-gray-500 uppercase tracking-[0.15em] font-bold animate-pulse">
+            Press and hold image to save
+          </p>
           <button 
-            onClick={handleDownload}
+            onClick={handleShare}
             disabled={isProcessing}
-            className="flex-1 bg-gray-900 text-white py-4 rounded-xl font-medium text-xs shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full bg-gray-900 text-white py-4 rounded-xl font-medium text-xs shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
           >
             {isProcessing ? (
               <>
@@ -648,21 +698,11 @@ export const SummaryContent = ({
             ) : (
               <>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                 </svg>
-                Save
+                {shareSupported ? 'Share Result' : 'Copy Link'}
               </>
             )}
-          </button>
-          <button 
-            onClick={handleShare}
-            disabled={isProcessing}
-            className="flex-1 border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-medium text-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            {shareSupported ? 'Share' : 'Link'}
           </button>
         </div>
       </div>

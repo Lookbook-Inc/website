@@ -1,14 +1,17 @@
-import type { Metadata } from "next";
+'use client'
 
-export const metadata: Metadata = {
-  title: "Lookbook Wrapped - Your Fashion Year in Review",
-  description: "Discover your unique fashion journey with Lookbook Wrapped.",
-};
+import { PHProvider } from "@/providers/posthog-provider"
+import { PostHogPageView } from "@/providers/posthog-pageview"
 
 export default function WrappedLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <>{children}</>;
+  return (
+    <PHProvider>
+      <PostHogPageView />
+      {children}
+    </PHProvider>
+  );
 }

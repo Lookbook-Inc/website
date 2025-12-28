@@ -6,14 +6,15 @@ import { useFlip } from '@/hooks/useFlip';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getInsightsByShareCode } from '@/lib/api/wrapped';
 import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
-import { 
-  UploadedPhoto, 
+import {
+  UploadedPhoto,
   WrappedResults,
-  Step 
+  Step
 } from '@/types/wrapped-frontend';
 import { NavigationFooter } from './_components/NavigationFooter';
 import { SummaryContent } from './_components/SummaryContent';
 import { TopOutfitsSelectionContent } from './_components/TopOutfitsSelectionContent';
+import { usePostHog } from 'posthog-js/react';
 
 // --- Types ---
 // Moved to @/types/wrapped-frontend
@@ -143,12 +144,14 @@ const FlipContainer = ({ children }: { children: ReactNode }) => (
 );
 
 export default function ResultsPage({ params }: Props) {
+  const posthog = usePostHog();
   const [step, setStep] = useState<Step>('welcome');
   const [results, setResults] = useState<WrappedResults>(mockResults); // Start with mock data to avoid null checks
   const [selectedOutfitIndex, setSelectedOutfitIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [colorsView, setColorsView] = useState<'colors' | 'shades'>('colors');
+  const [shareCode, setShareCode] = useState<string>('');
 
   const TOTAL_FLIP_PAGES = 10;
 
@@ -178,6 +181,15 @@ export default function ResultsPage({ params }: Props) {
         // Get the share code from params
         const resolvedParams = await params;
         const code = resolvedParams.code;
+        setShareCode(code);
+
+        // Track results page viewed
+        if (posthog) {
+          posthog.capture('wrapped_results_viewed', {
+            share_code: code,
+            is_test_mode: code.toUpperCase() === TEST_CODE
+          });
+        }
 
         // Check for test code - skip backend and use mock data
         if (code.toUpperCase() === TEST_CODE) {
@@ -219,6 +231,16 @@ export default function ResultsPage({ params }: Props) {
         setResults(transformed as WrappedResults);
         setLoading(false);
 
+        // Track results loaded successfully
+        if (posthog) {
+          posthog.capture('wrapped_results_loaded', {
+            share_code: code,
+            total_outfits: transformed.total_outfits_analyzed,
+            primary_style: transformed.primary_style,
+            total_clothing_items: transformed.total_clothing_items
+          });
+        }
+
         // Phase 2: Preload remaining images in background (non-blocking)
         const remainingImages: (string | null | undefined)[] = [
           // Remaining uploaded photos (if more than 10)
@@ -248,6 +270,31 @@ export default function ResultsPage({ params }: Props) {
 
     fetchInsights();
   }, [params]);
+
+  // Track step changes and page flips
+  const [previousStep, setPreviousStep] = useState<Step | null>(null);
+
+  useEffect(() => {
+    if (posthog && step && !loading && shareCode) {
+      // Track page view with step name in event
+      const stepName = step.replace(/-/g, '_'); // Convert kebab-case to snake_case
+      posthog.capture(`wrapped_page_${stepName}_viewed`, {
+        share_code: shareCode,
+        from_step: previousStep || 'initial',
+        step: step
+      });
+
+      // Track completion when reaching summary
+      if (step === 'summary') {
+        posthog.capture('wrapped_results_completed', {
+          share_code: shareCode
+        });
+      }
+
+      // Update previous step for next flip
+      setPreviousStep(step);
+    }
+  }, [step, loading, posthog, shareCode]); // Removed previousStep from dependencies!
 
   // Individual flip states for single-page transitions
   const welcomeFlip = useFlip(() => setStep('intro'));

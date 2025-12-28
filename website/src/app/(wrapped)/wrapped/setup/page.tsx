@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { usePostHog } from 'posthog-js/react';
 
 export default function SetupPage() {
   const router = useRouter();
   const supabase = createClient();
+  const posthog = usePostHog();
 
   const [step, setStep] = useState<'name' | 'city'>('name');
   const [name, setName] = useState('');
@@ -33,10 +35,23 @@ export default function SetupPage() {
       if (profile?.first_name && profile?.city) {
         // Already completed setup, go to upload
         router.push('/wrapped/upload');
+        return;
+      }
+
+      // Track setup page view
+      console.log('[Setup] About to track setup_viewed, posthog:', !!posthog, 'user:', user?.id);
+      if (posthog) {
+        posthog.capture('wrapped_setup_viewed', {
+          user_id: user.id,
+          email: user.email
+        });
+        console.log('[Setup] wrapped_setup_viewed event captured');
+      } else {
+        console.log('[Setup] PostHog not available');
       }
     };
     checkAuth();
-  }, [router, supabase]);
+  }, [router, supabase, posthog]);
 
   const handleSaveProfile = async () => {
     if (!name.trim() || !city.trim()) return;
@@ -58,6 +73,28 @@ export default function SetupPage() {
         .eq('id', user.id);
 
       if (profileError) throw profileError;
+
+      // Update PostHog user properties with name and city
+      console.log('[Setup] About to identify user and track profile_completed, posthog:', !!posthog);
+      if (posthog) {
+        posthog.identify(user.id, {
+          email: user.email,
+          name: name.trim(),
+          city: city.trim()
+        });
+        console.log('[Setup] User identified with name and city');
+
+        // Track profile completion
+        posthog.capture('wrapped_profile_completed', {
+          user_id: user.id,
+          email: user.email,
+          name: name.trim(),
+          city: city.trim()
+        });
+        console.log('[Setup] wrapped_profile_completed event captured');
+      } else {
+        console.log('[Setup] PostHog not available for profile completion');
+      }
 
       // Move to upload page
       router.push('/wrapped/upload');

@@ -402,7 +402,7 @@ export default function ResultsPage({ params }: Props) {
                   opacity: 1,
                   transition: {
                     staggerChildren: 0.8,
-                    delayChildren: 0.6
+                    delayChildren: 0.8
                   }
                 }
               }}
@@ -413,7 +413,7 @@ export default function ResultsPage({ params }: Props) {
                   visible: { 
                     opacity: 1, 
                     y: 0,
-                    transition: { duration: 1.2, ease: [0.4, 0, 0.2, 1] }
+                    transition: { duration: 0.8, ease: [0.4, 0, 0.2, 1] }
                   }
                 }}
                 className="text-md text-gray-500 leading-snug mb-8 text-right"

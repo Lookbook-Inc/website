@@ -34,34 +34,24 @@ export default function UploadPage() {
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mock upload mode
   const [mockMode, setMockMode] = useState(false);
 
-  // Check auth and profile on mount
+  // Check auth on mount
   useEffect(() => {
-    const checkAuthAndProfile = async () => {
+    const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/wrapped');
         return;
       }
-
-      // Check if profile has name/city
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_name, city')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.first_name || !profile?.city) {
-        // Need to complete setup first
-        router.push('/wrapped/setup');
-      }
+      setEmail(user.email || null);
     };
-    checkAuthAndProfile();
+    checkAuth();
   }, [router, supabase]);
 
   // Generate batch ID on mount
@@ -376,6 +366,36 @@ export default function UploadPage() {
     setUploadProgress(0);
 
     try {
+      // Get auth token and user
+      const token = await getAuthToken(supabase);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!token || !user) {
+        throw new Error('Not authenticated. Please log in again.');
+      }
+
+      // Save profile data from URL params if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const name = urlParams.get('name');
+      const city = urlParams.get('city');
+
+      if (name && city) {
+        console.log(`[WRAPPED] Saving profile for ${user.id}: ${name}, ${city}`);
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: name,
+            city: city,
+          })
+          .eq('id', user.id);
+
+        if (profileError) {
+          console.error('[WRAPPED] Failed to save profile:', profileError);
+          // We continue anyway, as the photos are more important, 
+          // but logging it is good for debugging.
+        }
+      }
+
       // Mock upload mode - simulate uploads with delays
       if (mockMode) {
         const croppedCount = croppedPhotos.filter(Boolean).length;
@@ -406,12 +426,6 @@ export default function UploadPage() {
         console.log(`[WRAPPED] Summary: ${photos.length} total, ${croppedCount} cropped`);
         router.push('/wrapped/processing');
         return;
-      }
-
-      // Get auth token
-      const token = await getAuthToken(supabase);
-      if (!token) {
-        throw new Error('Not authenticated. Please log in again.');
       }
 
       console.log(`[WRAPPED] Starting upload: ${photos.length} photos, batch_id: ${batchId}`);
@@ -524,7 +538,7 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FFFAF4' }}>
       <div className="w-full max-w-md mx-auto bg-[#FFFAF4] min-h-screen">
-        <div className="flex flex-col min-h-screen px-10 pt-24 pb-6">
+        <div className="flex flex-col min-h-screen px-10 pt-8 pb-6">
           {/* Mock mode indicator */}
           {mockMode && (
             <div className="mb-4 px-3 py-1.5 bg-amber-100 border border-amber-300 rounded-lg inline-flex items-center gap-2 self-start">
@@ -533,13 +547,16 @@ export default function UploadPage() {
             </div>
           )}
 
-          {/* Sign out button */}
-          <div className="mb-6">
+          {/* Navigation and Sign out */}
+          <div className="mb-6 flex items-center justify-between">
             <button
-              onClick={handleSignOut}
-              className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
+              onClick={() => {
+                const params = new URLSearchParams(window.location.search);
+                router.push(`/wrapped/setup?${params.toString()}`);
+              }}
+              className="text-gray-400 text-[10px] hover:text-gray-600 transition-colors whitespace-nowrap"
             >
-              Use different email?
+              ← back
             </button>
           </div>
 

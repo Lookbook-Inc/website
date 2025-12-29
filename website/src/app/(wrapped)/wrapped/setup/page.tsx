@@ -39,13 +39,13 @@ export default function SetupPage() {
       }
 
       // Track setup page view
-      console.log('[Setup] About to track setup_viewed, posthog:', !!posthog, 'user:', user?.id);
+      // console.log('[Setup] About to track setup_viewed, posthog:', !!posthog, 'user:', user?.id);
       if (posthog) {
         posthog.capture('wrapped_setup_viewed', {
           user_id: user.id,
           email: user.email
         });
-        console.log('[Setup] wrapped_setup_viewed event captured');
+        // console.log('[Setup] wrapped_setup_viewed event captured');
       } else {
         console.log('[Setup] PostHog not available');
       }
@@ -75,14 +75,14 @@ export default function SetupPage() {
       if (profileError) throw profileError;
 
       // Update PostHog user properties with name and city
-      console.log('[Setup] About to identify user and track profile_completed, posthog:', !!posthog);
+      // console.log('[Setup] About to identify user and track profile_completed, posthog:', !!posthog);
       if (posthog) {
         posthog.identify(user.id, {
           email: user.email,
           name: name.trim(),
           city: city.trim()
         });
-        console.log('[Setup] User identified with name and city');
+        // console.log('[Setup] User identified with name and city');
 
         // Track profile completion
         posthog.capture('wrapped_profile_completed', {
@@ -91,7 +91,7 @@ export default function SetupPage() {
           name: name.trim(),
           city: city.trim()
         });
-        console.log('[Setup] wrapped_profile_completed event captured');
+        // console.log('[Setup] wrapped_profile_completed event captured');
       } else {
         console.log('[Setup] PostHog not available for profile completion');
       }

@@ -174,7 +174,7 @@ export default function UploadPage() {
                 const originalKB = file.size / 1024;
                 const resizedKB = blob.size / 1024;
                 const savings = ((1 - blob.size / file.size) * 100).toFixed(0);
-                console.log(`[WRAPPED] ${file.name}: ${originalKB.toFixed(0)}KB → ${resizedKB.toFixed(0)}KB (${savings}% smaller)`);
+                // console.log(`[WRAPPED] ${file.name}: ${originalKB.toFixed(0)}KB → ${resizedKB.toFixed(0)}KB (${savings}% smaller)`);
                 resolve({ url, blob, originalSize: file.size, resizedSize: blob.size });
               } else {
                 reject(new Error('Failed to create blob'));
@@ -247,10 +247,10 @@ export default function UploadPage() {
       const totalResized = successfulResults.reduce((sum, r) => sum + r.resizedSize, 0);
       const totalSavings = totalOriginal > 0 ? ((1 - totalResized / totalOriginal) * 100).toFixed(0) : '0';
 
-      console.log(`\n[WRAPPED] 📊 COMPRESSION SUMMARY:`);
-      console.log(`[WRAPPED] Original total: ${(totalOriginal / 1048576).toFixed(2)} MB`);
-      console.log(`[WRAPPED] Compressed total: ${(totalResized / 1048576).toFixed(2)} MB`);
-      console.log(`[WRAPPED] Total savings: ${totalSavings}% smaller\n`);
+      // console.log(`\n[WRAPPED] 📊 COMPRESSION SUMMARY:`);
+      // console.log(`[WRAPPED] Original total: ${(totalOriginal / 1048576).toFixed(2)} MB`);
+      // console.log(`[WRAPPED] Compressed total: ${(totalResized / 1048576).toFixed(2)} MB`);
+      // console.log(`[WRAPPED] Total savings: ${totalSavings}% smaller\n`);
 
       const newUrls = successfulResults.map(r => r.url);
       const newBlobs = successfulResults.map(r => r.blob);

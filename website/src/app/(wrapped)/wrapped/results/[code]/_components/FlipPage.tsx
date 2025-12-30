@@ -21,15 +21,26 @@ export function FlipPage({
   return (
     <motion.div
       className={`absolute inset-0 bg-[#FFFAF4] origin-left ${className}`}
-      style={{ zIndex, transformStyle: 'preserve-3d' }}
+      style={{ 
+        zIndex, 
+        transformStyle: 'preserve-3d',
+        willChange: 'transform',
+      }}
       initial={false}
-      animate={{ rotateY: isFlipped ? -180 : 0 }}
+      animate={{ 
+        rotateY: isFlipped ? -180 : 0,
+        translateZ: 0,
+      }}
       transition={{ duration, ease: [0.1, 0, 0.4, 0.2] }}
     >
       {/* Front of page */}
       <div 
         className="absolute inset-0 bg-[#FFFAF4]"
-        style={{ backfaceVisibility: 'hidden' }}
+        style={{ 
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          transform: 'translateZ(0)',
+        }}
       >
         {children}
         {/* Spine shadow for depth - only visible during flip */}
@@ -52,6 +63,8 @@ export function FlipPage({
           background: '#d1bb99',
           boxShadow: 'inset 2px 0 4px rgba(0,0,0,0.1)',
           backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          transform: 'translateZ(0)',
         }}
       />
       
@@ -60,7 +73,8 @@ export function FlipPage({
         className="absolute inset-0 bg-[#F5EDE3]"
         style={{ 
           backfaceVisibility: 'hidden',
-          transform: 'rotateY(180deg)',
+          WebkitBackfaceVisibility: 'hidden',
+          transform: 'rotateY(180deg) translateZ(0)',
         }}
       >
         {/* Spine shadow on back */}

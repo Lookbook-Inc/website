@@ -15,26 +15,14 @@ export default function SetupPage() {
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
-  // Check auth on mount
+  // Check auth and load URL params on mount
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/wrapped');
-        return;
-      }
-
-      // Check if profile already has name/city
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_name, city')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.first_name && profile?.city) {
-        // Already completed setup, go to upload
-        router.push('/wrapped/upload');
         return;
       }
 
@@ -49,61 +37,27 @@ export default function SetupPage() {
       } else {
         console.log('[Setup] PostHog not available');
       }
+      setEmail(user.email || null);
+
+      // Load existing name/city from URL if present (e.g. when coming back from upload)
+      const params = new URLSearchParams(window.location.search);
+      const urlName = params.get('name');
+      const urlCity = params.get('city');
+      if (urlName) setName(urlName);
+      if (urlCity) setCity(urlCity);
     };
     checkAuth();
   }, [router, supabase, posthog]);
 
-  const handleSaveProfile = async () => {
+  const handleContinue = () => {
     if (!name.trim() || !city.trim()) return;
-    setLoading(true);
-    setError(null);
 
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      // Update profile with name and city
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          first_name: name.trim(),
-          city: city.trim(),
-        })
-        .eq('id', user.id);
-
-      if (profileError) throw profileError;
-
-      // Update PostHog user properties with name and city
-      // console.log('[Setup] About to identify user and track profile_completed, posthog:', !!posthog);
-      if (posthog) {
-        posthog.identify(user.id, {
-          email: user.email,
-          name: name.trim(),
-          city: city.trim()
-        });
-        // console.log('[Setup] User identified with name and city');
-
-        // Track profile completion
-        posthog.capture('wrapped_profile_completed', {
-          user_id: user.id,
-          email: user.email,
-          name: name.trim(),
-          city: city.trim()
-        });
-        // console.log('[Setup] wrapped_profile_completed event captured');
-      } else {
-        console.log('[Setup] PostHog not available for profile completion');
-      }
-
-      // Move to upload page
-      router.push('/wrapped/upload');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save profile';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
+    // Pass name and city to the upload page via query params
+    const params = new URLSearchParams();
+    params.append('name', name.trim());
+    params.append('city', city.trim());
+    
+    router.push(`/wrapped/upload?${params.toString()}`);
   };
 
   const handleSignOut = async () => {
@@ -121,7 +75,7 @@ export default function SetupPage() {
                 onClick={handleSignOut}
                 className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
               >
-                Use different email?
+                Use different email? {email && `(${email})`}
               </button>
             </div>
             <div className="flex-1 flex flex-col justify-center px-6">
@@ -143,12 +97,9 @@ export default function SetupPage() {
 
             <div className="px-6 pb-6 mt-8">
               <div className="flex items-end justify-between font-display">
-                <button
-                  onClick={() => router.push('/wrapped')}
-                  className="text-gray-400 text-xl mb-1 disabled:opacity-40 transition-opacity"
-                >
-                  ← back
-                </button>
+                <div className="flex items-center gap-4">
+                  <span className="text-gray-400 text-xl mb-1">Lookbook</span>
+                </div>
 
                 <button
                   onClick={() => setStep('city')}
@@ -163,12 +114,8 @@ export default function SetupPage() {
         ) : (
           <div className="flex flex-col h-[100dvh] p-4">
             <div className="px-6 pt-4">
-              <button
-                onClick={handleSignOut}
-                className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
-              >
-                Use different email?
-              </button>
+              {/* Spacer for consistency with name step */}
+              <div className="h-5" />
             </div>
             <div className="flex-1 flex flex-col justify-center px-6">
               <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
@@ -201,11 +148,11 @@ export default function SetupPage() {
                 </button>
 
                 <button
-                  onClick={handleSaveProfile}
+                  onClick={handleContinue}
                   disabled={!city.trim() || loading}
                   className="text-gray-900 text-xl disabled:opacity-40 transition-opacity mb-1"
                 >
-                  {loading ? 'Saving...' : 'continue →'}
+                  continue →
                 </button>
               </div>
             </div>

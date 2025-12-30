@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { LandingCollage } from './_components/LandingCollage';
 import { usePostHog } from 'posthog-js/react';
+import { getWrappedInsights, getAuthToken } from '@/lib/api/wrapped';
+import { BackendWrappedInsights } from '@/types/wrapped-api';
 
-type Step = 'landing' | 'verify';
+type Step = 'landing' | 'verify' | 'exists';
 
 export default function WrappedWizard() {
   const router = useRouter();
@@ -18,23 +20,61 @@ export default function WrappedWizard() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [insights, setInsights] = useState<BackendWrappedInsights | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Dev mode: Check URL params for direct step access
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const devStep = params.get('step') as Step | null;
-    if (devStep && (devStep === 'landing' || devStep === 'verify')) {
+    if (devStep && (devStep === 'landing' || devStep === 'verify' || devStep === 'exists')) {
       setStep(devStep);
     }
   }, []);
 
+  // --- Auth & Navigation logic ---
+  const handlePostAuthRedirect = async () => {
+    setLoading(true);
+    try {
+      const token = await getAuthToken(supabase);
+      if (!token) {
+        router.push('/wrapped/setup');
+        return;
+      }
+
+      const userInsights = await getWrappedInsights(token);
+      setInsights(userInsights);
+
+      // If they have any status other than not_started, show them the "exists" step
+      // so they can choose to see results, check progress, or start over.
+      if (userInsights.status !== 'not_started') {
+        setStep('exists');
+      } else {
+        router.push('/wrapped/setup');
+      }
+    } catch (err) {
+      console.error('Error checking insights status:', err);
+      // On error, just go to setup as default
+      router.push('/wrapped/setup');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Check if user is already authenticated
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // User is already authenticated, redirect to setup
-        router.push('/wrapped/setup');
+      setIsInitialLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Populate email from user object if available
+          if (user.email) setEmail(user.email);
+          // User is already authenticated, check if they have results
+          await handlePostAuthRedirect();
+        }
+      } finally {
+        setIsInitialLoading(false);
       }
     };
     checkAuth();
@@ -99,7 +139,6 @@ export default function WrappedWizard() {
 
       // Get authenticated user and identify in PostHog
       const { data: { user } } = await supabase.auth.getUser();
-
       if (user && posthog) {
         // Identify user in PostHog
         posthog.identify(user.id, {
@@ -113,8 +152,8 @@ export default function WrappedWizard() {
         });
       }
 
-      // Redirect to setup page
-      router.push('/wrapped/setup');
+      // Check for existing results instead of direct redirect
+      await handlePostAuthRedirect();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Invalid verification code';
 
@@ -145,14 +184,21 @@ export default function WrappedWizard() {
           </h1>
 
           <div className="space-y-4 mb-8">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="What's your email?"
-              className="w-full bg-[#F7EFE5] rounded-lg px-4 py-3 text-gray-900 text-md placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 transition-all"
-              disabled={loading}
-            />
+            <div className="relative">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={isInitialLoading ? "Loading session..." : "What's your email?"}
+                className="w-full bg-[#F7EFE5] rounded-lg px-4 py-3 text-gray-900 text-md placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 transition-all"
+                disabled={loading || isInitialLoading}
+              />
+              {isInitialLoading && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
+                </div>
+              )}
+            </div>
 
             {error && (
               <p className="text-red-600 text-sm px-1">{error}</p>
@@ -167,10 +213,10 @@ export default function WrappedWizard() {
 
           <button
             onClick={handleSendOTP}
-            disabled={loading || !email}
+            disabled={loading || isInitialLoading || !email}
             className="text-gray-900 text-xl disabled:opacity-40 transition-opacity mb-1"
           >
-            {loading ? 'Sending...' : 'enter →'}
+            {loading ? 'Sending...' : isInitialLoading ? 'Checking...' : 'enter →'}
           </button>
         </div>
       </div>
@@ -228,11 +274,75 @@ export default function WrappedWizard() {
     </div>
   );
 
+  const renderExists = () => (
+    <div className="flex flex-col h-[100dvh] p-4">
+      <div className="flex-1 flex flex-col justify-center px-6">
+        <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-6">
+          Welcome back{insights?.user_first_name ? `, ${insights.user_first_name}` : ''}!
+        </h1>
+        
+        {insights?.status === 'completed' ? (
+          <>
+            <p className="text-gray-500 text-md mb-8">
+              Your Lookbook Wrapped results are ready for you to view.
+            </p>
+            <button
+              onClick={() => router.push(`/wrapped/results/${insights.share_code}`)}
+              className="w-full bg-gray-900 text-white rounded-lg px-4 py-4 text-xl font-display transition-all hover:bg-gray-800 mb-4"
+            >
+              see your results →
+            </button>
+          </>
+        ) : insights?.status === 'processing' || insights?.status === 'pending' ? (
+          <>
+            <p className="text-gray-500 text-md mb-8">
+              We&apos;re still analyzing your style profile. We&apos;ll email you when it&apos;s ready!
+            </p>
+            <button
+              onClick={() => router.push('/wrapped/processing')}
+              className="w-full bg-gray-900 text-white rounded-lg px-4 py-4 text-xl font-display transition-all hover:bg-gray-800 mb-4"
+            >
+              check progress →
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-gray-500 text-md mb-8">
+              Welcome back! Ready to continue your style journey?
+            </p>
+            <button
+              onClick={() => router.push('/wrapped/setup')}
+              className="w-full bg-gray-900 text-white rounded-lg px-4 py-4 text-xl font-display transition-all hover:bg-gray-800 mb-4"
+            >
+              continue →
+            </button>
+          </>
+        )}
+
+        <div className="space-y-4 mt-8">
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              setStep('landing');
+              setInsights(null);
+              setEmail('');
+              setOtp('');
+            }}
+            className="w-full text-gray-400 text-sm hover:text-gray-600 transition-colors underline underline-offset-4"
+          >
+            Try again with a different email
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FFFAF4' }}>
       <div className="w-full max-w-md mx-auto bg-[#FFFAF4] min-h-screen">
         {step === 'landing' && renderLanding()}
         {step === 'verify' && renderVerify()}
+        {step === 'exists' && renderExists()}
       </div>
     </div>
   );

@@ -307,8 +307,13 @@ export const SummaryContent = ({
           ref={containerRef}
           className="w-full flex-1 flex items-center justify-center overflow-hidden"
         >
-          {/* Scaling Wrapper - This applies the visual scale and entry animation */}
+          {/* 
+            Scaling Wrapper - Handles visual scale and entry animation.
+            Shadow is isolated here so it's NOT included in the capture, 
+            preventing "double-shadowing" when swapping to the captured image.
+          */}
           <div
+            className="shadow-2xl rounded-[32px]"
             style={{
               transform: `scale(${currentDisplayScale}) translateY(${isSettled ? -60 : 0}px)`,
               opacity: isActive ? 1 : 0,
@@ -321,7 +326,7 @@ export const SummaryContent = ({
             {/* Capture Target - This stays at 100% scale for perfect capture */}
             <div
               ref={cardRef}
-              className="shrink-0 relative"
+              className="shrink-0 relative rounded-[32px] overflow-hidden"
               style={{
                 width: '360px',
                 height: '640px',
@@ -334,7 +339,7 @@ export const SummaryContent = ({
                 <img 
                   src={preCapturedDataUrl} 
                   alt={`${results.userName}'s Lookbook Card`}
-                  className="w-full h-full rounded-[32px] shadow-2xl"
+                  className="w-full h-full"
                   style={{ 
                     display: 'block',
                     borderRadius: '32px',
@@ -344,7 +349,7 @@ export const SummaryContent = ({
               ) : (
                 /* The actual card with its border and background (used for capture) */
                 <div
-                  className="absolute inset-0 shadow-2xl rounded-[32px] isolation-isolate"
+                  className="absolute inset-0 isolation-isolate"
                 >
                   <div 
                     className="absolute inset-0 bg-[#F7F7F7]"
@@ -481,9 +486,13 @@ export const SummaryContent = ({
                           </div>
                         </div>
 
-                        {/* Main photo */}
+                        {/* 
+                          Main photo: Shadow is isolated from clipping container to 
+                          fix mobile Safari artifacts and ensure clean capture.
+                        */}
+                        {/* Shadow Wrapper */}
                         <div 
-                          className="flex-1 relative isolation-isolate"
+                          className="flex-1 relative"
                           style={{ 
                             aspectRatio: '3/4',
                             marginTop: '-30px',
@@ -491,9 +500,11 @@ export const SummaryContent = ({
                             borderRadius: '20px',
                           }}
                         >
+                          {/* Clipping Wrapper - using clip-path for reliable capture rounded corners */}
                           <div 
-                            className="absolute inset-0 bg-[#E8E4DE] rounded-[20px] z-10"
+                            className="absolute inset-0 bg-[#E8E4DE] z-10"
                             style={{ 
+                              borderRadius: '20px',
                               clipPath: 'inset(0 round 20px)',
                               WebkitClipPath: 'inset(0 round 20px)'
                             }}
@@ -578,15 +589,17 @@ export const SummaryContent = ({
                           >
                             CELEBRITY TWIN
                           </p>
+                          {/* Isolated shadow/clip to prevent mobile rendering artifacts */}
+                          {/* Shadow Wrapper */}
                           <div 
-                            className="relative mb-1 shadow-sm rounded-[20px] isolation-isolate"
-                            style={{ 
-                              aspectRatio: '1/1',
-                            }}
+                            className="relative mb-1 shadow-sm rounded-[20px]"
+                            style={{ aspectRatio: '1/1' }}
                           >
+                            {/* Clipping Wrapper */}
                             <div 
-                              className="absolute inset-0 bg-[#E0DCD6] rounded-[20px]"
+                              className="absolute inset-0 bg-[#E0DCD6]"
                               style={{ 
+                                borderRadius: '20px',
                                 clipPath: 'inset(0 round 20px)',
                                 WebkitClipPath: 'inset(0 round 20px)'
                               }}
@@ -623,15 +636,17 @@ export const SummaryContent = ({
                           >
                             STYLE DESTINATION
                           </p>
+                          {/* Isolated shadow/clip to prevent mobile rendering artifacts */}
+                          {/* Shadow Wrapper */}
                           <div 
-                            className="relative mb-1 shadow-sm rounded-[20px] isolation-isolate"
-                            style={{ 
-                              aspectRatio: '1/1',
-                            }}
+                            className="relative mb-1 shadow-sm rounded-[20px]"
+                            style={{ aspectRatio: '1/1' }}
                           >
+                            {/* Clipping Wrapper */}
                             <div 
-                              className="absolute inset-0 bg-[#E0DCD6] rounded-[20px]"
+                              className="absolute inset-0 bg-[#E0DCD6]"
                               style={{ 
+                                borderRadius: '20px',
                                 clipPath: 'inset(0 round 20px)',
                                 WebkitClipPath: 'inset(0 round 20px)'
                               }}

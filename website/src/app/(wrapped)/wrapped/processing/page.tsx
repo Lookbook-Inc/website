@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AnimatePresence, motion } from 'framer-motion';
+import { usePostHog } from 'posthog-js/react';
 
 export default function ProcessingPage() {
   const router = useRouter();
   const supabase = createClient();
+  const posthog = usePostHog();
   const [checklistStartIndex, setChecklistStartIndex] = useState(0);
 
   // Processing checklist items
@@ -29,10 +31,19 @@ export default function ProcessingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/wrapped');
+        return;
+      }
+
+      // Track processing page view
+      if (posthog) {
+        posthog.capture('wrapped_processing_viewed', {
+          user_id: user.id,
+          email: user.email
+        });
       }
     };
     checkAuth();
-  }, [router, supabase.auth]);
+  }, [router, supabase.auth, posthog]);
 
   // Cycle through checklist items (slide up animation)
   useEffect(() => {

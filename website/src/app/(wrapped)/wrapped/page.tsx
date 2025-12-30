@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { LandingCollage } from './_components/LandingCollage';
+import { usePostHog } from 'posthog-js/react';
 import { getWrappedInsights, getAuthToken } from '@/lib/api/wrapped';
 import { BackendWrappedInsights } from '@/types/wrapped-api';
 
@@ -12,6 +13,7 @@ type Step = 'landing' | 'verify' | 'exists';
 export default function WrappedWizard() {
   const router = useRouter();
   const supabase = createClient();
+  const posthog = usePostHog();
 
   const [step, setStep] = useState<Step>('landing');
   const [email, setEmail] = useState('');
@@ -78,9 +80,20 @@ export default function WrappedWizard() {
     checkAuth();
   }, [router, supabase.auth]);
 
+  // Track landing page view
+  useEffect(() => {
+    if (posthog) {
+      posthog.capture('wrapped_landing_viewed');
+    }
+  }, [posthog]);
+
   // --- Auth handlers ---
   const handleSendOTP = async () => {
     if (!email) return;
+
+    // Track email submission
+    posthog?.capture('wrapped_email_submitted', { email });
+
     setLoading(true);
     setError(null);
 
@@ -90,9 +103,21 @@ export default function WrappedWizard() {
         options: { shouldCreateUser: true },
       });
       if (error) throw error;
+
+      // Track OTP sent successfully
+      posthog?.capture('wrapped_otp_sent', { email });
+
       setStep('verify');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to send verification code';
+
+      // Track OTP send failure
+      posthog?.capture('wrapped_otp_failed', {
+        email,
+        error_type: 'send_failed',
+        error_message: message
+      });
+
       setError(message);
     } finally {
       setLoading(false);
@@ -112,10 +137,33 @@ export default function WrappedWizard() {
       });
       if (error) throw error;
 
+      // Get authenticated user and identify in PostHog
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && posthog) {
+        // Identify user in PostHog
+        posthog.identify(user.id, {
+          email: user.email
+        });
+
+        // Track successful OTP verification
+        posthog.capture('wrapped_otp_verified', {
+          user_id: user.id,
+          email: user.email
+        });
+      }
+
       // Check for existing results instead of direct redirect
       await handlePostAuthRedirect();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Invalid verification code';
+
+      // Track verification failure
+      posthog?.capture('wrapped_otp_verification_failed', {
+        email,
+        error_type: 'invalid_code',
+        error_message: message
+      });
+
       setError(message);
     } finally {
       setLoading(false);

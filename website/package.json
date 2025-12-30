@@ -16,6 +16,7 @@
     "heic2any": "^0.0.4",
     "modern-screenshot": "^4.6.7",
     "next": "15.5.9",
+    "posthog-js": "^1.310.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-image-crop": "^11.0.10",

@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import { Metadata } from "next"
+import { ClientProviders } from "./client-providers"
 
 export const metadata: Metadata = {
   title: "Lookbook Wrapped - Your Outfits in Review",
@@ -14,12 +15,12 @@ export const metadata: Metadata = {
     title: "Lookbook Wrapped",
     description: "What was your aesthetic this year?",
   },
-};
+}
 
 export default function WrappedLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
-  return <>{children}</>;
+  return <ClientProviders>{children}</ClientProviders>
 }

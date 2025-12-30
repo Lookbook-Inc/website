@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { usePostHog } from 'posthog-js/react';
 
 export default function SetupPage() {
   const router = useRouter();
   const supabase = createClient();
+  const posthog = usePostHog();
 
   const [step, setStep] = useState<'name' | 'city'>('name');
   const [name, setName] = useState('');
@@ -23,6 +25,18 @@ export default function SetupPage() {
         router.push('/wrapped');
         return;
       }
+
+      // Track setup page view
+      // console.log('[Setup] About to track setup_viewed, posthog:', !!posthog, 'user:', user?.id);
+      if (posthog) {
+        posthog.capture('wrapped_setup_viewed', {
+          user_id: user.id,
+          email: user.email
+        });
+        // console.log('[Setup] wrapped_setup_viewed event captured');
+      } else {
+        console.log('[Setup] PostHog not available');
+      }
       setEmail(user.email || null);
 
       // Load existing name/city from URL if present (e.g. when coming back from upload)
@@ -33,7 +47,7 @@ export default function SetupPage() {
       if (urlCity) setCity(urlCity);
     };
     checkAuth();
-  }, [router, supabase]);
+  }, [router, supabase, posthog]);
 
   const handleContinue = () => {
     if (!name.trim() || !city.trim()) return;

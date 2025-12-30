@@ -9,10 +9,12 @@ import { uploadPhoto, getAuthToken } from '@/lib/api/wrapped';
 import { AnimatePresence, motion } from 'framer-motion';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { usePostHog } from 'posthog-js/react';
 
 export default function UploadPage() {
   const router = useRouter();
   const supabase = createClient();
+  const posthog = usePostHog();
 
   // Photo state
   const [photos, setPhotos] = useState<File[]>([]);
@@ -49,10 +51,18 @@ export default function UploadPage() {
         router.push('/wrapped');
         return;
       }
-      setEmail(user.email || null);
+      // Track upload page view
+      if (posthog) {
+        posthog.capture('wrapped_upload_viewed', {
+          user_id: user.id,
+          email: user.email
+        });
+      }
+        setEmail(user.email || null);
     };
     checkAuth();
-  }, [router, supabase]);
+  }, [router, supabase, posthog]);
+
 
   // Generate batch ID on mount
   useEffect(() => {
@@ -153,7 +163,7 @@ export default function UploadPage() {
                 const originalKB = file.size / 1024;
                 const resizedKB = blob.size / 1024;
                 const savings = ((1 - blob.size / file.size) * 100).toFixed(0);
-                console.log(`[WRAPPED] ${file.name}: ${originalKB.toFixed(0)}KB → ${resizedKB.toFixed(0)}KB (${savings}% smaller)`);
+                // console.log(`[WRAPPED] ${file.name}: ${originalKB.toFixed(0)}KB → ${resizedKB.toFixed(0)}KB (${savings}% smaller)`);
                 resolve({ url, blob, originalSize: file.size, resizedSize: blob.size });
               } else {
                 reject(new Error('Failed to create blob'));
@@ -226,10 +236,10 @@ export default function UploadPage() {
       const totalResized = successfulResults.reduce((sum, r) => sum + r.resizedSize, 0);
       const totalSavings = totalOriginal > 0 ? ((1 - totalResized / totalOriginal) * 100).toFixed(0) : '0';
 
-      console.log(`\n[WRAPPED] 📊 COMPRESSION SUMMARY:`);
-      console.log(`[WRAPPED] Original total: ${(totalOriginal / 1048576).toFixed(2)} MB`);
-      console.log(`[WRAPPED] Compressed total: ${(totalResized / 1048576).toFixed(2)} MB`);
-      console.log(`[WRAPPED] Total savings: ${totalSavings}% smaller\n`);
+      // console.log(`\n[WRAPPED] 📊 COMPRESSION SUMMARY:`);
+      // console.log(`[WRAPPED] Original total: ${(totalOriginal / 1048576).toFixed(2)} MB`);
+      // console.log(`[WRAPPED] Compressed total: ${(totalResized / 1048576).toFixed(2)} MB`);
+      // console.log(`[WRAPPED] Total savings: ${totalSavings}% smaller\n`);
 
       const newUrls = successfulResults.map(r => r.url);
       const newBlobs = successfulResults.map(r => r.blob);
@@ -244,6 +254,16 @@ export default function UploadPage() {
       // Initialize crop selections array with undefined for new successful photos
       const newCropSelections = [...cropSelections, ...new Array(successfulResults.length).fill(undefined)];
       setCropSelections(newCropSelections);
+
+      // Track photos selected
+      if (posthog) {
+        const totalSizeMB = totalResized / (1024 * 1024);
+        posthog.capture('wrapped_photos_selected', {
+          photo_count: newPhotos.length,
+          new_photos_count: successfulResults.length,
+          total_size_mb: parseFloat(totalSizeMB.toFixed(2))
+        });
+      }
     } catch (err) {
       console.error('[WRAPPED] Error in handleFileSelect:', err);
       setError('Failed to load photos. Try selecting fewer photos at once.');
@@ -339,6 +359,14 @@ export default function UploadPage() {
       URL.revokeObjectURL(newPreviewUrls[cropModalIndex]);
       newPreviewUrls[cropModalIndex] = URL.createObjectURL(croppedBlob);
       setPhotoPreviewUrls(newPreviewUrls);
+
+      // Track photo cropped
+      if (posthog) {
+        posthog.capture('wrapped_photo_cropped', {
+          photo_index: cropModalIndex,
+          total_cropped: newCroppedPhotos.filter(Boolean).length
+        });
+      }
     }
 
     closeCropModal();
@@ -364,6 +392,19 @@ export default function UploadPage() {
     setError(null);
     setUploadTotal(photos.length);
     setUploadProgress(0);
+
+    // Track upload started
+    const uploadStartTime = Date.now();
+    const croppedCount = croppedPhotos.filter(Boolean).length;
+
+    if (posthog) {
+      posthog.capture('wrapped_upload_started', {
+        photo_count: photos.length,
+        cropped_count: croppedCount,
+        batch_id: batchId || 'mock',
+        is_mock: mockMode
+      });
+    }
 
     try {
       // Get auth token and user
@@ -420,10 +461,32 @@ export default function UploadPage() {
 
           await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
           setUploadProgress(i + 1);
+
+          // Track individual photo upload (mock)
+          if (posthog) {
+            posthog.capture('wrapped_photo_uploaded', {
+              photo_index: i,
+              photo_count: photos.length,
+              is_mock: true
+            });
+          }
         }
 
         console.log('[WRAPPED] ===== UPLOAD COMPLETE =====');
         console.log(`[WRAPPED] Summary: ${photos.length} total, ${croppedCount} cropped`);
+
+        // Track upload completed (mock)
+        if (posthog) {
+          const uploadDuration = (Date.now() - uploadStartTime) / 1000;
+          posthog.capture('wrapped_upload_completed', {
+            photo_count: photos.length,
+            cropped_count: croppedCount,
+            batch_id: 'mock',
+            is_mock: true,
+            upload_duration_seconds: parseFloat(uploadDuration.toFixed(2))
+          });
+        }
+
         router.push('/wrapped/processing');
         return;
       }
@@ -455,6 +518,17 @@ export default function UploadPage() {
 
           setUploadProgress(i + 1);
           console.log(`[WRAPPED] Photo ${i + 1}/${photos.length} uploaded successfully`);
+
+          // Track individual photo upload (real)
+          if (posthog) {
+            posthog.capture('wrapped_photo_uploaded', {
+              photo_index: i,
+              photo_count: photos.length,
+              file_size_kb: parseFloat((photoToUpload.size / 1024).toFixed(2)),
+              is_cropped: !!croppedPhoto,
+              is_mock: false
+            });
+          }
         } catch (uploadError) {
           console.error(`[WRAPPED] Failed to upload photo ${i + 1}:`, uploadError);
           throw new Error(`Failed to upload photo ${i + 1}. Please try again.`);
@@ -463,12 +537,34 @@ export default function UploadPage() {
 
       console.log('[WRAPPED] All photos uploaded successfully!');
 
+      // Track upload completed (real)
+      if (posthog) {
+        const uploadDuration = (Date.now() - uploadStartTime) / 1000;
+        posthog.capture('wrapped_upload_completed', {
+          photo_count: photos.length,
+          cropped_count: croppedCount,
+          batch_id: batchId,
+          is_mock: false,
+          upload_duration_seconds: parseFloat(uploadDuration.toFixed(2))
+        });
+      }
+
       // Move to processing page
       router.push('/wrapped/processing');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Upload failed. Please try again.';
       setError(message);
       console.error('[WRAPPED] Upload error:', err);
+
+      // Track upload failure
+      if (posthog) {
+        posthog.capture('wrapped_upload_failed', {
+          photo_count: photos.length,
+          upload_progress: uploadProgress,
+          error_message: message,
+          is_mock: mockMode
+        });
+      }
     } finally {
       setLoading(false);
     }

@@ -434,7 +434,7 @@ export default function ResultsPage({ params }: Props) {
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
         <FavSidebar />
-        <div className="flex-1 flex flex-col pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 flex flex-col pl-20 relative z-30 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="my-auto py-8">
             <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">
               One piece anchored your outfits this year...
@@ -538,11 +538,11 @@ export default function ResultsPage({ params }: Props) {
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
         <FavSidebar />
-        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-30 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h3 className="font-display text-2xl text-gray-900 mb-8">You&apos;ve paired it with:</h3>
           
           <motion.div 
-            className="flex-1 flex flex-col pb-10"
+            className="flex flex-col pb-10"
             variants={containerVariants}
             initial="hidden"
             animate={isActive ? "visible" : "hidden"}
@@ -644,11 +644,11 @@ export default function ResultsPage({ params }: Props) {
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-black text-white">
         <FavSidebar light={false} />
-        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-10 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-30 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <h3 className="font-display text-2xl text-[#F7EFE5] mb-8 text-right">You haven&apos;t worn it with these yet...</h3>
           
           <motion.div 
-            className="flex-1 flex flex-col pb-10"
+            className="flex flex-col pb-10"
             variants={containerVariants}
             initial="hidden"
             animate={isActive ? "visible" : "hidden"}
@@ -850,7 +850,7 @@ export default function ResultsPage({ params }: Props) {
                 <div className="flex items-baseline justify-end border-b border-gray-200 pb-1">
                   <motion.span
                     layoutId={isPrimary ? "primary-style-text" : undefined}
-                    className="text-3xl font-display uppercase tracking-tight text-gray-900"
+                    className="text-3xl font-display uppercase tracking-tight text-gray-900 text-right"
                   >
                     {style.style_name}
                   </motion.span>
@@ -893,7 +893,7 @@ export default function ResultsPage({ params }: Props) {
     // Reveal/Gallery phase inner content - uses layout animations
     const RevealGalleryInner = () => (
       <motion.div
-        className="flex-1 flex flex-col overflow-hidden"
+        className="flex-1 flex flex-col min-h-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0, transition: { duration: 0.2 } }}
@@ -1050,7 +1050,7 @@ export default function ResultsPage({ params }: Props) {
           )}
         </AnimatePresence>
 
-        <div className={`flex-1 flex flex-col pt-4 relative z-10 overflow-hidden ${(phase === 'shuffle' || isGallery) ? 'pl-20' : 'pl-0'}`}>
+        <div className={`flex-1 flex flex-col pt-4 relative z-30 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${(phase === 'shuffle' || isGallery) ? 'pl-20' : 'pl-0'}`}>
           {/* Phase-based content rendering with AnimatePresence */}
           <AnimatePresence mode="wait">
             {phase === 'shuffle' ? (
@@ -1941,7 +1941,7 @@ export default function ResultsPage({ params }: Props) {
     // Colors inner content
     const ColorsInner = () => (
       <motion.div
-        className="flex-1 flex flex-col pb-10"
+        className="flex flex-col pb-10"
         variants={containerVariants}
         initial="hidden"
         animate={isActive ? "visible" : "hidden"}
@@ -1990,7 +1990,7 @@ export default function ResultsPage({ params }: Props) {
     // Shades inner content
     const ShadesInner = () => (
       <motion.div
-        className="flex-1 flex flex-col pb-10"
+        className="flex flex-col pb-10"
         variants={containerVariants}
         initial="hidden"
         animate={isActive ? "visible" : "hidden"}
@@ -2045,7 +2045,7 @@ export default function ResultsPage({ params }: Props) {
         {/* Animated content area */}
         <div 
           ref={scrollContainerRef}
-          className="flex-1 flex flex-col pt-4 relative z-10 overflow-y-auto overflow-x-hidden min-h-0 [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex-1 flex flex-col pt-4 relative z-30 overflow-y-auto overflow-x-hidden min-h-0 [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <AnimatePresence mode="wait" custom={direction}>
             {view === 'colors' ? (
@@ -2429,7 +2429,7 @@ export default function ResultsPage({ params }: Props) {
     return (
       <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex flex-col pb-20">
+          <div className="flex flex-col pb-4">
             <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
               Your look gives... <br /><span className="italic">{city}</span>.
             </h1>

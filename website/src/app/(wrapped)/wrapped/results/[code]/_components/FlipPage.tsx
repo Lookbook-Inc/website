@@ -40,6 +40,7 @@ export function FlipPage({
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
           transform: 'translateZ(0)',
+          pointerEvents: isFlipped ? 'none' : 'auto',
         }}
       >
         {children}
@@ -75,6 +76,7 @@ export function FlipPage({
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
           transform: 'rotateY(180deg) translateZ(0)',
+          pointerEvents: isFlipped ? 'auto' : 'none',
         }}
       >
         {/* Spine shadow on back */}

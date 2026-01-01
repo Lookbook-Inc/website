@@ -131,6 +131,14 @@ export const TopOutfitsSelectionContent = ({
             exit={{ opacity: 0 }}
             className="absolute inset-0 z-[100] flex items-center justify-center p-12 pointer-events-none"
           >
+            <motion.h1
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+              className="absolute top-12 left-0 right-0 text-center font-display text-4xl text-[#F7EFE5]"
+            >
+              Gotcha!
+            </motion.h1>
             <motion.div
               layoutId={`outfit-card-${topFive[selectedOutfitIndex].photo_id}`}
               className="w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-2 border-white/20"

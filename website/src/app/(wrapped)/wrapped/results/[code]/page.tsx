@@ -2496,7 +2496,7 @@ export default function ResultsPage({ params }: Props) {
       <FlipContainer>
         {/* Base layer: Fav Item content (revealed as last photo flips) */}
         <div className="absolute inset-0 bg-[#FFFAF4] z-0">
-          <FavItemContent onNext={favItemFlip.flip} isActive={firstUnflippedIndex === -1} />
+          <FavItemContent onNext={favItemFlip.flip} isActive={false} />
         </div>
 
         {/* Photo pages - Page 1 on top, Page 10 at bottom */}

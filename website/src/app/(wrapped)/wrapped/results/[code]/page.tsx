@@ -27,16 +27,16 @@ const mockResults: WrappedResults = {
   city_vibe_description: "You dress like you're late to something important and you'll still be the best-dressed person there.",
   city_vibe_similarity_score: 88,
   city_photo_url: null,
-  primary_style: 'Minimalist',
+  primary_style: 'Contemporary Professional',
   top_styles: [
-    { style_name: 'Minimalist', points: 9, appearances: 3 },
+    { style_name: 'Contemporary Professional', points: 9, appearances: 3 },
     { style_name: 'Streetwear', points: 5, appearances: 2 },
-    { style_name: 'Business Casual', points: 2.5, appearances: 1 }
+    { style_name: 'Basic Casual', points: 2.5, appearances: 1 }
   ],
   top_outfits_for_style: [
     {
-      photo_id: '58cae82f-990e-4f45-9bef-069590f93e54',
-      path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/58cae82f-990e-4f45-9bef-069590f93e54_original.jpeg',
+      photo_id: 'unsplash-1',
+      path: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
       similarity_score: 0.92
     },
     {
@@ -53,7 +53,7 @@ const mockResults: WrappedResults = {
   total_outfits_analyzed: 3,
   color_aura: 'Candlelit Dinner',
   color_aura_description: 'Deep blacks and cool, muted supporting tones. An intimate, evening-leaning mood that reads polished and understated.',
-  color_aura_shades: ['#2C1810', '#8B4513', '#D4A574', '#F5E6D3', '#1A0F0A'],
+  color_aura_shades: ['#1E3A8A', '#3B82F6', '#60A5FA', '#93C5FD', '#DBEAFE'],
   style_description: 'Your style profile is being analyzed...',
   clothing_items_description: 'Cozy but make it fashion. This knit never missed.',
   total_clothing_items: 8,
@@ -75,9 +75,9 @@ const mockResults: WrappedResults = {
     similarity_score: 32.78,
     categories: ['Engineer'],
     color_aura_name: 'candlelit dinner',
-    style_1: 'minimalist',
+    style_1: 'contemporary professional',
     style_2: 'streetwear',
-    style_3: 'business casual'
+    style_3: 'basic casual'
   },
   most_worn_item: {
     name: 'Light-colored athletic sneakers',
@@ -100,8 +100,8 @@ const mockResults: WrappedResults = {
   ],
   top_outfits: [
     {
-      photo_id: '58cae82f-990e-4f45-9bef-069590f93e54',
-      path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/58cae82f-990e-4f45-9bef-069590f93e54_original.jpeg',
+      photo_id: 'unsplash-1',
+      path: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
       similarity_score: 0.2209
     },
     {
@@ -116,7 +116,7 @@ const mockResults: WrappedResults = {
     }
   ],
   all_uploaded_photos: [
-    { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/58cae82f-990e-4f45-9bef-069590f93e54_original.jpeg' },
+    { signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80' },
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg' },
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg' }
   ],

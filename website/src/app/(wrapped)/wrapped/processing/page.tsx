@@ -28,18 +28,25 @@ export default function ProcessingPage() {
   // Check auth on mount
   useEffect(() => {
     const checkAuth = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const isDev = process.env.NODE_ENV === 'development';
+      const isMock = isDev && params.get('mock') === 'true';
+
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      
+      if (!user && !isMock) {
         router.push('/wrapped');
         return;
       }
 
-      // Track processing page view
-      if (posthog) {
-        posthog.capture('wrapped_processing_viewed', {
-          user_id: user.id,
-          email: user.email
-        });
+      if (user) {
+        // Track processing page view
+        if (posthog) {
+          posthog.capture('wrapped_processing_viewed', {
+            user_id: user.id,
+            email: user.email
+          });
+        }
       }
     };
     checkAuth();

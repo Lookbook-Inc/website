@@ -178,7 +178,7 @@ export default function WrappedWizard() {
 
       <div className="px-6 pb-6 flex flex-col justify-between flex-1 min-h-0">
         <div>
-          <p className="text-gray-400 font-mono tracking-tight uppercase text-sm mb-2">Dec 25 to Jan 14</p>
+          <p className="text-gray-400 font-mono tracking-tight uppercase text-sm mb-2">Jan 1 to Jan 31</p>
           <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-6">
             Your 2025 Styles,<br />Wrapped.
           </h1>

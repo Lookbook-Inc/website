@@ -46,19 +46,29 @@ export default function UploadPage() {
   // Check auth on mount
   useEffect(() => {
     const checkAuth = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const isDev = process.env.NODE_ENV === 'development';
+      const isMock = isDev && params.get('mock') === 'true';
+
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      
+      if (!user && !isMock) {
         router.push('/wrapped');
         return;
       }
-      // Track upload page view
-      if (posthog) {
-        posthog.capture('wrapped_upload_viewed', {
-          user_id: user.id,
-          email: user.email
-        });
-      }
+
+      if (isMock && !user) {
+        setEmail('test@example.com');
+      } else if (user) {
+        // Track upload page view
+        if (posthog) {
+          posthog.capture('wrapped_upload_viewed', {
+            user_id: user.id,
+            email: user.email
+          });
+        }
         setEmail(user.email || null);
+      }
     };
     checkAuth();
   }, [router, supabase, posthog]);
@@ -76,7 +86,8 @@ export default function UploadPage() {
   // Check for mock mode
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('mock') === 'true') {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev && params.get('mock') === 'true') {
       setMockMode(true);
       console.log('[WRAPPED] Mock upload mode enabled');
     }
@@ -406,40 +417,10 @@ export default function UploadPage() {
       });
     }
 
-    try {
-      // Get auth token and user
-      const token = await getAuthToken(supabase);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!token || !user) {
-        throw new Error('Not authenticated. Please log in again.');
-      }
-
-      // Save profile data from URL params if present
-      const urlParams = new URLSearchParams(window.location.search);
-      const name = urlParams.get('name');
-      const city = urlParams.get('city');
-
-      if (name && city) {
-        console.log(`[WRAPPED] Saving profile for ${user.id}: ${name}, ${city}`);
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            first_name: name,
-            city: city,
-          })
-          .eq('id', user.id);
-
-        if (profileError) {
-          console.error('[WRAPPED] Failed to save profile:', profileError);
-          // We continue anyway, as the photos are more important, 
-          // but logging it is good for debugging.
-        }
-      }
-
-      // Mock upload mode - simulate uploads with delays
-      if (mockMode) {
-        const croppedCount = croppedPhotos.filter(Boolean).length;
+    // Mock upload mode - simulate uploads with delays
+    // This is placed BEFORE the authentication check to allow testing without login
+    if (mockMode) {
+      try {
         console.log(`[WRAPPED] Mock upload: ${photos.length} photos (${croppedCount} cropped)`);
         console.log('[WRAPPED] ===== UPLOAD DETAILS =====');
 
@@ -489,6 +470,43 @@ export default function UploadPage() {
 
         router.push('/wrapped/processing');
         return;
+      } catch (mockErr) {
+        console.error('[WRAPPED] Mock upload error:', mockErr);
+        setError('Mock upload failed');
+        setLoading(false);
+        return;
+      }
+    }
+
+    try {
+      // Get auth token and user
+      const token = await getAuthToken(supabase);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!token || !user) {
+        throw new Error('Not authenticated. Please log in again.');
+      }
+
+      // Save profile data from URL params if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const name = urlParams.get('name');
+      const city = urlParams.get('city');
+
+      if (name && city) {
+        console.log(`[WRAPPED] Saving profile for ${user.id}: ${name}, ${city}`);
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: name,
+            city: city,
+          })
+          .eq('id', user.id);
+
+        if (profileError) {
+          console.error('[WRAPPED] Failed to save profile:', profileError);
+          // We continue anyway, as the photos are more important, 
+          // but logging it is good for debugging.
+        }
       }
 
       console.log(`[WRAPPED] Starting upload: ${photos.length} photos, batch_id: ${batchId}`);
@@ -657,43 +675,20 @@ export default function UploadPage() {
           </div>
 
           <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
-            Upload pics of you from this year!
+            Upload 10+ fit pics from the past year.
           </h1>
           <p className="text-gray-500 text-md mb-8">
-            We&apos;ll analyze your outfits automatically from any photo. Pick at least 10 pictures for us to work with.
+            If you&apos;re using pictures with other people in the foreground, you can crop them out here.
           </p>
 
-          {/* Tips & Upload area - hidden during upload */}
+          {/* Upload area - hidden during upload */}
           <AnimatePresence>
             {!loading && (
               <motion.div
-                initial={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                transition={{
-                  duration: 0.5,
-                  ease: [0.4, 0, 0.2, 1],
-                  opacity: { duration: 0.3 },
-                  height: { duration: 0.5, delay: 0.1 }
-                }}
-                className="overflow-hidden"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
               >
-                {/* Tips */}
-                <div className="space-y-4 mb-10">
-                  <div className="flex gap-3 items-start">
-                    <div className="w-1 h-1 rounded-full bg-amber-400 mt-2.5 shrink-0" />
-                    <p className="text-gray-600 text-sm leading-relaxed font-semibold">
-                      Prefer pictures that get your outfit clearly.
-                    </p>
-                  </div>
-                  <div className="flex gap-3 items-start">
-                    <div className="w-1 h-1 rounded-full bg-amber-400 mt-2.5 shrink-0" />
-                    <p className="text-gray-600 text-sm leading-relaxed font-semibold">
-                      Solo pictures are best. If using a group photo, tap to crop yourself out.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Upload area */}
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors mb-4"

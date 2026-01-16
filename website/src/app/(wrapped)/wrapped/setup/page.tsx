@@ -20,27 +20,31 @@ export default function SetupPage() {
   // Check auth and load URL params on mount
   useEffect(() => {
     const checkAuth = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const isDev = process.env.NODE_ENV === 'development';
+      const isMock = isDev && params.get('mock') === 'true';
+
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      
+      if (!user && !isMock) {
         router.push('/wrapped');
         return;
       }
 
-      // Track setup page view
-      // console.log('[Setup] About to track setup_viewed, posthog:', !!posthog, 'user:', user?.id);
-      if (posthog) {
-        posthog.capture('wrapped_setup_viewed', {
-          user_id: user.id,
-          email: user.email
-        });
-        // console.log('[Setup] wrapped_setup_viewed event captured');
-      } else {
-        console.log('[Setup] PostHog not available');
+      if (isMock && !user) {
+        setEmail('test@example.com');
+      } else if (user) {
+        // Track setup page view
+        if (posthog) {
+          posthog.capture('wrapped_setup_viewed', {
+            user_id: user.id,
+            email: user.email
+          });
+        }
+        setEmail(user.email || null);
       }
-      setEmail(user.email || null);
 
       // Load existing name/city from URL if present (e.g. when coming back from upload)
-      const params = new URLSearchParams(window.location.search);
       const urlName = params.get('name');
       const urlCity = params.get('city');
       if (urlName) setName(urlName);

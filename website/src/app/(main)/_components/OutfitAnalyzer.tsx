@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { outfitExamples, ClothingItem } from '../data/outfitData';
+import { outfitExamples, ClothingItem } from '../../data/outfitData';
 
 const ANALYZING_MESSAGES = [
   "Fanagling",
@@ -95,8 +95,8 @@ export default function OutfitAnalyzer() {
   };
 
   return (
-    <section ref={sectionRef} className="w-full py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4">
+    <div ref={sectionRef} className="w-full">
+      <div className="w-full">
         <div className={`text-center mb-16 ${isVisible ? 'animate-fly-in-left' : 'opacity-0'}`}>
           <h2 className="text-4xl md:text-6xl font-display mb-4 text-gray-800">
             Aesthetic Intelligence.
@@ -280,6 +280,6 @@ export default function OutfitAnalyzer() {
           </p>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

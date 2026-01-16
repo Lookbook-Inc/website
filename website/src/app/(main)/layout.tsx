@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Navigation from "../components/Navigation";
 
 export const metadata: Metadata = {
   title: "Lookbook - Home",
@@ -13,7 +12,6 @@ export default function MainLayout({
 }>) {
   return (
     <>
-      <Navigation />
       {children}
     </>
   );

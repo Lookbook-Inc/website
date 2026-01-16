@@ -2,7 +2,7 @@ export default function EditorialPoster() {
     return (
       <section
         className="
-          mx-auto max-w-sm w-full aspect-[4/5]
+          mx-auto max-w-lg w-full aspect-[4/5]
           relative px-6
           [container-type:inline-size]  /* enables cqw units inside */
           bg-transparent text-neutral-900

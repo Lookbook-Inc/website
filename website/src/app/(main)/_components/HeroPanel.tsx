@@ -1,27 +1,131 @@
+"use client";
+
 import Image from "next/image";
+import Link from "next/link";
+import { motion, useMotionValue, useSpring, useMotionTemplate, animate } from "framer-motion";
+import { useRef, useEffect } from "react";
 
 export function HeroPanel() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Motion values for mouse position and spotlight size
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const spotlightSize = useMotionValue(0);
+
+  // Smooth springs to make the movement feel "heavy" and premium
+  const smoothX = useSpring(mouseX, { damping: 50, stiffness: 300 });
+  const smoothY = useSpring(mouseY, { damping: 50, stiffness: 300 });
+
+  useEffect(() => {
+    // Set initial position to center
+    if (typeof window !== "undefined") {
+      mouseX.set(window.innerWidth / 2);
+      mouseY.set(window.innerHeight / 2);
+    }
+
+    // Animate spotlight size in with the background fade
+    animate(spotlightSize, 600, { 
+      duration: 1.5, 
+      delay: 0.4, 
+      ease: [0.23, 1, 0.32, 1] // Custom easeOutQuint for a smoother reveal
+    });
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      mouseX.set(e.clientX - rect.left);
+      mouseY.set(e.clientY - rect.top);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [mouseX, mouseY, spotlightSize]);
+
+  // Create the radial mask string using the animated spotlightSize
+  const maskImage = useMotionTemplate`radial-gradient(${spotlightSize}px circle at ${smoothX}px ${smoothY}px, black 0%, rgba(0,0,0,0.9) 10%, rgba(0,0,0,0.6) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.1) 70%, transparent 100%)`;
+
   return (
     <section className="h-screen w-full snap-start p-2 md:p-4">
-      <div className="relative h-full w-full rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden grid grid-cols-3">
-        {/* Images */}
-        <div className="relative">
-          <Image src="/images/man-tunnel.avif" alt="Hero image 1" fill className="object-cover" priority />
-        </div>
-        <div className="relative">
-          <Image src="/images/grey-girl.jpg" alt="Hero image 2" fill className="object-cover" priority />
-        </div>
-        <div className="relative">
-          <Image src="/images/green-girl.jpg" alt="Hero image 3" fill className="object-cover" priority />
-        </div>
+      <div 
+        ref={containerRef}
+        className="relative h-full w-full rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden bg-zinc-950"
+      >
+        {/* Layer 1: Blurred Background (Initial Fade-in) */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
+          className="relative h-full w-full"
+        >
+          <Image
+            src="/images/grey-girl.jpg"
+            alt="Hero image blurred"
+            fill
+            className="object-cover blur-md scale-105 opacity-50"
+            priority
+          />
+        </motion.div>
+        
+        {/* Navigation Links */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.2, delay: 0.8, ease: "easeOut" }}
+          className="absolute inset-0 pointer-events-none z-20"
+        >
+          {/* Top Left: Your Wrapped */}
+          <div className="absolute top-6 md:top-10 left-6 md:left-10 pointer-events-auto">
+            <Link 
+              href="/wrapped/" 
+              className="text-zinc-200 hover:text-zinc-600 font-mono text-xs md:text-sm tracking-[0.2em] uppercase transition-colors"
+            >
+              Your Wrapped
+            </Link>
+          </div>
+
+          {/* Top Right: Our Waitlist */}
+          <div className="absolute top-6 md:top-10 right-6 md:right-10 pointer-events-auto">
+            <Link 
+              href="#waitlist" 
+              className="text-zinc-400 hover:text-zinc-200 font-mono text-xs md:text-sm tracking-[0.2em] uppercase transition-colors"
+            >
+              Our Waitlist
+            </Link>
+          </div>
+
+          {/* Bottom Left: About */}
+          <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 pointer-events-auto">
+            <Link 
+              href="/about/" 
+              className="text-zinc-400 hover:text-zinc-200 font-mono text-xs md:text-sm tracking-[0.2em] uppercase transition-colors"
+            >
+              About
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Layer 2: Sharp Image (Revealed by Mouse) */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{ 
+            WebkitMaskImage: maskImage,
+            maskImage: maskImage 
+          }}
+        >
+          <Image
+            src="/images/grey-girl.jpg"
+            alt="Hero image sharp"
+            fill
+            className="object-cover blur-xs"
+            priority
+          />
+        </motion.div>
 
         {/* Central Text Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
           <div className="text-center">
-            <p className="text-xl md:text-4xl font-waitlist text-white drop-shadow-lg md:mb-4">
-              Studio Maven Presents
-            </p>
-            <h1 className="text-6xl md:text-[12cqw] font-display text-white drop-shadow-2xl mix-blend-exclusion">
+            <h1 className="text-6xl md:text-[12cqw] font-display text-zinc-200 mix-blend-difference">
               Lookbook
             </h1>
             <p className="text-xl md:text-4xl font-mono font-thin text-white drop-shadow-lg">

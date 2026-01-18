@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Image from "next/image";
-import PhotoCarousel from "../../components/PhotoCarousel";
+import PhotoCarousel from "../_components/PhotoCarousel";
 
 export const metadata: Metadata = {
   title: "About Us - Studio Maven",

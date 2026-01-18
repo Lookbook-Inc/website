@@ -22,9 +22,9 @@ export default function Phone({ screenSrc, alt, position, zIndex, delayClass, de
     <div
       className="absolute transition-all duration-1000 ease-in-out"
       style={{
-        left: `${position.x}px`,
+        left: '50%',
         top: `${position.y}px`,
-        transform: `rotate(${position.rotate}deg) scale(${position.scale})`,
+        transform: `translateX(-50%) translateX(${position.x}px) rotate(${position.rotate}deg) scale(${position.scale})`,
         zIndex,
         filter: depthBlur,
         opacity: depthOpacity,

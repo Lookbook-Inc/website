@@ -2,52 +2,43 @@ export default function EditorialPoster() {
     return (
       <section
         className="
-          mx-auto max-w-lg w-full aspect-[4/5]
+          w-full
           relative px-6
           [container-type:inline-size]  /* enables cqw units inside */
-          bg-transparent text-neutral-900
+          bg-transparent
+          text-white
         "
         aria-label="Lookbook pitch"
       >
-        <div className="grid grid-cols-100 grid-rows-125 h-full">
+        {/* negative margin because we're starting row 10 */}
+        <div className="grid grid-cols-100 grid-rows-100 w-full aspect-square mt-[-10%]">
           {/* Line 1 */}
-          <span className="col-start-1 col-end-101 self-start row-end-2
-                           font-waitlist font-medium leading-[0.95] tracking-[-0.01em]
-                           text-[29cqw] text-justify">
+          <span className="col-start-1 col-end-101 self-start row-end-10
+                           font-waitlist
+                           text-[28.0cqw] text-justify leading-none">
             If you take
           </span>
 
           {/* Line 2 */}
-          <span className="col-start-1 col-end-101 row-start-42 self-end
-                           font-waitlist font-medium leading-[0.95] tracking-[-0.01em]
-                           text-[21.7cqw] text-justify">
-            outfit pictures
+          <span className="col-start-1 col-end-101 row-start-68 self-end
+                           font-waitlist
+                           text-[29.9cqw] text-justify">
+            outfit pics
           </span>
   
           {/* Line 3 */}
-          <span className="col-start-1 col-end-101 row-start-58 self-end
-                           font-waitlist leading-[0.95]
+          <span className="col-start-1 col-end-101 row-start-83 self-end
+                           font-waitlist
                            text-[18.4cqw] text-justify">
             then we&apos;ve built
           </span>
 
           {/* Line 4 */}
-          <span className="col-start-1 col-end-101 row-start-72 self-end
-                           font-waitlist leading-[0.95]
-                           text-[13.7cqw] text-justify">
-            just the thing for you.
+          <span className="col-start-1 col-end-101 row-start-99 self-end
+                           font-waitlist
+                           text-[17cqw] text-justify">
+            the thing for you.
           </span>
-  
-          {/* Combined Lines 5-6 */}
-          <div className="col-start-1 col-end-101 self-start row-end-85
-                           font-sans leading-[1.2]
-                           text-lg space-y-5">
-            <p>It&apos;s simple.</p>
-            <p>We organize your outfit pics the same way Photos organizes faces.</p>
-            <p>No manual tagging, no extra steps.</p>
-            <p>Over time, we&apos;ll help you build a library of the clothes you wear.</p>
-          </div>
-
         </div>
       </section>
     );

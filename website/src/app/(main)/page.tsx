@@ -1,5 +1,5 @@
 import { HeroPanel } from "./_components/HeroPanel";
-import { PitchPanel } from "./_components/PitchPanel";
+import { EditorialPanel } from "./_components/EditorialPanel";
 import { DemoPanel } from "./_components/DemoPanel";
 import { BetaPanel } from "./_components/BetaPanel";
 import { SocialPanel } from "./_components/SocialPanel";
@@ -8,8 +8,12 @@ export default function Home() {
   return (
     <main className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
       <HeroPanel />
-      <PitchPanel />
-      <DemoPanel />
+      
+      <div className="flex flex-col md:flex-row md:h-screen md:snap-start p-0 md:p-4 gap-0 md:gap-4">
+        <EditorialPanel />
+        <DemoPanel />
+      </div>
+
       <BetaPanel />
       <SocialPanel />
     </main>

@@ -55,7 +55,7 @@ export function HeroPanel() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
+          transition={{ duration: 1.5, delay: 0.2, ease: "easeInOut" }}
           className="relative h-full w-full"
         >
           <Image
@@ -71,7 +71,7 @@ export function HeroPanel() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1.2, delay: 0.8, ease: "easeOut" }}
+          transition={{ duration: 1, delay: 1.0, ease: "easeOut" }}
           className="absolute inset-0 pointer-events-none z-20"
         >
           {/* Top Left: Your Wrapped */}

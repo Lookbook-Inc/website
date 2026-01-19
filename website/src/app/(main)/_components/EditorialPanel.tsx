@@ -17,10 +17,10 @@ export function EditorialPanel({ className = "" }: EditorialPanelProps) {
           priority
         />
         <div className="relative z-10 w-full px-10 flex flex-col items-center">
-          <div className="w-full max-w-md space-y-8">
+          <div className="w-full max-w-sm space-y-8">
             <EditorialPoster />
 
-            <div className="w-full font-mono text-sm md:text-base text-white space-y-4 px-6">
+            <div className="w-full font-mono text-sm md:text-sm text-zinc-400 space-y-4 px-6">
               <p className="font-bold uppercase tracking-wider">It&apos;s simple.</p>
               <div className="space-y-2">
                 <p>We help you track what you&apos;ve been wearing — your clothes, your aesthetics — from your fit pics. No extra steps.</p>

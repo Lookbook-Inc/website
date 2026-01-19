@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Phone from './Phone';
 
 interface PhoneData {
@@ -51,7 +52,7 @@ const mobilePositions = [
 
 export default function PhoneMockupGroup() {
   const [currentRotation, setCurrentRotation] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   // Check if we're on mobile
@@ -65,52 +66,81 @@ export default function PhoneMockupGroup() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Auto-rotate every 3 seconds (clockwise)
+  // Auto-rotate every 3 seconds (clockwise), paused if expanded
   useEffect(() => {
-    if (isPaused) return;
+    if (expandedIndex !== null) return;
 
     const interval = setInterval(() => {
       setCurrentRotation(prev => (prev + 1) % phoneScreens.length);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [expandedIndex]);
 
   const positions = isMobile ? mobilePositions : desktopPositions;
 
   return (
     <div
       className={`relative w-full h-full ${isMobile ? 'min-h-[400px]' : 'min-h-[600px]'}`}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
     >
+      {/* Dimmed Backdrop when a phone is expanded */}
+      <AnimatePresence>
+        {expandedIndex !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setExpandedIndex(null)}
+            className="fixed inset-0 z-[60] bg-[#fdfaf2]/60 backdrop-blur-sm cursor-zoom-out"
+          />
+        )}
+      </AnimatePresence>
+
       {phoneScreens.map((phone, index) => {
-        // Calculate which position this phone should be in (clockwise rotation)
-        const positionIndex = (index - currentRotation + phoneScreens.length) % phoneScreens.length;
-        const position = positions[positionIndex];
+        // Calculate which position this phone should be in
+        // (index + currentRotation) creates a natural forward circular flow
+        const positionIndex = (index + currentRotation) % phoneScreens.length;
+        const basePosition = positions[positionIndex];
+        const isExpanded = expandedIndex === index;
+        const someoneIsExpanded = expandedIndex !== null;
 
-        // Scale up only the front center phone (position index 2) when hovered
-        const isFrontCenter = positionIndex === 2;
-        const hoverScale = isMobile ? 0.8 : 1.15; // Smaller hover effect on mobile
-        const currentScale = isFrontCenter && isPaused ? hoverScale : position.scale;
+        // Visual state logic
+        let currentPos = { ...basePosition };
+        let zIndex = basePosition.zIndex;
+        let opacity = someoneIsExpanded && !isExpanded ? 0.3 : (basePosition.zIndex <= 30 ? 0.7 : 1);
+        let blur = someoneIsExpanded && !isExpanded ? 'blur(4px)' : (basePosition.zIndex <= 30 ? 'blur(1px)' : 'blur(0px)');
 
-        // Create depth effects based on z-index
-        const isBackground = position.zIndex <= 30; // Back phones (lowest z-index)
-        const depthBlur = isBackground ? 'blur(1px)' : 'blur(0px)';
-        const depthOpacity = isBackground ? 0.7 : 1;
-
-        const delayClasses = ['', 'animate-delay-200', 'animate-delay-400', 'animate-delay-600', 'animate-delay-800'];
+        if (isExpanded) {
+          currentPos = { 
+            x: 0, 
+            y: isMobile ? 20 : 0, 
+            rotate: 0, 
+            scale: isMobile ? 0.9 : 1.3,
+            zIndex: 100
+          };
+          zIndex = 100;
+          opacity = 1;
+          blur = 'blur(0px)';
+        }
 
         return (
           <Phone
             key={`${phone.alt}-${index}`}
+            index={index}
             screenSrc={phone.screenSrc}
             alt={phone.alt}
-            position={{ ...position, scale: currentScale }}
-            zIndex={position.zIndex}
-            delayClass={delayClasses[index] || ''}
-            depthBlur={depthBlur}
-            depthOpacity={depthOpacity}
+            position={currentPos}
+            zIndex={zIndex}
+            depthBlur={blur}
+            depthOpacity={opacity}
+            isExpanded={isExpanded}
+            onClick={() => {
+              if (isExpanded) {
+                setExpandedIndex(null);
+              } else {
+                setExpandedIndex(index);
+              }
+            }}
           />
         );
       })}

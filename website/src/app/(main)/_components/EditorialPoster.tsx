@@ -21,7 +21,7 @@ export default function EditorialPoster() {
 
           {/* Line 2 */}
           <span className="col-start-1 col-end-101 row-start-68 self-end
-                           font-waitlist
+                           font-waitlist text-[#D1BB99]
                            text-[29.9cqw] text-justify">
             outfit pics
           </span>

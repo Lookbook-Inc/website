@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface FormStatus {
   type: 'idle' | 'loading' | 'success' | 'error';
@@ -18,7 +19,6 @@ export default function WaitlistForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setStatus({ type: 'loading', message: '' });
 
     try {
@@ -35,26 +35,25 @@ export default function WaitlistForm() {
       if (response.ok) {
         setStatus({
           type: 'success',
-          message: 'Thank you! You\'ve been added to our waitlist.'
+          message: 'Thank you! You\'ve been added.'
         });
         setEmail('');
       } else {
         setStatus({
           type: 'error',
-          message: data.error || 'Failed to join waitlist. Please try again.'
+          message: data.error || 'Failed to join.'
         });
       }
     } catch {
       setStatus({
         type: 'error',
-        message: 'Network error. Please check your connection and try again.'
+        message: 'Network error. Please try again.'
       });
     }
   };
 
   useEffect(() => {
     if (isRevealed) {
-      // Focus the input once the field is revealed
       const frame = requestAnimationFrame(() => {
         inputRef.current?.focus();
       });
@@ -63,74 +62,67 @@ export default function WaitlistForm() {
   }, [isRevealed]);
 
   return (
-    <div className="max-w-md mx-auto md:mx-0">
-      {/* Step 1: CTA button */}
-      <button
-        type="button"
-        onClick={() => setIsRevealed(true)}
-        className={`px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-sans flex items-center gap-2 ${
-          isRevealed ? 'hidden' : 'inline-flex'
-        }`}
-        aria-expanded={isRevealed}
-        aria-controls="waitlist-form-fields"
-      >
-        Join Waitlist
-      </button>
-
-      {/* Step 2: Revealable form */}
-      <div
-        id="waitlist-form-fields"
-        className={`transition-all duration-300 ${
-          isRevealed
-            ? 'opacity-100 translate-y-0 max-h-[500px] mt-4'
-            : 'opacity-0 -translate-y-1 max-h-0 overflow-hidden pointer-events-none'
-        }`}
-      >
-        {/* Status Message */}
-        {status.message && status.type !== 'loading' && (
-          <div className={`p-4 rounded-md mb-4 ${
-            status.type === 'success'
-              ? 'bg-green-50 text-green-800 border border-green-200'
-              : status.type === 'error'
-              ? 'bg-red-50 text-red-800 border border-red-200'
-              : 'bg-blue-50 text-blue-800 border border-blue-200'
-          }`}>
-            {status.message}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              ref={inputRef}
-              type="email"
-              placeholder="Enter your email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={status.type === 'loading'}
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-800 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
-            <button
-              type="submit"
-              disabled={status.type === 'loading'}
-              className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-sans disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {status.type === 'loading' ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Joining...
-                </>
-              ) : (
-                'Join Waitlist'
+    <div className="relative flex flex-col items-center w-full">
+      <AnimatePresence mode="wait">
+        {!isRevealed ? (
+          <motion.button
+            key="cta-button"
+            initial={{ opacity: 0, scale: 0.9, x: -20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.9, x: 20 }}
+            type="button"
+            onClick={() => setIsRevealed(true)}
+            className="px-10 py-4 bg-black text-white rounded-full hover:bg-zinc-900 transition-all duration-300 font-mono text-xs tracking-widest uppercase flex items-center gap-2 shadow-xl hover:scale-105 active:scale-95 whitespace-nowrap"
+          >
+            I'm interested!
+          </motion.button>
+        ) : (
+          <motion.div
+            key="reveal-form"
+            initial={{ opacity: 0, width: 0, x: -20 }}
+            animate={{ opacity: 1, width: "100%", x: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="w-full max-w-lg"
+          >
+            {/* Status Message */}
+            <AnimatePresence>
+              {status.message && status.type !== 'loading' && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-3 rounded-2xl mb-4 font-sans text-xs text-center backdrop-blur-md border ${
+                    status.type === 'success'
+                      ? 'bg-green-500/10 text-green-900 border-green-500/20'
+                      : 'bg-red-500/10 text-red-900 border-red-500/20'
+                  }`}
+                >
+                  {status.message}
+                </motion.div>
               )}
-            </button>
-          </div>
-        </form>
-      </div>
+            </AnimatePresence>
+
+            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
+              <input
+                ref={inputRef}
+                type="email"
+                placeholder="YOUR@EMAIL.COM"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={status.type === 'loading'}
+                className="flex-1 px-6 py-4 rounded-full border border-black/10 bg-white/60 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-black/5 text-black placeholder:text-black/30 font-mono text-sm disabled:opacity-50 transition-all"
+              />
+              <button
+                type="submit"
+                disabled={status.type === 'loading'}
+                className="px-8 py-4 bg-black text-white rounded-full hover:bg-zinc-900 transition-all duration-300 font-mono text-xs tracking-widest uppercase disabled:bg-zinc-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:scale-105 active:scale-95"
+              >
+                {status.type === 'loading' ? '...' : 'Submit'}
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,45 +1,82 @@
 'use client';
 
 import Image from 'next/image';
+import { motion } from 'framer-motion';
+
+interface Position {
+  x: number;
+  y: number;
+  rotate: number;
+  scale: number;
+  zIndex: number;
+}
 
 interface PhoneProps {
   screenSrc: string;
   alt: string;
-  position: {
-    x: number; // pixels from left
-    y: number; // pixels from top
-    rotate: number; // rotation in degrees
-    scale: number; // scale factor (1.0 = normal)
-  };
+  position: Position;
   zIndex: number;
-  delayClass: string; // CSS delay class
-  depthBlur?: string; // CSS blur filter
-  depthOpacity?: number; // Opacity for depth effect
+  index: number;
+  depthBlur?: string;
+  depthOpacity?: number;
+  onClick?: () => void;
+  isExpanded?: boolean;
 }
 
-export default function Phone({ screenSrc, alt, position, zIndex, delayClass, depthBlur = 'blur(0px)', depthOpacity = 1 }: PhoneProps) {
+export default function Phone({ 
+  screenSrc, 
+  alt, 
+  position, 
+  zIndex, 
+  index,
+  depthBlur = 'blur(0px)', 
+  depthOpacity = 1,
+  onClick,
+  isExpanded = false
+}: PhoneProps) {
   return (
-    <div
-      className="absolute transition-all duration-1000 ease-in-out"
-      style={{
-        left: '50%',
-        top: `${position.y}px`,
-        transform: `translateX(-50%) translateX(${position.x}px) rotate(${position.rotate}deg) scale(${position.scale})`,
-        zIndex,
-        filter: depthBlur,
+    <motion.div
+      animate={{
+        x: position.x,
+        y: position.y,
+        rotate: position.rotate,
+        scale: position.scale,
         opacity: depthOpacity,
+        zIndex: zIndex,
       }}
+      transition={{
+        type: "spring",
+        stiffness: 150, // Slightly snappier but still smooth
+        damping: 28,
+        mass: 1,
+      }}
+      style={{
+        position: 'absolute',
+        left: '50%',
+        translateX: '-50%',
+        filter: depthBlur, // Move filter here to avoid costly interpolation during spring animation
+        willChange: 'transform', // Hint to browser to use GPU
+      }}
+      onClick={onClick}
+      className={`cursor-pointer origin-center ${isExpanded ? 'z-[100]' : ''}`}
+      whileHover={!isExpanded ? { 
+        scale: position.scale * 1.05,
+        y: position.y - 15,
+        transition: { duration: 0.2, type: "tween" } 
+      } : {}}
+      whileTap={{ scale: 0.98 }}
     >
-      {/* Phone Frame + Screen */}
-      <div className={`relative w-72 h-[580px] animate-fly-in-right ${delayClass}`}>
+      <div className="relative w-72 h-[580px]">
         <Image
           src={screenSrc}
           alt={alt}
           fill
-          className="object-contain drop-shadow-2xl"
+          className={`object-contain transition-all duration-700 ${
+            isExpanded ? 'drop-shadow-[0_40px_80px_rgba(0,0,0,0.4)]' : 'drop-shadow-2xl'
+          }`}
           priority
         />
       </div>
-    </div>
+    </motion.div>
   );
 }

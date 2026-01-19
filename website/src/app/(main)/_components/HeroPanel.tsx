@@ -46,7 +46,7 @@ export function HeroPanel() {
   const maskImage = useMotionTemplate`radial-gradient(${spotlightSize}px circle at ${smoothX}px ${smoothY}px, black 0%, rgba(0,0,0,0.9) 10%, rgba(0,0,0,0.6) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.1) 70%, transparent 100%)`;
 
   return (
-    <section className="h-screen w-full snap-start p-2 md:p-4">
+    <section className="h-screen w-full snap-start snap-always p-2 md:p-4">
       <div 
         ref={containerRef}
         className="relative h-full w-full rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden bg-zinc-950"

@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export function SocialPanel() {
   return (
-    <section className="h-screen w-full snap-start p-2 md:p-4 overflow-hidden">
+    <section className="h-screen w-full snap-start snap-always p-2 md:p-4 overflow-hidden">
       <div 
         className="relative h-full w-full rounded-[2.5rem] md:rounded-[3.5rem] flex flex-col items-center justify-center py-12 md:py-20 bg-[#0A0A0A] text-white overflow-hidden"
       >

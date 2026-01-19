@@ -9,7 +9,7 @@ export default function Home() {
     <main className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
       <HeroPanel />
       
-      <div className="flex flex-col md:flex-row md:h-screen md:snap-start p-0 md:p-4 gap-0 md:gap-4">
+      <div className="flex flex-col md:flex-row md:h-screen md:snap-start md:snap-always p-0 md:p-4 gap-0 md:gap-4">
         <EditorialPanel />
         <DemoPanel />
       </div>

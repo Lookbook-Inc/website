@@ -3,7 +3,7 @@ import WaitlistForm from "./WaitlistForm";
 
 export function BetaPanel() {
   return (
-    <section id="waitlist" className="h-screen w-full snap-start p-2 md:p-4">
+    <section id="waitlist" className="h-screen w-full snap-start snap-always p-2 md:p-4">
       <div 
         className="relative h-full w-full rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden flex items-center justify-center"
       >

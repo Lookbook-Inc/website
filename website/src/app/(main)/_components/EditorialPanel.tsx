@@ -7,7 +7,7 @@ interface EditorialPanelProps {
 
 export function EditorialPanel({ className = "" }: EditorialPanelProps) {
   return (
-    <section className={`h-screen md:h-full w-full md:w-1/2 snap-start md:snap-none p-2 md:p-0 ${className}`}>
+    <section className={`h-screen md:h-full w-full md:w-1/2 snap-start snap-always md:snap-none p-2 md:p-0 ${className}`}>
       <div className="relative h-full w-full rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden bg-black border border-black/5 flex items-center justify-center">
         <Image
           src="/images/dark-paper-texture.avif"

@@ -26,7 +26,6 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), sans-serif;
-  overflow-y: scroll; /* Always show scrollbar space to prevent layout shift */
 }
 
 code, pre, kbd, samp {
@@ -97,6 +96,16 @@ code, pre, kbd, samp {
 
 .animate-slide-fade-in {
   animation: slide-fade-in 0.5s ease-out forwards;
+}
+
+/* Infinite Marquee */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
 }
 
 /* Animated ellipses */

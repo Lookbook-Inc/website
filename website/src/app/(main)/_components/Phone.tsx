@@ -53,7 +53,9 @@ export default function Phone({
         left: '50%',
         translateX: '-50%',
         filter: depthBlur, // Move filter here to avoid costly interpolation during spring animation
-        willChange: 'transform', // Hint to browser to use GPU
+        willChange: 'transform, opacity, filter', // Hint to browser to use GPU
+        backfaceVisibility: 'hidden', // Forces GPU layer
+        transformStyle: 'preserve-3d', // Further encourages hardware acceleration
       }}
       onClick={onClick}
       className={`cursor-pointer origin-center ${isExpanded ? 'z-[100]' : ''}`}

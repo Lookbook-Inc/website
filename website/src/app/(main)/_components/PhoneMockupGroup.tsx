@@ -11,23 +11,23 @@ interface PhoneData {
 
 const phoneScreens: PhoneData[] = [
   {
-    screenSrc: "/images/iphone-graphics/home-for-website.svg",
+    screenSrc: "/images/iphone-graphics/pngs/homeView.png",
     alt: "Home app screen"
   },
   {
-    screenSrc: "/images/iphone-graphics/photos-for-website.svg",
+    screenSrc: "/images/iphone-graphics/pngs/galleryView.png",
     alt: "Photos app screen"
   },
   {
-    screenSrc: "/images/iphone-graphics/streetwear-for-website.svg",
+    screenSrc: "/images/iphone-graphics/pngs/aestheticView.png",
     alt: "Streetwear app screen"
   },
   {
-    screenSrc: "/images/iphone-graphics/wardrobe-for-website.svg",
+    screenSrc: "/images/iphone-graphics/pngs/wardrobeView.png",
     alt: "Wardrobe app screen"
   },
   {
-    screenSrc: "/images/iphone-graphics/ClothingDetailView.svg",
+    screenSrc: "/images/iphone-graphics/pngs/itemDetailView.png",
     alt: "Clothing detail view screen"
   }
 ];

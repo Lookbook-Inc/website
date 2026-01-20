@@ -126,7 +126,6 @@ export default function PhoneMockupGroup() {
         return (
           <Phone
             key={`${phone.alt}-${index}`}
-            index={index}
             screenSrc={phone.screenSrc}
             alt={phone.alt}
             position={currentPos}

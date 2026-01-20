@@ -16,7 +16,6 @@ interface PhoneProps {
   alt: string;
   position: Position;
   zIndex: number;
-  index: number;
   depthBlur?: string;
   depthOpacity?: number;
   onClick?: () => void;
@@ -28,7 +27,6 @@ export default function Phone({
   alt, 
   position, 
   zIndex, 
-  index,
   depthBlur = 'blur(0px)', 
   depthOpacity = 1,
   onClick,

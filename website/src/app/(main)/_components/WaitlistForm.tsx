@@ -74,7 +74,7 @@ export default function WaitlistForm() {
             onClick={() => setIsRevealed(true)}
             className="px-10 py-4 bg-black text-white rounded-full hover:bg-zinc-900 transition-all duration-300 font-mono text-xs tracking-widest uppercase flex items-center gap-2 shadow-xl hover:scale-105 active:scale-95 whitespace-nowrap"
           >
-            I'm interested!
+            I&apos;m interested!
           </motion.button>
         ) : (
           <motion.div

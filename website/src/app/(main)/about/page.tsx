@@ -6,6 +6,25 @@ import { PrivacyPanel } from "./_components/PrivacyPanel";
 export const metadata: Metadata = {
   title: "About Us - Lookbook",
   description: "Meet the team behind Lookbook and learn about our mission.",
+  openGraph: {
+    title: "About Us - Lookbook",
+    description: "Meet the team behind Lookbook and learn about our mission.",
+    images: [
+      {
+        url: "/images/unfurl-card.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Lookbook - Your Style Anthology",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About Us - Lookbook",
+    description: "Meet the team behind Lookbook and learn about our mission.",
+    images: ["/images/unfurl-card.jpg"],
+  },
 };
 
 export default function About() {

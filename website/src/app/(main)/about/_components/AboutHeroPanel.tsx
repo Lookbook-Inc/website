@@ -69,7 +69,7 @@ export function AboutHeroPanel() {
                 We&apos;re best friends who met in college <a href="https://open.spotify.com/artist/0jXr3CLA2HMJ3E7rVoPqGY?si=uT3OY6ReSnK_yn_Bt6fPGg" target="_blank" rel="noopener noreferrer" className="underline hover:text-black transition-colors">a cappella</a>, trying to solve the fashion problems that we &mdash; and maybe you &mdash; share.
               </p>
               <p className="text-sm font-mono font-thin text-black/60 max-w-2xl mx-auto tracking-wide leading-loose">
-                We&apos;re both technical builders, but we come from liberal arts backgrounds. We&apos;re betting that by <strong>putting the human experience first</strong>, we can create something that people fall in love with.
+                We&apos;re both technical builders, but we come from liberal arts backgrounds. We want to show that by <strong>putting the human experience first</strong>, we can create something that people fall in love with.
               </p>
             </div>
           </div>

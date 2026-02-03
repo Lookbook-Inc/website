@@ -18,7 +18,7 @@ export default function UploadPage() {
 
   // Photo state
   const [photos, setPhotos] = useState<File[]>([]);
-  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<(string | null)[]>([]);
   const [resizedBlobs, setResizedBlobs] = useState<(Blob | null)[]>([]); // Store resized JPEGs for upload
 
   // Cropping state
@@ -37,11 +37,16 @@ export default function UploadPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [unconvertedPhotoIndices, setUnconvertedPhotoIndices] = useState<Set<number>>(new Set());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mock upload mode
   const [mockMode, setMockMode] = useState(false);
+
+  // Constants
+  const MAX_FILE_SIZE_MB = 10;
+  const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
   // Check auth on mount
   useEffect(() => {
@@ -95,7 +100,7 @@ export default function UploadPage() {
 
 
   // Resize image for preview (reduces memory usage on mobile)
-  const resizeImageForPreview = async (file: File): Promise<{ url: string; blob: Blob; originalSize: number; resizedSize: number }> => {
+  const resizeImageForPreview = async (file: File): Promise<{ url: string | null; blob: Blob | null; originalSize: number; resizedSize: number; failed: boolean }> => {
     // Check if file is HEIC and convert to JPEG first
     const isHEIC = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
     let fileToProcess = file;
@@ -118,7 +123,14 @@ export default function UploadPage() {
         console.log(`[WRAPPED] ✅ HEIC converted successfully`);
       } catch (err) {
         console.error(`[WRAPPED] Failed to convert HEIC ${file.name}:`, err);
-        throw new Error(`Failed to convert HEIC file ${file.name}`);
+        // Return failed result instead of throwing - we'll send original to backend
+        return {
+          url: null,
+          blob: null,
+          originalSize: file.size,
+          resizedSize: file.size,
+          failed: true
+        };
       }
     }
 
@@ -175,7 +187,7 @@ export default function UploadPage() {
                 const resizedKB = blob.size / 1024;
                 const savings = ((1 - blob.size / file.size) * 100).toFixed(0);
                 // console.log(`[WRAPPED] ${file.name}: ${originalKB.toFixed(0)}KB → ${resizedKB.toFixed(0)}KB (${savings}% smaller)`);
-                resolve({ url, blob, originalSize: file.size, resizedSize: blob.size });
+                resolve({ url, blob, originalSize: file.size, resizedSize: blob.size, failed: false });
               } else {
                 reject(new Error('Failed to create blob'));
               }
@@ -198,9 +210,19 @@ export default function UploadPage() {
       const files = Array.from(e.target.files || []);
       if (files.length === 0) return;
 
+      // Validate file sizes
+      const oversizedFiles = files.filter(f => f.size > MAX_FILE_SIZE_BYTES);
+      if (oversizedFiles.length > 0) {
+        const fileNames = oversizedFiles.map(f => f.name).join(', ');
+        setError(`⚠️ ${oversizedFiles.length} file(s) exceed ${MAX_FILE_SIZE_MB}MB limit and were skipped: ${fileNames}`);
+        // Remove oversized files from the list
+        const validFiles = files.filter(f => f.size <= MAX_FILE_SIZE_BYTES);
+        if (validFiles.length === 0) return;
+      }
+
       // Calculate how many new photos we can add
       const availableSlots = 24 - photos.length;
-      const filesToAdd = files.slice(0, availableSlots);
+      const filesToAdd = files.filter(f => f.size <= MAX_FILE_SIZE_BYTES).slice(0, availableSlots);
 
       if (filesToAdd.length === 0) return; // Already at limit
 
@@ -212,39 +234,32 @@ export default function UploadPage() {
           } catch (err) {
             console.error(`[WRAPPED] Failed to process ${file.name}:`, err);
 
-            // If it's a HEIC file that failed to convert, skip it
-            const isHEIC = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
-            if (isHEIC) {
-              console.warn(`[WRAPPED] ⚠️ Skipping unsupported HEIC file: ${file.name}`);
-              return null;
-            }
-
             // For non-HEIC files that fail, try using original as fallback
             const blob = new Blob([file], { type: file.type });
-            return { url: URL.createObjectURL(blob), blob, originalSize: file.size, resizedSize: file.size };
+            return { url: URL.createObjectURL(blob), blob, originalSize: file.size, resizedSize: file.size, failed: false };
           }
         })
       );
 
-      // Filter out failed HEIC files
-      const successfulResults = results.filter((r): r is NonNullable<typeof r> => r !== null);
-      const failedCount = results.length - successfulResults.length;
-
-      // Only add successfully processed files to photos array
-      const successfulFiles = filesToAdd.filter((_, index) => results[index] !== null);
-      const newPhotos = [...photos, ...successfulFiles];
+      // Add all files to photos array (including unconverted ones)
+      const newPhotos = [...photos, ...filesToAdd];
       setPhotos(newPhotos);
 
-      if (failedCount > 0) {
-        setError(`⚠️ ${failedCount} HEIC file(s) could not be processed and were skipped. For best results, convert photos to JPG/PNG`);
-      } else if (error) {
-        // Clear any previous errors if all photos processed successfully
-        setError(null);
-      }
+      // Track which photos couldn't be converted (will show placeholder)
+      const currentPhotoCount = photos.length;
+      const newUnconvertedIndices = new Set(unconvertedPhotoIndices);
+      results.forEach((result, index) => {
+        if (result.failed) {
+          newUnconvertedIndices.add(currentPhotoCount + index);
+        }
+      });
+      setUnconvertedPhotoIndices(newUnconvertedIndices);
+
+      const unconvertedCount = results.filter(r => r.failed).length;
 
       // Calculate totals
-      const totalOriginal = successfulResults.reduce((sum, r) => sum + r.originalSize, 0);
-      const totalResized = successfulResults.reduce((sum, r) => sum + r.resizedSize, 0);
+      const totalOriginal = results.reduce((sum, r) => sum + r.originalSize, 0);
+      const totalResized = results.reduce((sum, r) => sum + r.resizedSize, 0);
       const totalSavings = totalOriginal > 0 ? ((1 - totalResized / totalOriginal) * 100).toFixed(0) : '0';
 
       // console.log(`\n[WRAPPED] 📊 COMPRESSION SUMMARY:`);
@@ -252,18 +267,18 @@ export default function UploadPage() {
       // console.log(`[WRAPPED] Compressed total: ${(totalResized / 1048576).toFixed(2)} MB`);
       // console.log(`[WRAPPED] Total savings: ${totalSavings}% smaller\n`);
 
-      const newUrls = successfulResults.map(r => r.url);
-      const newBlobs = successfulResults.map(r => r.blob);
+      const newUrls = results.map(r => r.url);
+      const newBlobs = results.map(r => r.blob);
 
       setPhotoPreviewUrls([...photoPreviewUrls, ...newUrls]);
       setResizedBlobs([...resizedBlobs, ...newBlobs]);
 
-      // Initialize cropped photos array with nulls for new successful photos
-      const newCroppedPhotos = [...croppedPhotos, ...new Array(successfulResults.length).fill(null)];
+      // Initialize cropped photos array with nulls for new photos
+      const newCroppedPhotos = [...croppedPhotos, ...new Array(results.length).fill(null)];
       setCroppedPhotos(newCroppedPhotos);
 
-      // Initialize crop selections array with undefined for new successful photos
-      const newCropSelections = [...cropSelections, ...new Array(successfulResults.length).fill(undefined)];
+      // Initialize crop selections array with undefined for new photos
+      const newCropSelections = [...cropSelections, ...new Array(results.length).fill(undefined)];
       setCropSelections(newCropSelections);
 
       // Track photos selected
@@ -271,8 +286,9 @@ export default function UploadPage() {
         const totalSizeMB = totalResized / (1024 * 1024);
         posthog.capture('wrapped_photos_selected', {
           photo_count: newPhotos.length,
-          new_photos_count: successfulResults.length,
-          total_size_mb: parseFloat(totalSizeMB.toFixed(2))
+          new_photos_count: results.length,
+          total_size_mb: parseFloat(totalSizeMB.toFixed(2)),
+          unconverted_count: unconvertedCount
         });
       }
     } catch (err) {
@@ -282,12 +298,28 @@ export default function UploadPage() {
   };
 
   const removePhoto = (index: number) => {
-    URL.revokeObjectURL(photoPreviewUrls[index]);
+    // Revoke URL if it exists
+    if (photoPreviewUrls[index]) {
+      URL.revokeObjectURL(photoPreviewUrls[index]);
+    }
+
     setPhotos(photos.filter((_, i) => i !== index));
     setPhotoPreviewUrls(photoPreviewUrls.filter((_, i) => i !== index));
     setResizedBlobs(resizedBlobs.filter((_, i) => i !== index));
     setCroppedPhotos(croppedPhotos.filter((_, i) => i !== index));
     setCropSelections(cropSelections.filter((_, i) => i !== index));
+
+    // Update unconverted indices
+    const newUnconvertedIndices = new Set<number>();
+    unconvertedPhotoIndices.forEach(i => {
+      if (i < index) {
+        newUnconvertedIndices.add(i);
+      } else if (i > index) {
+        newUnconvertedIndices.add(i - 1); // Shift down
+      }
+      // If i === index, we don't add it (it's being removed)
+    });
+    setUnconvertedPhotoIndices(newUnconvertedIndices);
   };
 
   // --- Cropping handlers ---
@@ -367,7 +399,9 @@ export default function UploadPage() {
 
       // Update preview URL to show cropped version
       const newPreviewUrls = [...photoPreviewUrls];
-      URL.revokeObjectURL(newPreviewUrls[cropModalIndex]);
+      if (newPreviewUrls[cropModalIndex]) {
+        URL.revokeObjectURL(newPreviewUrls[cropModalIndex]!);
+      }
       newPreviewUrls[cropModalIndex] = URL.createObjectURL(croppedBlob);
       setPhotoPreviewUrls(newPreviewUrls);
 
@@ -516,14 +550,17 @@ export default function UploadPage() {
         const originalFile = photos[i];
         const resizedBlob = resizedBlobs[i];
         const croppedPhoto = croppedPhotos[i] || null;
+        const isUnconverted = unconvertedPhotoIndices.has(i);
 
         // Use resized JPEG blob for upload (not original file)
         // Convert Blob to File for upload
+        // If no resizedBlob (conversion failed), send original file to backend
         const photoToUpload = resizedBlob
           ? new File([resizedBlob], originalFile.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' })
           : originalFile;
 
-        console.log(`[WRAPPED] Uploading photo ${i + 1}/${photos.length}${croppedPhoto ? ' (cropped)' : ''} (${(photoToUpload.size / 1024).toFixed(0)}KB)`);
+        const statusText = isUnconverted ? ' (unconverted - backend will process)' : (croppedPhoto ? ' (cropped)' : '');
+        console.log(`[WRAPPED] Uploading photo ${i + 1}/${photos.length}${statusText} (${(photoToUpload.size / 1024).toFixed(0)}KB)`);
 
         try {
           await uploadPhoto(
@@ -544,6 +581,7 @@ export default function UploadPage() {
               photo_count: photos.length,
               file_size_kb: parseFloat((photoToUpload.size / 1024).toFixed(2)),
               is_cropped: !!croppedPhoto,
+              is_unconverted: isUnconverted,
               is_mock: false
             });
           }
@@ -561,6 +599,7 @@ export default function UploadPage() {
         posthog.capture('wrapped_upload_completed', {
           photo_count: photos.length,
           cropped_count: croppedCount,
+          unconverted_count: unconvertedPhotoIndices.size,
           batch_id: batchId,
           is_mock: false,
           upload_duration_seconds: parseFloat(uploadDuration.toFixed(2))
@@ -715,32 +754,56 @@ export default function UploadPage() {
           {/* Photo preview grid */}
           {photos.length > 0 && (
             <div className="grid grid-cols-3 gap-2 mb-4">
-              {photoPreviewUrls.map((url, index) => (
-                <div
-                  key={index}
-                  className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
-                  onClick={() => openCropModal(index)}
-                >
-                  <Image
-                    src={url}
-                    alt={`Outfit ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                  {/* Cropped indicator */}
-                  {croppedPhotos[index] && (
-                    <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-white text-[10px]">
-                      Cropped
-                    </div>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removePhoto(index); }}
-                    className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white text-xs"
+              {photoPreviewUrls.map((url, index) => {
+                const isUnconverted = unconvertedPhotoIndices.has(index);
+
+                return (
+                  <div
+                    key={index}
+                    className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                    onClick={() => !isUnconverted && openCropModal(index)}
                   >
-                    ×
-                  </button>
-                </div>
-              ))}
+                    {isUnconverted ? (
+                      // Placeholder for unconverted photos
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gray-200">
+                        <svg className="w-8 h-8 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {/* <span className="text-gray-500 text-[10px]">Preview unavailable</span> */}
+                      </div>
+                    ) : (
+                      <Image
+                        src={url!}
+                        alt={`Outfit ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    )}
+                    {/* Cropped indicator */}
+                    {croppedPhotos[index] && !isUnconverted && (
+                      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-white text-[10px]">
+                        Cropped
+                      </div>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removePhoto(index); }}
+                      className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Unconverted photos info */}
+          {unconvertedPhotoIndices.size > 0 && (
+            <div className="mb-4 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-amber-800 text-xs">Some photos can&apos;t be previewed here, but will upload just fine.</p>
             </div>
           )}
 

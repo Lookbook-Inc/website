@@ -178,9 +178,9 @@ export default function WrappedWizard() {
 
       <div className="px-6 pb-6 flex flex-col justify-between flex-1 min-h-0">
         <div>
-          <p className="text-gray-400 font-mono tracking-tight uppercase text-sm mb-2">Jan 1 to Jan 31</p>
+          <p className="text-gray-400 font-mono tracking-tight uppercase text-sm mb-2">Lookbook: A Style Snapshot</p>
           <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-6">
-            Your 2025 Styles,<br />Wrapped.
+            What do your fit pics say about you?
           </h1>
 
           <div className="space-y-4 mb-8">
@@ -284,7 +284,7 @@ export default function WrappedWizard() {
         {insights?.status === 'completed' ? (
           <>
             <p className="text-gray-500 text-md mb-8">
-              Your Lookbook Wrapped results are ready for you to view.
+              Your Style Snapshot is ready to view.
             </p>
             <button
               onClick={() => router.push(`/wrapped/results/${insights.share_code}`)}

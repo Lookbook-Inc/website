@@ -192,7 +192,7 @@ export const SummaryContent = ({
       } else {
         // On other devices, trigger download
         const link = document.createElement('a');
-        link.download = `lookbook-${results.userName.toLowerCase()}-2025.png`;
+        link.download = `lookbook-${results.userName.toLowerCase()}-style-snapshot.png`;
         link.href = dataUrl;
         link.click();
       }
@@ -224,7 +224,7 @@ export const SummaryContent = ({
       }
       const blob = new Blob([ab], { type: mimeString });
       
-      const file = new File([blob], `lookbook-${results.userName.toLowerCase()}-2025.png`, { 
+      const file = new File([blob], `lookbook-${results.userName.toLowerCase()}-style-snapshot.png`, { 
         type: 'image/png' 
       });
 
@@ -234,13 +234,13 @@ export const SummaryContent = ({
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `${results.userName}'s 2025 Lookbook Wrapped`,
+          title: `${results.userName}'s Lookbook Style Snapshot`,
           text: shareText,
         });
       } else if (navigator.share) {
         // Fallback: share without file (just text/url)
         await navigator.share({
-          title: `${results.userName}'s Lookbook 2025`,
+          title: `${results.userName}'s Lookbook Style Snapshot`,
           text: shareText,
           url: `https://${WRAPPED_URL}`,
         });

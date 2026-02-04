@@ -84,7 +84,7 @@ export default function SetupPage() {
             </div>
             <div className="flex-1 flex flex-col justify-center px-6">
               <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
-                Welcome to Lookbook Wrapped.
+                Welcome to your Lookbook Style Snapshot.
               </h1>
               <p className="text-gray-500 text-md mb-8">
                 What should we call you?
@@ -126,7 +126,7 @@ export default function SetupPage() {
                 Which city are you based in?
               </h1>
               <p className="text-gray-500 text-md mb-4">
-                We only use this to help personalize your Lookbook Wrapped for 2025 :)
+                We only use this to help personalize your Style Snapshot :)
               </p>
 
               <input

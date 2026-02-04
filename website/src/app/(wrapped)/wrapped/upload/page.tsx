@@ -714,7 +714,7 @@ export default function UploadPage() {
           </div>
 
           <h1 className="font-display text-4xl text-gray-900 leading-[1] mb-8">
-            Upload 10+ fit pics from the past year.
+            Upload 10+ fit pics.
           </h1>
           <p className="text-gray-500 text-md mb-8">
             If you&apos;re using pictures with other people in the foreground, you can crop them out here.

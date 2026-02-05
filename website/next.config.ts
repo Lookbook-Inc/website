@@ -13,6 +13,20 @@ const nextConfig: NextConfig = {
       },
     ]
   },
+  async redirects() {
+    return [
+      {
+        source: '/wrapped',
+        destination: '/snapshot',
+        permanent: true,
+      },
+      {
+        source: '/wrapped/:path*',
+        destination: '/snapshot/:path*',
+        permanent: true,
+      },
+    ]
+  },
   skipTrailingSlashRedirect: true,
 };
 

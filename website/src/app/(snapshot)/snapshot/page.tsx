@@ -38,7 +38,7 @@ export default function WrappedWizard() {
     try {
       const token = await getAuthToken(supabase);
       if (!token) {
-        router.push('/wrapped/setup');
+        router.push('/snapshot/setup');
         return;
       }
 
@@ -50,12 +50,12 @@ export default function WrappedWizard() {
       if (userInsights.status !== 'not_started') {
         setStep('exists');
       } else {
-        router.push('/wrapped/setup');
+        router.push('/snapshot/setup');
       }
     } catch (err) {
       console.error('Error checking insights status:', err);
       // On error, just go to setup as default
-      router.push('/wrapped/setup');
+      router.push('/snapshot/setup');
     } finally {
       setLoading(false);
     }
@@ -284,10 +284,10 @@ export default function WrappedWizard() {
         {insights?.status === 'completed' ? (
           <>
             <p className="text-gray-500 text-md mb-8">
-              Your Style Snapshot is ready to view.
+              View the snapshot of your style.
             </p>
             <button
-              onClick={() => router.push(`/wrapped/results/${insights.share_code}`)}
+              onClick={() => router.push(`/snapshot/results/${insights.share_code}`)}
               className="w-full bg-gray-900 text-white rounded-lg px-4 py-4 text-xl font-display transition-all hover:bg-gray-800 mb-4"
             >
               see your results →
@@ -299,7 +299,7 @@ export default function WrappedWizard() {
               We&apos;re still analyzing your style profile. We&apos;ll email you when it&apos;s ready!
             </p>
             <button
-              onClick={() => router.push('/wrapped/processing')}
+              onClick={() => router.push('/snapshot/processing')}
               className="w-full bg-gray-900 text-white rounded-lg px-4 py-4 text-xl font-display transition-all hover:bg-gray-800 mb-4"
             >
               check progress →
@@ -311,7 +311,7 @@ export default function WrappedWizard() {
               Welcome back! Ready to continue your style journey?
             </p>
             <button
-              onClick={() => router.push('/wrapped/setup')}
+              onClick={() => router.push('/snapshot/setup')}
               className="w-full bg-gray-900 text-white rounded-lg px-4 py-4 text-xl font-display transition-all hover:bg-gray-800 mb-4"
             >
               continue →

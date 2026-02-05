@@ -58,7 +58,7 @@ export default function UploadPage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user && !isMock) {
-        router.push('/wrapped');
+        router.push('/snapshot');
         return;
       }
 
@@ -419,7 +419,7 @@ export default function UploadPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push('/wrapped');
+    router.push('/snapshot');
   };
 
   const handleUpload = async () => {
@@ -502,7 +502,7 @@ export default function UploadPage() {
           });
         }
 
-        router.push('/wrapped/processing');
+        router.push('/snapshot/processing');
         return;
       } catch (mockErr) {
         console.error('[WRAPPED] Mock upload error:', mockErr);
@@ -607,7 +607,7 @@ export default function UploadPage() {
       }
 
       // Move to processing page
-      router.push('/wrapped/processing');
+      router.push('/snapshot/processing');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Upload failed. Please try again.';
       setError(message);
@@ -705,7 +705,7 @@ export default function UploadPage() {
             <button
               onClick={() => {
                 const params = new URLSearchParams(window.location.search);
-                router.push(`/wrapped/setup?${params.toString()}`);
+                router.push(`/snapshot/setup?${params.toString()}`);
               }}
               className="text-gray-400 text-[10px] hover:text-gray-600 transition-colors whitespace-nowrap"
             >

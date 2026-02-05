@@ -74,13 +74,13 @@ export function HeroPanel() {
           transition={{ duration: 1, delay: 1.0, ease: "easeOut" }}
           className="absolute inset-0 pointer-events-none z-20"
         >
-          {/* Top Left: Your Wrapped */}
+          {/* Top Left: Style Snapshot */}
           <div className="absolute top-6 md:top-10 left-6 md:left-10 pointer-events-auto">
-            <Link 
-              href="/wrapped/" 
+            <Link
+              href="/snapshot/"
               className="text-zinc-200 hover:text-zinc-600 font-mono text-xs md:text-sm tracking-[0.2em] uppercase transition-colors"
             >
-              Your Wrapped
+              Style Snapshot
             </Link>
           </div>
 

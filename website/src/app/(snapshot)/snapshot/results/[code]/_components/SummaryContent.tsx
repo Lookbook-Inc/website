@@ -5,7 +5,7 @@ import { domToPng } from 'modern-screenshot';
 import { WrappedResults } from '@/types/wrapped-frontend';
 import { NavigationFooter } from './NavigationFooter';
 
-const WRAPPED_URL = 'lookbook.inc/wrapped';
+const SNAPSHOT_URL = 'lookbook.inc/snapshot';
 
 interface SummaryContentProps {
   results: WrappedResults;
@@ -228,7 +228,7 @@ export const SummaryContent = ({
         type: 'image/png' 
       });
 
-      const shareText = `My top style was ${topStyle} and my palette was ${palette}. Try yours at ${WRAPPED_URL}`;
+      const shareText = `My top style was ${topStyle} and my palette was ${palette}. Try yours at ${SNAPSHOT_URL}`;
 
       // Check if we can share files
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -242,7 +242,7 @@ export const SummaryContent = ({
         await navigator.share({
           title: `${results.userName}'s Lookbook Style Snapshot`,
           text: shareText,
-          url: `https://${WRAPPED_URL}`,
+          url: `https://${SNAPSHOT_URL}`,
         });
       } else {
         // No share API - fallback to download

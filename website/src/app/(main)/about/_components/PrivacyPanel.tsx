@@ -25,7 +25,7 @@ export function PrivacyPanel() {
           
           <div className="max-w-2xl mx-auto space-y-8">
             <p className="text-sm md:text-md font-mono text-zinc-600 leading-relaxed">
-              We do not sell your information to anyone. We use your data only to provide the services you interact with (e.g. Lookbook or Wrapped). You can request deletion of your account and data with us at any time. For abuse prevention, our service providers may retain usage logs for no more than 60 days, which is industry standard. We&apos;re working to bring this number down to zero.
+              We do not sell your information to anyone. We use your data only to provide the services you interact with (e.g. Lookbook or Style Snapshot). You can request deletion of your account and data with us at any time. For abuse prevention, our service providers may retain usage logs for no more than 60 days, which is industry standard. We&apos;re working to bring this number down to zero.
             </p>
             
             <p className="text-sm md:text-md font-mono text-zinc-600 leading-relaxed">

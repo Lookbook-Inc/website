@@ -27,7 +27,7 @@ export default function SetupPage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user && !isMock) {
-        router.push('/wrapped');
+        router.push('/snapshot');
         return;
       }
 
@@ -61,12 +61,12 @@ export default function SetupPage() {
     params.append('name', name.trim());
     params.append('city', city.trim());
     
-    router.push(`/wrapped/upload?${params.toString()}`);
+    router.push(`/snapshot/upload?${params.toString()}`);
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push('/wrapped');
+    router.push('/snapshot');
   };
 
   return (

@@ -437,7 +437,7 @@ export default function ResultsPage({ params }: Props) {
         <div className="flex-1 flex flex-col pl-20 relative z-30 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="my-auto py-8">
             <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">
-              One piece anchored your outfits this year...
+              One piece anchored your outfits...
             </h3>
             
             <motion.div
@@ -1135,7 +1135,7 @@ export default function ResultsPage({ params }: Props) {
               animate={isActive ? "visible" : "hidden"}
               custom={0}
             >
-              We analyzed <span style={{ color: '#8F9779' }}>{results.total_outfits_analyzed}</span> of your
+              We analyzed <span style={{ color: '#8F9779' }}>{results.total_outfits_analyzed}</span> of your outfits
             </motion.span>
             <motion.span
               className="block"
@@ -1144,7 +1144,7 @@ export default function ResultsPage({ params }: Props) {
               animate={isActive ? "visible" : "hidden"}
               custom={1}
             >
-              outfits to uncover your
+              to take a <span style={{ color: '#8F9779' }}>snapshot</span> of
             </motion.span>
             <motion.span
               className="block"
@@ -1153,7 +1153,7 @@ export default function ResultsPage({ params }: Props) {
               animate={isActive ? "visible" : "hidden"}
               custom={2}
             >
-              styles this year.
+              your style.
             </motion.span>
           </h1>
         </div>
@@ -1981,7 +1981,7 @@ export default function ResultsPage({ params }: Props) {
         
         <motion.div variants={textVariants} className="pl-24 pr-10 text-right">
           <h3 className="font-display text-xl text-gray-900 leading-tight">
-            The colors you wore the most of in 2025...
+            The colors you wore the most...
           </h3>
         </motion.div>
       </motion.div>
@@ -2560,7 +2560,7 @@ export default function ResultsPage({ params }: Props) {
         {/* Loading content on top */}
         <div className="flex flex-col items-center gap-6 relative z-10">
           <div className="w-14 h-14 border-4 border-gray-900/10 border-t-gray-900 rounded-full animate-spin"></div>
-          <p className="text-gray-900/60 text-sm font-medium tracking-wide">Loading your Wrapped...</p>
+          <p className="text-gray-900/60 text-sm font-medium tracking-wide">Loading your aesthetic...</p>
         </div>
       </div>
     );

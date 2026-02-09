@@ -35,7 +35,7 @@ export default function ProcessingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user && !isMock) {
-        router.push('/wrapped');
+        router.push('/snapshot');
         return;
       }
 

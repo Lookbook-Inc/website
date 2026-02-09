@@ -38,7 +38,7 @@ export default function WrappedWizard() {
     try {
       const token = await getAuthToken(supabase);
       if (!token) {
-        router.push('/wrapped/setup');
+        router.push('/snapshot/setup');
         return;
       }
 
@@ -50,12 +50,12 @@ export default function WrappedWizard() {
       if (userInsights.status !== 'not_started') {
         setStep('exists');
       } else {
-        router.push('/wrapped/setup');
+        router.push('/snapshot/setup');
       }
     } catch (err) {
       console.error('Error checking insights status:', err);
       // On error, just go to setup as default
-      router.push('/wrapped/setup');
+      router.push('/snapshot/setup');
     } finally {
       setLoading(false);
     }
@@ -178,9 +178,9 @@ export default function WrappedWizard() {
 
       <div className="px-6 pb-6 flex flex-col justify-between flex-1 min-h-0">
         <div>
-          <p className="text-gray-400 font-mono tracking-tight uppercase text-sm mb-2">Jan 1 to Jan 31</p>
+          <p className="text-gray-400 font-mono tracking-tight uppercase text-sm mb-2">Lookbook: A Style Snapshot</p>
           <h1 className="font-display text-4xl text-gray-900 leading-[1.1] mb-6">
-            Your 2025 Styles,<br />Wrapped.
+            What do your fit pics say about you?
           </h1>
 
           <div className="space-y-4 mb-8">
@@ -284,10 +284,10 @@ export default function WrappedWizard() {
         {insights?.status === 'completed' ? (
           <>
             <p className="text-gray-500 text-md mb-8">
-              Your Lookbook Wrapped results are ready for you to view.
+              View the snapshot of your style.
             </p>
             <button
-              onClick={() => router.push(`/wrapped/results/${insights.share_code}`)}
+              onClick={() => router.push(`/snapshot/results/${insights.share_code}`)}
               className="w-full bg-gray-900 text-white rounded-lg px-4 py-4 text-xl font-display transition-all hover:bg-gray-800 mb-4"
             >
               see your results →
@@ -299,7 +299,7 @@ export default function WrappedWizard() {
               We&apos;re still analyzing your style profile. We&apos;ll email you when it&apos;s ready!
             </p>
             <button
-              onClick={() => router.push('/wrapped/processing')}
+              onClick={() => router.push('/snapshot/processing')}
               className="w-full bg-gray-900 text-white rounded-lg px-4 py-4 text-xl font-display transition-all hover:bg-gray-800 mb-4"
             >
               check progress →
@@ -311,7 +311,7 @@ export default function WrappedWizard() {
               Welcome back! Ready to continue your style journey?
             </p>
             <button
-              onClick={() => router.push('/wrapped/setup')}
+              onClick={() => router.push('/snapshot/setup')}
               className="w-full bg-gray-900 text-white rounded-lg px-4 py-4 text-xl font-display transition-all hover:bg-gray-800 mb-4"
             >
               continue →

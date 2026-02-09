@@ -5,7 +5,7 @@ import { domToPng } from 'modern-screenshot';
 import { WrappedResults } from '@/types/wrapped-frontend';
 import { NavigationFooter } from './NavigationFooter';
 
-const WRAPPED_URL = 'lookbook.inc/wrapped';
+const SNAPSHOT_URL = 'lookbook.inc/snapshot';
 
 interface SummaryContentProps {
   results: WrappedResults;
@@ -192,7 +192,7 @@ export const SummaryContent = ({
       } else {
         // On other devices, trigger download
         const link = document.createElement('a');
-        link.download = `lookbook-${results.userName.toLowerCase()}-2025.png`;
+        link.download = `lookbook-${results.userName.toLowerCase()}-style-snapshot.png`;
         link.href = dataUrl;
         link.click();
       }
@@ -224,25 +224,25 @@ export const SummaryContent = ({
       }
       const blob = new Blob([ab], { type: mimeString });
       
-      const file = new File([blob], `lookbook-${results.userName.toLowerCase()}-2025.png`, { 
+      const file = new File([blob], `lookbook-${results.userName.toLowerCase()}-style-snapshot.png`, { 
         type: 'image/png' 
       });
 
-      const shareText = `My top style was ${topStyle} and my palette was ${palette}. Try yours at ${WRAPPED_URL}`;
+      const shareText = `My top style was ${topStyle} and my palette was ${palette}. Try yours at ${SNAPSHOT_URL}`;
 
       // Check if we can share files
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `${results.userName}'s 2025 Lookbook Wrapped`,
+          title: `${results.userName}'s Lookbook Style Snapshot`,
           text: shareText,
         });
       } else if (navigator.share) {
         // Fallback: share without file (just text/url)
         await navigator.share({
-          title: `${results.userName}'s Lookbook 2025`,
+          title: `${results.userName}'s Lookbook Style Snapshot`,
           text: shareText,
-          url: `https://${WRAPPED_URL}`,
+          url: `https://${SNAPSHOT_URL}`,
         });
       } else {
         // No share API - fallback to download

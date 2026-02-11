@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MainClientProviders } from "./client-providers";
 
 export const metadata: Metadata = {
   title: "Lookbook - Home",
@@ -30,9 +31,9 @@ export default function MainLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <>
+    <MainClientProviders>
       {children}
-    </>
+    </MainClientProviders>
   );
 }
 

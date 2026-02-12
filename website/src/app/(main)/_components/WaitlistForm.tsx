@@ -37,7 +37,7 @@ export default function WaitlistForm() {
         posthog.capture('waitlist_signup', { email });
         setStatus({
           type: 'success',
-          message: 'Thank you! You\'ve been added.'
+          message: 'You\'re officially on the list. Stay tuned!.'
         });
         setEmail('');
       } else {

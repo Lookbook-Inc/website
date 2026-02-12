@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import posthog from 'posthog-js';
 
 interface FormStatus {
   type: 'idle' | 'loading' | 'success' | 'error';
@@ -33,9 +34,10 @@ export default function WaitlistForm() {
       const data = await response.json();
 
       if (response.ok) {
+        posthog.capture('waitlist_signup', { email });
         setStatus({
           type: 'success',
-          message: 'Thank you! You\'ve been added.'
+          message: 'You\'re officially on the list. Stay tuned!.'
         });
         setEmail('');
       } else {

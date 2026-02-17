@@ -34,7 +34,7 @@ export default function WaitlistForm() {
       const data = await response.json();
 
       if (response.ok) {
-        posthog.capture('waitlist_signup', { email });
+        posthog.capture('waitlist_signup', { email, source: 'website-main-page' });
         setStatus({
           type: 'success',
           message: 'You\'re officially on the list. Stay tuned!.'

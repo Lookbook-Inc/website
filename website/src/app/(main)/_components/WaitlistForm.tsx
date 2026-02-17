@@ -28,7 +28,7 @@ export default function WaitlistForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, source: 'website-main-page' }),
       });
 
       const data = await response.json();

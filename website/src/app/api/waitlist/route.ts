@@ -5,6 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const email = body.email?.trim().toLowerCase();
+    const source = body.source || 'website';
 
     if (!email) {
       return NextResponse.json(
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     const supabase = createWaitlistClient();
     const { error } = await supabase
       .from('waitlist')
-      .insert({ email, source: 'website' });
+      .insert({ email, source });
 
     if (error) {
       if (error.code === '23505') {

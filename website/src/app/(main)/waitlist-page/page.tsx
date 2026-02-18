@@ -84,7 +84,7 @@ export default function WaitlistPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <Image src="/LB-logo.svg" alt="Lookbook" width={44} height={44} />
+              <Image src="/LB-logo-dark.svg" alt="Lookbook" width={44} height={44} />
             </motion.div>
           </div>
 
@@ -92,7 +92,7 @@ export default function WaitlistPage() {
           <div className="border-b border-[#d5d0c9]" />
 
           {/* Row 2, Col 1-2 — Heading + Email form */}
-          <div className="col-span-2 border-b border-[#d5d0c9] p-6 flex flex-col justify-between">
+          <div className="col-span-2 border-b border-[#d5d0c9] p-6 flex flex-col">
             <div>
               <h1 className="font-serif text-4xl text-gray-900 leading-tight mb-4">
                 <motion.span
@@ -131,6 +131,7 @@ export default function WaitlistPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 1.1 }}
+              className="mt-6"
             >
               <div className="flex items-center border-b border-gray-900 pb-1">
                 <input
@@ -173,14 +174,6 @@ export default function WaitlistPage() {
             >
               <Link href="/about"><strong>Meet</strong> <span className="text-[#c4b5a0]">the Team</span></Link>
             </motion.span>
-            <motion.span
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.1 }}
-              className="font-serif text-base text-gray-900"
-            >
-              <Link href="/about"><strong>Work</strong> <span className="text-[#c4b5a0]">with us</span></Link>
-            </motion.span>
           </div>
         </div>
 
@@ -194,7 +187,7 @@ export default function WaitlistPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <Image src="/LB-logo.svg" alt="Lookbook" width={60} height={60} />
+              <Image src="/LB-logo-dark.svg" alt="Lookbook" width={60} height={60} />
             </motion.div>
           </div>
 
@@ -215,7 +208,8 @@ export default function WaitlistPage() {
                 transition={{ duration: 0.6, delay: 0.55 }}
                 className="block"
               >
-                when it&apos;s ready.
+                {/* when it&apos;s ready. */}
+                when Lookbook drops.
               </motion.span>
             </h1>
           </div>
@@ -302,17 +296,8 @@ export default function WaitlistPage() {
           {/* Row 3, Col 3 — Empty */}
           <div className="border-r border-[#d5d0c9]" />
 
-          {/* Row 3, Col 4 — Work with us link */}
-          <div className="p-6 flex items-end">
-            <motion.span
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 1.0 }}
-              className="font-serif text-lg text-gray-900"
-            >
-              <Link href="/about"><strong>Work</strong> <span className="text-[#c4b5a0]">with us</span></Link>
-            </motion.span>
-          </div>
+          {/* Row 3, Col 4 — Empty */}
+          <div />
         </div>
 
       </motion.div>

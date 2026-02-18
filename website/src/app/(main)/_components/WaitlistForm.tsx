@@ -28,13 +28,13 @@ export default function WaitlistForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, source: 'website-main-page' }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        posthog.capture('waitlist_signup', { email });
+        posthog.capture('waitlist_signup', { email, source: 'website-main-page' });
         setStatus({
           type: 'success',
           message: 'You\'re officially on the list. Stay tuned!.'

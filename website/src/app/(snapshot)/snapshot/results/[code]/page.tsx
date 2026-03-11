@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ReactNode, useRef } from 'react';
+import { useState, useEffect, ReactNode, useRef, Suspense } from 'react';
 import { FlipPage } from './_components/FlipPage';
 import { useFlip } from '@/hooks/useFlip';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,7 @@ import { NavigationFooter } from './_components/NavigationFooter';
 import { SummaryContent } from './_components/SummaryContent';
 import { TopOutfitsSelectionContent } from './_components/TopOutfitsSelectionContent';
 import { usePostHog } from 'posthog-js/react';
+import { useSearchParams } from 'next/navigation';
 
 // --- Types ---
 // Moved to @/types/wrapped-frontend
@@ -145,6 +146,7 @@ const FlipContainer = ({ children }: { children: ReactNode }) => (
 
 export default function ResultsPage({ params }: Props) {
   const posthog = usePostHog();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>('welcome');
   const [results, setResults] = useState<WrappedResults>(mockResults); // Start with mock data to avoid null checks
   const [selectedOutfitIndex, setSelectedOutfitIndex] = useState<number | null>(null);
@@ -152,6 +154,32 @@ export default function ResultsPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [colorsView, setColorsView] = useState<'colors' | 'shades'>('colors');
   const [shareCode, setShareCode] = useState<string>('');
+
+  // Debug skip logic for development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const debugStep = searchParams.get('step');
+      if (debugStep && !loading) {
+        // Simple check to see if it's a valid step
+        const validSteps: Step[] = [
+          'welcome', 'intro', 'photo-flip', 'fav-item', 'fav-pairings', 
+          'unworn-pairings', 'top-styles', 'colors', 'color-aura', 
+          'decade', 'celebrity', 'city-intro', 'city-reveal', 
+          'top-outfits-selection', 'summary'
+        ];
+        
+        if (validSteps.includes(debugStep as Step)) {
+          console.log(`[Debug] Skipping to step: ${debugStep}`);
+          setStep(debugStep as Step);
+          
+          // Special case: if skipping to color-aura, ensure colorsView is shades
+          if (debugStep === 'color-aura') {
+            setColorsView('shades');
+          }
+        }
+      }
+    }
+  }, [searchParams, loading]);
 
   const TOTAL_FLIP_PAGES = 10;
 
@@ -2821,7 +2849,9 @@ export default function ResultsPage({ params }: Props) {
   return (
     <div className="h-[100dvh] overflow-hidden bg-[#FFFAF4]">
       <div className="w-full max-w-md mx-auto h-[100dvh] relative bg-[#FFFAF4]">
-        {renderStep()}
+        <Suspense fallback={null}>
+          {renderStep()}
+        </Suspense>
       </div>
     </div>
   );

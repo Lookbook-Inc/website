@@ -51,7 +51,7 @@ export const CelebrityTwinCard = ({ results }: ShareableCardProps) => {
 
       {/* Aesthetics & Aura Section at Bottom */}
       <div className="absolute bottom-8 left-0 right-0 text-center w-full px-4">
-        <div className="flex items-center justify-center gap-1.5 mb-4">
+        <div className="flex items-center justify-center gap-1.5 mb-2">
           <span className="text-[12px] tracking-[0.1em] font-bold uppercase border-b-2 border-gray-200">
             <span className="text-gray-400">SHARED</span>
             <span className="text-gray-300"> AESTHETICS</span>

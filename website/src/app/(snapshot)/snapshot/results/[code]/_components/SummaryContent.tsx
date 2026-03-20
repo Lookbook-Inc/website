@@ -7,7 +7,7 @@ import { NavigationFooter } from './NavigationFooter';
 import { SummaryCard } from './SummaryCard';
 import { ColorAuraCard } from './ColorAuraCard';
 import { TopDecadeCard } from './TopDecadeCard';
-import { WardrobeMVPCard } from './WardrobeMVPCard';
+import { ColorOfTheYearCard } from './ColorOfTheYearCard';
 import { CelebrityTwinCard } from './CelebrityTwinCard';
 import { StyleDestinationCard } from './StyleDestinationCard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,7 +18,7 @@ const CARDS = [
   { id: 'summary', Component: SummaryCard, shareText: (name: string, style: string, palette: string) => `My top style was ${style} and my palette was ${palette}. Try yours at ${SNAPSHOT_URL}` },
   { id: 'aura', Component: ColorAuraCard, shareText: (name: string, style: string, palette: string) => `My color aura was ${palette}. Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
   { id: 'decade', Component: TopDecadeCard, shareText: (name: string, style: string, palette: string) => `Nostalgic for the ${style}! Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
-  { id: 'mvp', Component: WardrobeMVPCard, shareText: (name: string, style: string, palette: string) => `My wardrobe MVP was ${style}. Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
+  { id: 'mvp', Component: ColorOfTheYearCard, shareText: (name: string, style: string, palette: string) => `My color of the year was ${style}. Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
   { id: 'celeb', Component: CelebrityTwinCard, shareText: (name: string, style: string, palette: string) => `My celebrity style twin is ${style}! Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
   { id: 'destination', Component: StyleDestinationCard, shareText: (name: string, style: string, palette: string) => `My style destination is ${style}. Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
 ] as const;

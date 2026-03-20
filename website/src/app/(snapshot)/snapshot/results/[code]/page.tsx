@@ -6,6 +6,7 @@ import { useFlip } from '@/hooks/useFlip';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getInsightsByShareCode } from '@/lib/api/wrapped';
 import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
+import { BackendWrappedInsights } from '@/types/wrapped-api';
 import {
   UploadedPhoto,
   WrappedResults,
@@ -20,112 +21,183 @@ import { useSearchParams } from 'next/navigation';
 // --- Types ---
 // Moved to @/types/wrapped-frontend
 
-// Mock data populated from the provided CSV values
-const mockResults: WrappedResults = {
-  userName: 'Anirudh',
-  userCity: 'San Francisco',
-  city_vibe: 'San Francisco',
-  city_vibe_description: "You dress like you're late to something important and you'll still be the best-dressed person there.",
-  city_vibe_similarity_score: 88,
-  city_photo_url: null,
-  primary_style: 'Contemporary Professional',
-  top_styles: [
-    { style_name: 'Contemporary Professional', points: 9, appearances: 3 },
-    { style_name: 'Streetwear', points: 5, appearances: 2 },
-    { style_name: 'Basic Casual', points: 2.5, appearances: 1 }
+// Mock backend data following the BackendWrappedInsights interface
+const mockBackendResults: BackendWrappedInsights = {
+  id: 'mock-id',
+  user_id: 'mock-user-id',
+  status: 'completed',
+  created_at: '2025-12-23T12:00:00Z',
+  updated_at: '2025-12-23T12:00:00Z',
+  completed_at: '2025-12-23T12:00:00Z',
+  share_code: 'ANIRUDH',
+  user_first_name: 'Anirudh',
+  user_last_name: 'Satish',
+  user_city: 'San Francisco',
+  
+  // Clothing items
+  top_clothing_items: [],
+  most_worn_item: {
+    name: 'Light-colored athletic sneakers',
+    path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/246970f9-304c-40ec-9e15-654469e023b0_original.webp',
+    signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/246970f9-304c-40ec-9e15-654469e023b0_original.webp',
+    photo_id: '246970f9-304c-40ec-9e15-654469e023b0',
+    item_type: 'shoes',
+    outfit_count: 3,
+    shade_hex_1: '#CED4D7',
+    shade_name_1: 'grout',
+    shade_hex_2: null,
+    shade_hex_3: null,
+    shade_name_2: null,
+    shade_name_3: null,
+    shade_color_1: null,
+    shade_color_2: null,
+    shade_color_3: null,
+    shade_importance_1: null,
+    shade_importance_2: null,
+    shade_importance_3: null,
+    details: null,
+    brand: null,
+    material: null,
+    avatar: false,
+    shared: false,
+    caption: null,
+    user_id: 'mock-user-id',
+    created_at: '2025-12-23T12:00:00Z',
+    tagged_photo_ids: []
+  },
+  best_pairings: [
+    { garment_name: 'Medium-wash blue jeans', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...', times_paired: 2 },
+    { garment_name: 'Black pullover sweater', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...', times_paired: 1 },
+    { garment_name: 'Dark green puffer jacket', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...', times_paired: 1 }
   ],
+  unworn_pairings: [
+    { reasoning: '...', garment_name: 'Medium-wash blue jeans', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...' },
+    { reasoning: '...', garment_name: 'Light gray T-shirt', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...' },
+    { reasoning: '...', garment_name: 'Dark casual jacket', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...' }
+  ],
+  clothing_items_description: 'Cozy but make it fashion. This knit never missed.',
+
+  // Colors
+  top_colors: [
+    { color: 'black', top_shade: 'black', top_shade_hex: '#151515', piece_count: 5, importance_score: 10 },
+    { color: 'gray', top_shade: 'grout', top_shade_hex: '#ced4d7', piece_count: 3, importance_score: 8 },
+    { color: 'blue', top_shade: 'bluebird', top_shade_hex: '#758fbf', piece_count: 1, importance_score: 5 },
+    { color: 'white', top_shade: 'bone', top_shade_hex: '#FDFDFD', piece_count: 1, importance_score: 4 },
+    { color: 'off_white', top_shade: 'linen', top_shade_hex: '#F5F5F0', piece_count: 1, importance_score: 3 }
+  ],
+  top_color: { color: 'black', top_shade: 'black', top_shade_hex: '#151515', piece_count: 5, importance_score: 10 },
+  top_shades: [
+    { color_result: 'black', photo_ids_result: ['4a7e547f-bca7-4c8e-9326-7fcf216161a8', 'cc3144a8-b42f-47b7-8b47-c58d5ad1c723', 'd6473945-b446-41e0-800d-b4792f869b8d'], shade_hex_result: '#151515', shade_name_result: 'black', importance_score_result: 9 },
+    { color_result: 'off_white', photo_ids_result: ['246970f9-304c-40ec-9e15-654469e023b0'], shade_hex_result: '#F9F9F7', shade_name_result: 'alabaster', importance_score_result: 5 }
+  ],
+  top_color_pairings: [],
+  color_aura: 'candlelit_dinner',
+  color_aura_id: 'candlelit_dinner',
+  color_aura_description: 'Deep blacks and cool, muted supporting tones. An intimate, evening-leaning mood that reads polished and understated.',
+  color_aura_percentage: 85,
+  color_aura_shades: ['#1E3A8A', '#3B82F6', '#60A5FA', '#93C5FD', '#DBEAFE'],
+  colors_description: null,
+
+  // Styles
+  top_styles: [
+    { style_name: 'contemporary_professional', points: 9, appearances: 3, avg_rank: 1 },
+    { style_name: 'streetwear', points: 5, appearances: 2, avg_rank: 2 },
+    { style_name: 'basic_casual', points: 2.5, appearances: 1, avg_rank: 3 }
+  ],
+  primary_style: 'contemporary_professional',
+  style_decade: '2020s',
+  style_decade_id: '2020s',
+  style_decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.',
+  style_description: 'Your style profile is being analyzed...',
   top_outfits_for_style: [
     {
       photo_id: 'unsplash-1',
       path: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
+      signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
       similarity_score: 0.92
     },
     {
       photo_id: '8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1',
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
       similarity_score: 0.88
     },
     {
       photo_id: '0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7',
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
       similarity_score: 0.85
     }
   ],
-  total_outfits_analyzed: 3,
-  color_aura: 'Candlelit Dinner',
-  color_aura_description: 'Deep blacks and cool, muted supporting tones. An intimate, evening-leaning mood that reads polished and understated.',
-  color_aura_shades: ['#1E3A8A', '#3B82F6', '#60A5FA', '#93C5FD', '#DBEAFE'],
-  style_description: 'Your style profile is being analyzed...',
-  clothing_items_description: 'Cozy but make it fashion. This knit never missed.',
-  total_clothing_items: 8,
-  top_colors: [
-    { color: 'Black', top_shade: 'Black', top_shade_hex: '#151515', piece_count: 5 },
-    { color: 'Gray', top_shade: 'Grout', top_shade_hex: '#ced4d7', piece_count: 3 },
-    { color: 'Blue', top_shade: 'Bluebird', top_shade_hex: '#758fbf', piece_count: 1 },
-    { color: 'White', top_shade: 'Bone', top_shade_hex: '#FDFDFD', piece_count: 1 },
-    { color: 'Off-White', top_shade: 'Linen', top_shade_hex: '#F5F5F0', piece_count: 1 }
-  ],
-  top_shades: [
-    { color: 'Black', photo_ids: ['4a7e547f-bca7-4c8e-9326-7fcf216161a8', 'cc3144a8-b42f-47b7-8b47-c58d5ad1c723', 'd6473945-b446-41e0-800d-b4792f869b8d'], shade_hex: '#151515', shade_name: 'Black', importance_score: 9 },
-    { color: 'Off-White', photo_ids: ['246970f9-304c-40ec-9e15-654469e023b0'], shade_hex: '#F9F9F7', shade_name: 'Alabaster', importance_score: 5 }
-  ],
-  top_celeb_match: {
-    celeb_name: 'Anirudh Satish',
-    celeb_portrait_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
-    description: 'Brown man looking for his place in the world.',
-    similarity_score: 32.78,
-    categories: ['Engineer'],
-    color_aura_name: 'candlelit dinner',
-    style_1: 'contemporary professional',
-    style_2: 'streetwear',
-    style_3: 'basic casual'
-  },
-  most_worn_item: {
-    name: 'Light-colored athletic sneakers',
-    path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/246970f9-304c-40ec-9e15-654469e023b0_original.webp',
-    item_type: 'shoes',
-    outfit_count: 3,
-    shade_hex_1: '#CED4D7',
-    shade_name_1: 'Grout',
-    details: null
-  },
-  best_pairings: [
-    { garment_name: 'Medium-wash blue jeans', garment_path: '...', times_paired: 2 },
-    { garment_name: 'Black pullover sweater', garment_path: '...', times_paired: 1 },
-    { garment_name: 'Dark green puffer jacket', garment_path: '...', times_paired: 1 }
-  ],
-  unworn_pairings: [
-    { reasoning: '...', garment_name: 'Medium-wash blue jeans', garment_path: '...' },
-    { reasoning: '...', garment_name: 'Light gray T-shirt', garment_path: '...' },
-    { reasoning: '...', garment_name: 'Dark casual jacket', garment_path: '...' }
-  ],
+
+  // Outfits
   top_outfits: [
     {
       photo_id: 'unsplash-1',
       path: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
+      signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
       similarity_score: 0.2209
     },
     {
       photo_id: '8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1',
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
       similarity_score: 0.2182
     },
     {
       photo_id: '0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7',
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
       similarity_score: 0.1974
     }
   ],
+
+  // Celebrity matches
+  celeb_matches: [],
+  top_celeb_match: {
+    celeb_id: 'anirudh-1',
+    celeb_name: 'Anirudh Satish',
+    celeb_photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+    celeb_portrait_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+    description: 'Brown man looking for his place in the world.',
+    similarity_score: 32.78,
+    aura_score: 85,
+    style_score: 90,
+    categories: ['Engineer'],
+    gender: 'male',
+    color_aura_name: 'candlelit_dinner',
+    style_1: 'contemporary_professional',
+    style_2: 'streetwear',
+    style_3: 'basic_casual'
+  },
+  celeb_match_description: null,
+
+  // City vibe
+  city_vibe: 'San Francisco',
+  city_vibe_id: 'san_francisco',
+  city_vibe_similarity_score: 88,
+  city_vibe_description: "You dress like you're late to something important and you'll still be the best-dressed person there.",
+  city_vibe_image_url: null,
+  city_photo_url: null,
+
+  // Reference photo URLs
+  decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+
+  // Statistics
+  total_photos_uploaded: 3,
+  total_clothing_items: 8,
+  total_outfits_analyzed: 3,
+  unique_colors_worn: 5,
+
+  // Uploaded photos
   all_uploaded_photos: [
     { signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80' },
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg' },
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg' }
   ],
-  top_decade: '2020s',
-  decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.',
-  decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
-  completedAt: '2025-12-23T12:00:00Z',
 };
+
+const mockResults: WrappedResults = transformWrappedInsights(mockBackendResults);
 
 type Props = {
   params: Promise<{ code: string }>

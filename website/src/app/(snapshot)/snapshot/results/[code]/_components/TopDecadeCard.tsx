@@ -34,16 +34,16 @@ export const TopDecadeCard = ({ results }: ShareableCardProps) => {
           </p>
         </div>
 
-        <div className="flex-col justify-between items-end text-right w-full mt-2 gap-1">
-          <p className="text-[10px] text-[#DDDDDD]/60 font-mono">
+        <div className="flex-col justify-between items-end text-right w-full mt-1 gap-1">
+          <p className="text-[10px] text-[#DDDDDD]/60 tracking-tight font-mono font-medium">
             * and {otherStyles.map((style, i) => (
               <span key={style}>
-                <span className="font-bold tracking-tight">{style}</span>
+                <span className="font-extrabold tracking-tight">{style}</span>
                 {i < otherStyles.length - 1 ? ", and " : ""}
                 </span>
               ))}
           </p>
-          <p className="text-[10px] text-[#DDDDDD]/40 font-mono">
+          <p className="text-[10px] text-[#DDDDDD]/40 font-mono font-medium">
             lookbook.inc/snapshot
           </p>
         </div>

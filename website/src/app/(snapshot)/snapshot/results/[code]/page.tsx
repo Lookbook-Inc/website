@@ -79,15 +79,15 @@ const mockBackendResults: BackendWrappedInsights = {
 
   // Colors
   top_colors: [
-    { color: 'black', top_shade: 'black', top_shade_hex: '#151515', piece_count: 5, importance_score: 10 },
+    { color: 'blue', top_shade: 'Silhouette', top_shade_hex: '#242b36', piece_count: 5, importance_score: 10 },
     { color: 'gray', top_shade: 'grout', top_shade_hex: '#ced4d7', piece_count: 3, importance_score: 8 },
     { color: 'blue', top_shade: 'bluebird', top_shade_hex: '#758fbf', piece_count: 1, importance_score: 5 },
-    { color: 'white', top_shade: 'bone', top_shade_hex: '#FDFDFD', piece_count: 1, importance_score: 4 },
-    { color: 'off_white', top_shade: 'linen', top_shade_hex: '#F5F5F0', piece_count: 1, importance_score: 3 }
+    { color: 'gray', top_shade: 'Cathedral Spire', top_shade_hex: '#A5A5A5', piece_count: 1, importance_score: 4 },
+    { color: 'white', top_shade: 'bone', top_shade_hex: '#FDFDFD', piece_count: 1, importance_score: 3 }
   ],
-  top_color: { color: 'black', top_shade: 'black', top_shade_hex: '#151515', piece_count: 5, importance_score: 10 },
+  top_color: { color: 'blue', top_shade: 'Silhouette', top_shade_hex: '#242b36', piece_count: 5, importance_score: 10 },
   top_shades: [
-    { color_result: 'black', photo_ids_result: ['4a7e547f-bca7-4c8e-9326-7fcf216161a8', 'cc3144a8-b42f-47b7-8b47-c58d5ad1c723', 'd6473945-b446-41e0-800d-b4792f869b8d'], shade_hex_result: '#151515', shade_name_result: 'black', importance_score_result: 9 },
+    { color_result: 'blue', photo_ids_result: ['4a7e547f-bca7-4c8e-9326-7fcf216161a8', 'cc3144a8-b42f-47b7-8b47-c58d5ad1c723', 'd6473945-b446-41e0-800d-b4792f869b8d'], shade_hex_result: '#242b36', shade_name_result: 'Silhouette', importance_score_result: 9 },
     { color_result: 'off_white', photo_ids_result: ['246970f9-304c-40ec-9e15-654469e023b0'], shade_hex_result: '#F9F9F7', shade_name_result: 'alabaster', importance_score_result: 5 }
   ],
   top_color_pairings: [],

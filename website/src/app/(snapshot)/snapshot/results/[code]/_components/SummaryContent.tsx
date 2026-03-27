@@ -16,7 +16,7 @@ const SNAPSHOT_URL = 'lookbook.inc/snapshot';
 
 const CARDS = [
   { id: 'summary', Component: SummaryCard, shareText: (name: string, style: string, palette: string) => `My top style was ${style} and my palette was ${palette}. Try yours at ${SNAPSHOT_URL}` },
-  { id: 'aura', Component: ColorAuraCard, shareText: (name: string, style: string, palette: string) => `My color aura was ${palette}. Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
+  { id: 'aura', Component: ColorAuraCard, shareText: (name: string, style: string, palette: string) => `Check out my Lookbook outfit palette! My color aura was ${palette}. Try yours at ${SNAPSHOT_URL}` },
   { id: 'decade', Component: TopDecadeCard, shareText: (name: string, style: string, palette: string) => `Nostalgic for the ${style}! Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
   { id: 'mvp', Component: ColorOfTheYearCard, shareText: (name: string, style: string, palette: string) => `My color of the year was ${style}. Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
   { id: 'celeb', Component: CelebrityTwinCard, shareText: (name: string, style: string, palette: string) => `My celebrity style twin is ${style}! Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },

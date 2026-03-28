@@ -230,7 +230,7 @@ export const StyleDestinationCard = ({ results }: ShareableCardProps) => {
       <div style={{
         position: 'absolute', top: 'calc(50% - 240px)', left: '50%',
         transform: 'translateX(-50%) translateY(-100%)',
-        width: 3, height: 70,
+        width: 3, height: 80,
         background: `linear-gradient(to bottom, rgba(26,26,26,0.3), ${INK})`,
         borderRadius: 2, zIndex: 10,
       }} />
@@ -347,8 +347,8 @@ export const StyleDestinationCard = ({ results }: ShareableCardProps) => {
           height: 150, display: 'flex', flexDirection: 'column', justifyContent: 'center'
         }}>
           {/* Corner marks */}
-          <div style={{ position: 'absolute', top: -1, left: -1, width: 40, height: 40, borderTop: `2.5px solid ${INK}`, borderLeft: `2.5px solid ${INK}` }} />
-          <div style={{ position: 'absolute', bottom: -1, right: -1, width: 40, height: 40, borderBottom: `2.5px solid ${INK}`, borderRight: `2.5px solid ${INK}` }} />
+          <div style={{ position: 'absolute', top: -1, left: -1, width: 40, height: 40, borderTop: `4px solid ${INK}`, borderLeft: `4px solid ${INK}` }} />
+          <div style={{ position: 'absolute', bottom: -1, right: -1, width: 40, height: 40, borderBottom: `4px solid ${INK}`, borderRight: `4px solid ${INK}` }} />
 
           <div style={{ 
             fontFamily: BEBAS, 

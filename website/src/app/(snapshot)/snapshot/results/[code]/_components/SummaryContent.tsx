@@ -12,15 +12,45 @@ import { CelebrityTwinCard } from './CelebrityTwinCard';
 import { StyleDestinationCard } from './StyleDestinationCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const SNAPSHOT_URL = 'lookbook.inc/snapshot';
+const SNAPSHOT_URL = 'https://lookbook.inc/snapshot';
 
 const CARDS = [
-  { id: 'summary', Component: SummaryCard, shareText: (name: string, style: string, palette: string) => `My top style was ${style} and my palette was ${palette}. Try yours at ${SNAPSHOT_URL}` },
-  { id: 'aura', Component: ColorAuraCard, shareText: (name: string, style: string, palette: string) => `Check out my Lookbook outfit palette! My color aura was ${palette}. Try yours at ${SNAPSHOT_URL}` },
-  { id: 'decade', Component: TopDecadeCard, shareText: (name: string, style: string, palette: string) => `Nostalgic for the ${style}! Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
-  { id: 'mvp', Component: ColorOfTheYearCard, shareText: (name: string, style: string, palette: string) => `My color of the year was ${style}. Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
-  { id: 'celeb', Component: CelebrityTwinCard, shareText: (name: string, style: string, palette: string) => `My celebrity style twin is ${style}! Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
-  { id: 'destination', Component: StyleDestinationCard, shareText: (name: string, style: string, palette: string) => `My style destination is ${style}. Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` },
+  { 
+    id: 'summary', 
+    Component: SummaryCard, 
+    shareText: (name: string, style: string, palette: string, decade: string, celeb: string, destination: string) => 
+      `My top style is ${style} and my palette is ${palette}. What's yours? ${SNAPSHOT_URL}` 
+  },
+  { 
+    id: 'aura', 
+    Component: ColorAuraCard, 
+    shareText: (name: string, style: string, palette: string, decade: string, celeb: string, destination: string) => 
+      `${name}'s outfit palette was ${palette}. Find yours at lookbook.inc` 
+  },
+  { 
+    id: 'decade', 
+    Component: TopDecadeCard, 
+    shareText: (name: string, style: string, palette: string, decade: string, celeb: string, destination: string) => 
+      `Nostalgic for the ${decade}! Check out my Lookbook style snapshot at ${SNAPSHOT_URL}` 
+  },
+  { 
+    id: 'mvp', 
+    Component: ColorOfTheYearCard, 
+    shareText: (name: string, style: string, palette: string, decade: string, celeb: string, destination: string) => 
+      `My 2026 color of the year is ${style}. Analyzed from my outfit pictures at ${SNAPSHOT_URL}` 
+  },
+  { 
+    id: 'celeb', 
+    Component: CelebrityTwinCard, 
+    shareText: (name: string, style: string, palette: string, decade: string, celeb: string, destination: string) => 
+      `My celebrity style twin is ${celeb}! Who's yours? ${SNAPSHOT_URL}` 
+  },
+  { 
+    id: 'destination', 
+    Component: StyleDestinationCard, 
+    shareText: (name: string, style: string, palette: string, decade: string, celeb: string, destination: string) => 
+      `My style destination is ${destination}. Might have to book tix! ${SNAPSHOT_URL}` 
+  },
 ] as const;
 
 type SummaryPhase = 'REVEAL' | 'TRANSITION' | 'GALLERY';
@@ -164,6 +194,9 @@ export const SummaryContent = ({
   // Calculate top style and palette for sharing
   const topStyle = results.top_styles.sort((a, b) => (b.points || 0) - (a.points || 0))[0]?.style_name.toLowerCase() || 'unique style';
   const palette = results.color_aura.toLowerCase();
+  const decade = results.top_decade;
+  const celeb = results.top_celeb_match.celeb_name;
+  const destination = results.city_vibe;
 
   // Handle download
   const handleDownload = async () => {
@@ -229,19 +262,26 @@ export const SummaryContent = ({
         type: 'image/png' 
       });
 
-      const shareText = CARDS[currentCardIndex].shareText(results.userName, topStyle, palette);
+      const shareText = CARDS[currentCardIndex].shareText(
+        results.userName, 
+        topStyle, 
+        palette,
+        decade,
+        celeb,
+        destination
+      );
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `${results.userName}'s Lookbook Style Snapshot`,
+          //title: `${results.userName}'s Lookbook Style Snapshot`,
           text: shareText,
         });
       } else if (navigator.share) {
         await navigator.share({
-          title: `${results.userName}'s Lookbook Style Snapshot`,
+          //title: `${results.userName}'s Lookbook Style Snapshot`,
           text: shareText,
-          url: `https://${SNAPSHOT_URL}`,
+          url: `${SNAPSHOT_URL}`,
         });
       } else {
         handleDownload();

@@ -22,22 +22,39 @@ export const ColorAuraCard = ({ results, selectedOutfitIndex }: ShareableCardPro
     otherColors.push(results.top_colors[otherColors.length % results.top_colors.length]);
   }
 
-  // Helper to convert hex to LAB-ish values for display (mimicking the UI in the image)
-  // These are just for aesthetic "data" display
-  const getPseudoLab = (hex: string) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    
-    // Very simplified pseudo-LAB for visual effect
-    const l = ((0.2126 * r + 0.7152 * g + 0.0722 * b) / 2.55).toFixed(2);
-    const a = ((r - g) / 20).toFixed(2);
-    const b_val = ((g - b) / 20).toFixed(2);
-    
+  // Helper to convert hex to LAB values
+  const getLab = (hex: string) => {
+    let r = parseInt(hex.slice(1, 3), 16) / 255;
+    let g = parseInt(hex.slice(3, 5), 16) / 255;
+    let b = parseInt(hex.slice(5, 7), 16) / 255;
+
+    // Convert RGB to sRGB
+    r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+    g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+    b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+
+    // Convert sRGB to XYZ
+    let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) * 100;
+    let y = (r * 0.2126 + g * 0.7152 + b * 0.0722) * 100;
+    let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) * 100;
+
+    // Convert XYZ to LAB (D65 illuminant)
+    x /= 95.047;
+    y /= 100.000;
+    z /= 108.883;
+
+    x = x > 0.008856 ? Math.pow(x, 1 / 3) : (7.787 * x) + (16 / 116);
+    y = y > 0.008856 ? Math.pow(y, 1 / 3) : (7.787 * y) + (16 / 116);
+    z = z > 0.008856 ? Math.pow(z, 1 / 3) : (7.787 * z) + (16 / 116);
+
+    const l = ((116 * y) - 16).toFixed(2);
+    const a = (500 * (x - y)).toFixed(2);
+    const b_val = (200 * (y - z)).toFixed(2);
+
     return { l, a, b: b_val };
   };
 
-  const lab = getPseudoLab(topColorHex);
+  const lab = getLab(topColorHex);
 
   // Helper for brightness/contrast
   const getBrightness = (hex: string) => {
@@ -123,19 +140,19 @@ export const ColorAuraCard = ({ results, selectedOutfitIndex }: ShareableCardPro
           </div>
         </div>
 
-        {/* Secondary Colors Row */}
-        <div className="grid grid-cols-4 gap-1 h-32 w-full shrink-0 mt-[-2]">
+        {/* Secondary Colors Grid */}
+        <div className="grid grid-cols-2 grid-rows-2 gap-1.5 w-full shrink-0 mt-[-2]">
           {otherColors.map((color, i) => {
             const contrast = getContrastColor(color.top_shade_hex);
             return (
               <div 
                 key={i}
-                className="rounded-[18px] p-2.5 flex flex-col justify-end shadow-lg relative overflow-hidden"
+                className="rounded-[18px] p-3 flex flex-col justify-end shadow-lg relative overflow-hidden h-[72px]"
                 style={{ backgroundColor: color.top_shade_hex, color: contrast }}
               >
                 <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
                 <div className="relative z-10">
-                  <p className="text-[10px] font-black leading-tight uppercase line-clamp-2 break-words hyphens-auto">
+                  <p className="text-[10px] font-black leading-tight uppercase tracking-wide truncate">
                     {color.top_shade}
                   </p>
                   <p className="text-[10px] font-mono opacity-60 uppercase font-semibold">

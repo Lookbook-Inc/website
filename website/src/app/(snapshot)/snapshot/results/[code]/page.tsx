@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, ReactNode, useRef } from 'react';
+import { useState, useEffect, ReactNode, useRef, Suspense } from 'react';
 import { FlipPage } from './_components/FlipPage';
 import { useFlip } from '@/hooks/useFlip';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getInsightsByShareCode } from '@/lib/api/wrapped';
 import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
+import { BackendWrappedInsights } from '@/types/wrapped-api';
 import {
   UploadedPhoto,
   WrappedResults,
@@ -15,116 +16,188 @@ import { NavigationFooter } from './_components/NavigationFooter';
 import { SummaryContent } from './_components/SummaryContent';
 import { TopOutfitsSelectionContent } from './_components/TopOutfitsSelectionContent';
 import { usePostHog } from 'posthog-js/react';
+import { useSearchParams } from 'next/navigation';
 
 // --- Types ---
 // Moved to @/types/wrapped-frontend
 
-// Mock data populated from the provided CSV values
-const mockResults: WrappedResults = {
-  userName: 'Anirudh',
-  userCity: 'San Francisco',
-  city_vibe: 'San Francisco',
-  city_vibe_description: "You dress like you're late to something important and you'll still be the best-dressed person there.",
-  city_vibe_similarity_score: 88,
-  city_photo_url: null,
-  primary_style: 'Contemporary Professional',
-  top_styles: [
-    { style_name: 'Contemporary Professional', points: 9, appearances: 3 },
-    { style_name: 'Streetwear', points: 5, appearances: 2 },
-    { style_name: 'Basic Casual', points: 2.5, appearances: 1 }
+// Mock backend data following the BackendWrappedInsights interface
+const mockBackendResults: BackendWrappedInsights = {
+  id: 'mock-id',
+  user_id: 'mock-user-id',
+  status: 'completed',
+  created_at: '2025-12-23T12:00:00Z',
+  updated_at: '2025-12-23T12:00:00Z',
+  completed_at: '2025-12-23T12:00:00Z',
+  share_code: 'ANIRUDH',
+  user_first_name: 'Anirudh',
+  user_last_name: 'Satish',
+  user_city: 'San Francisco',
+  
+  // Clothing items
+  top_clothing_items: [],
+  most_worn_item: {
+    name: 'Light-colored athletic sneakers',
+    path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/246970f9-304c-40ec-9e15-654469e023b0_original.webp',
+    signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/246970f9-304c-40ec-9e15-654469e023b0_original.webp',
+    photo_id: '246970f9-304c-40ec-9e15-654469e023b0',
+    item_type: 'shoes',
+    outfit_count: 3,
+    shade_hex_1: '#CED4D7',
+    shade_name_1: 'grout',
+    shade_hex_2: null,
+    shade_hex_3: null,
+    shade_name_2: null,
+    shade_name_3: null,
+    shade_color_1: null,
+    shade_color_2: null,
+    shade_color_3: null,
+    shade_importance_1: null,
+    shade_importance_2: null,
+    shade_importance_3: null,
+    details: null,
+    brand: null,
+    material: null,
+    avatar: false,
+    shared: false,
+    caption: null,
+    user_id: 'mock-user-id',
+    created_at: '2025-12-23T12:00:00Z',
+    tagged_photo_ids: []
+  },
+  best_pairings: [
+    { garment_name: 'Medium-wash blue jeans', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...', times_paired: 2 },
+    { garment_name: 'Black pullover sweater', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...', times_paired: 1 },
+    { garment_name: 'Dark green puffer jacket', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...', times_paired: 1 }
   ],
+  unworn_pairings: [
+    { reasoning: '...', garment_name: 'Medium-wash blue jeans', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...' },
+    { reasoning: '...', garment_name: 'Light gray T-shirt', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...' },
+    { reasoning: '...', garment_name: 'Dark casual jacket', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...' }
+  ],
+  clothing_items_description: 'Cozy but make it fashion. This knit never missed.',
+
+  // Colors
+  top_colors: [
+    { color: 'blue', top_shade: 'Silhouette', top_shade_hex: '#242b36', piece_count: 5, importance_score: 10 },
+    { color: 'gray', top_shade: 'grout', top_shade_hex: '#ced4d7', piece_count: 3, importance_score: 8 },
+    { color: 'blue', top_shade: 'bluebird', top_shade_hex: '#758fbf', piece_count: 1, importance_score: 5 },
+    { color: 'gray', top_shade: 'Cathedral Spire', top_shade_hex: '#A5A5A5', piece_count: 1, importance_score: 4 },
+    { color: 'white', top_shade: 'bone', top_shade_hex: '#FDFDFD', piece_count: 1, importance_score: 3 }
+  ],
+  top_color: { color: 'blue', top_shade: 'Silhouette', top_shade_hex: '#242b36', piece_count: 5, importance_score: 10 },
+  top_shades: [
+    { color_result: 'blue', photo_ids_result: ['4a7e547f-bca7-4c8e-9326-7fcf216161a8', 'cc3144a8-b42f-47b7-8b47-c58d5ad1c723', 'd6473945-b446-41e0-800d-b4792f869b8d'], shade_hex_result: '#242b36', shade_name_result: 'Silhouette', importance_score_result: 9 },
+    { color_result: 'off_white', photo_ids_result: ['246970f9-304c-40ec-9e15-654469e023b0'], shade_hex_result: '#F9F9F7', shade_name_result: 'alabaster', importance_score_result: 5 }
+  ],
+  top_color_pairings: [],
+  color_aura: 'candlelit_dinner',
+  color_aura_id: 'candlelit_dinner',
+  color_aura_description: 'Deep blacks and cool, muted supporting tones. An intimate, evening-leaning mood that reads polished and understated.',
+  color_aura_percentage: 85,
+  color_aura_shades: ['#1E3A8A', '#3B82F6', '#60A5FA', '#93C5FD', '#DBEAFE'],
+  colors_description: null,
+
+  // Styles
+  top_styles: [
+    { style_name: 'contemporary_professional', points: 9, appearances: 3, avg_rank: 1 },
+    { style_name: 'streetwear', points: 5, appearances: 2, avg_rank: 2 },
+    { style_name: 'basic_casual', points: 2.5, appearances: 1, avg_rank: 3 }
+  ],
+  primary_style: 'contemporary_professional',
+  style_decade: '2020s',
+  style_decade_id: '2020s',
+  style_decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.',
+  style_description: 'Your style profile is being analyzed...',
   top_outfits_for_style: [
     {
       photo_id: 'unsplash-1',
       path: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
+      signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
       similarity_score: 0.92
     },
     {
       photo_id: '8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1',
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
       similarity_score: 0.88
     },
     {
       photo_id: '0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7',
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
       similarity_score: 0.85
     }
   ],
-  total_outfits_analyzed: 3,
-  color_aura: 'Candlelit Dinner',
-  color_aura_description: 'Deep blacks and cool, muted supporting tones. An intimate, evening-leaning mood that reads polished and understated.',
-  color_aura_shades: ['#1E3A8A', '#3B82F6', '#60A5FA', '#93C5FD', '#DBEAFE'],
-  style_description: 'Your style profile is being analyzed...',
-  clothing_items_description: 'Cozy but make it fashion. This knit never missed.',
-  total_clothing_items: 8,
-  top_colors: [
-    { color: 'Black', top_shade: 'Black', top_shade_hex: '#151515', piece_count: 5 },
-    { color: 'Gray', top_shade: 'Grout', top_shade_hex: '#ced4d7', piece_count: 3 },
-    { color: 'Blue', top_shade: 'Bluebird', top_shade_hex: '#758fbf', piece_count: 1 },
-    { color: 'White', top_shade: 'Bone', top_shade_hex: '#FDFDFD', piece_count: 1 },
-    { color: 'Off-White', top_shade: 'Linen', top_shade_hex: '#F5F5F0', piece_count: 1 }
-  ],
-  top_shades: [
-    { color: 'Black', photo_ids: ['4a7e547f-bca7-4c8e-9326-7fcf216161a8', 'cc3144a8-b42f-47b7-8b47-c58d5ad1c723', 'd6473945-b446-41e0-800d-b4792f869b8d'], shade_hex: '#151515', shade_name: 'Black', importance_score: 9 },
-    { color: 'Off-White', photo_ids: ['246970f9-304c-40ec-9e15-654469e023b0'], shade_hex: '#F9F9F7', shade_name: 'Alabaster', importance_score: 5 }
-  ],
-  top_celeb_match: {
-    celeb_name: 'Anirudh Satish',
-    celeb_portrait_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
-    description: 'Brown man looking for his place in the world.',
-    similarity_score: 32.78,
-    categories: ['Engineer'],
-    color_aura_name: 'candlelit dinner',
-    style_1: 'contemporary professional',
-    style_2: 'streetwear',
-    style_3: 'basic casual'
-  },
-  most_worn_item: {
-    name: 'Light-colored athletic sneakers',
-    path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/246970f9-304c-40ec-9e15-654469e023b0_original.webp',
-    item_type: 'shoes',
-    outfit_count: 3,
-    shade_hex_1: '#CED4D7',
-    shade_name_1: 'Grout',
-    details: null
-  },
-  best_pairings: [
-    { garment_name: 'Medium-wash blue jeans', garment_path: '...', times_paired: 2 },
-    { garment_name: 'Black pullover sweater', garment_path: '...', times_paired: 1 },
-    { garment_name: 'Dark green puffer jacket', garment_path: '...', times_paired: 1 }
-  ],
-  unworn_pairings: [
-    { reasoning: '...', garment_name: 'Medium-wash blue jeans', garment_path: '...' },
-    { reasoning: '...', garment_name: 'Light gray T-shirt', garment_path: '...' },
-    { reasoning: '...', garment_name: 'Dark casual jacket', garment_path: '...' }
-  ],
+
+  // Outfits
   top_outfits: [
     {
       photo_id: 'unsplash-1',
       path: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
+      signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
       similarity_score: 0.2209
     },
     {
       photo_id: '8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1',
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
       similarity_score: 0.2182
     },
     {
       photo_id: '0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7',
       path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
       similarity_score: 0.1974
     }
   ],
+
+  // Celebrity matches
+  celeb_matches: [],
+  top_celeb_match: {
+    celeb_id: 'anirudh-1',
+    celeb_name: 'Anirudh Satish',
+    celeb_photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+    celeb_portrait_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+    description: 'Brown man looking for his place in the world.',
+    similarity_score: 32.78,
+    aura_score: 85,
+    style_score: 90,
+    categories: ['Engineer'],
+    gender: 'male',
+    color_aura_name: 'candlelit_dinner',
+    style_1: 'contemporary_professional',
+    style_2: 'streetwear',
+    style_3: 'basic_casual'
+  },
+  celeb_match_description: null,
+
+  // City vibe
+  city_vibe: 'San Francisco',
+  city_vibe_id: 'san_francisco',
+  city_vibe_similarity_score: 88,
+  city_vibe_description: "You dress like you're late to something important and you'll still be the best-dressed person there.",
+  city_vibe_image_url: null,
+  city_photo_url: null,
+
+  // Reference photo URLs
+  decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+
+  // Statistics
+  total_photos_uploaded: 3,
+  total_clothing_items: 8,
+  total_outfits_analyzed: 3,
+  unique_colors_worn: 5,
+
+  // Uploaded photos
   all_uploaded_photos: [
     { signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80' },
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg' },
     { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg' }
   ],
-  top_decade: '2020s',
-  decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.',
-  decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
-  completedAt: '2025-12-23T12:00:00Z',
 };
+
+const mockResults: WrappedResults = transformWrappedInsights(mockBackendResults);
 
 type Props = {
   params: Promise<{ code: string }>
@@ -145,6 +218,7 @@ const FlipContainer = ({ children }: { children: ReactNode }) => (
 
 export default function ResultsPage({ params }: Props) {
   const posthog = usePostHog();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>('welcome');
   const [results, setResults] = useState<WrappedResults>(mockResults); // Start with mock data to avoid null checks
   const [selectedOutfitIndex, setSelectedOutfitIndex] = useState<number | null>(null);
@@ -152,6 +226,32 @@ export default function ResultsPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [colorsView, setColorsView] = useState<'colors' | 'shades'>('colors');
   const [shareCode, setShareCode] = useState<string>('');
+
+  // Debug skip logic for development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const debugStep = searchParams.get('step');
+      if (debugStep && !loading) {
+        // Simple check to see if it's a valid step
+        const validSteps: Step[] = [
+          'welcome', 'intro', 'photo-flip', 'fav-item', 'fav-pairings', 
+          'unworn-pairings', 'top-styles', 'colors', 'color-aura', 
+          'decade', 'celebrity', 'city-intro', 'city-reveal', 
+          'top-outfits-selection', 'summary'
+        ];
+        
+        if (validSteps.includes(debugStep as Step)) {
+          console.log(`[Debug] Skipping to step: ${debugStep}`);
+          setStep(debugStep as Step);
+          
+          // Special case: if skipping to color-aura, ensure colorsView is shades
+          if (debugStep === 'color-aura') {
+            setColorsView('shades');
+          }
+        }
+      }
+    }
+  }, [searchParams, loading]);
 
   const TOTAL_FLIP_PAGES = 10;
 
@@ -2413,77 +2513,226 @@ export default function ResultsPage({ params }: Props) {
           </div>
   );
 
-  const CityRevealContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
-    // Use the completion date from results, fallback to today if null
-    const displayDate = results.completedAt ? new Date(results.completedAt) : new Date();
-    const dateStr = displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    
-    const city = results.city_vibe || 'New York';
+  const CityRevealContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
+    const BEBAS_CITY = `var(--font-bebas-neue), "Bebas Neue", sans-serif`;
+    const MONO_CITY  = `var(--font-jetbrains-mono), "IBM Plex Mono", monospace`;
+    const TAG_BG_CITY = '#e8e4c8';
+    const GRAIN_CITY = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E")`;
 
-    // Compress 90-100% band into 90-97% (taking 70% of the value above 90)
-    const rawScore = results.city_vibe_similarity_score || 0;
-    const bufferedScore = rawScore > 90 
-      ? 90 + (rawScore - 90) * 0.7 
-      : rawScore;
+    const cityName   = (results.city_vibe || 'New York').toUpperCase();
+    const rawScore   = results.city_vibe_similarity_score || 0;
+
+    const topStyles = [...results.top_styles]
+      .sort((a, b) => (b.points || 0) - (a.points || 0))
+      .slice(0, 3);
+
+    const stats = [
+      { label: 'MATCH',   value: `${rawScore.toFixed(1)}%`                   },
+      { label: 'PHOTOS',  value: `${results.total_outfits_analyzed}`          },
+      { label: 'CAPSULE', value: `${results.total_clothing_items} pieces`     },
+    ];
 
     return (
-      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex flex-col pb-4">
-            <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
-              Your look gives... <br /><span className="italic">{city}</span>.
-            </h1>
+      <div
+        className="flex flex-col h-[100dvh]"
+        style={{ backgroundColor: '#0a0a0a', fontFamily: MONO_CITY }}
+      >
+        {/* ── Photo hero ── */}
+        <div className="relative shrink-0" style={{ height: '52vh' }}>
+          {results.city_photo_url ? (
+            <img
+              src={results.city_photo_url}
+              alt={cityName}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(160deg, #2d3748 0%, #1a202c 100%)' }}
+            />
+          )}
 
-            {/* City Image */}
-            <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative mb-4 shrink-0">
-              {results.city_photo_url ? (
-                <img
-                  src={results.city_photo_url}
-                  alt={city}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-zinc-500 text-sm uppercase tracking-widest">
-                    {city}
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {/* Why this city? */}
-            <div className="mb-6 shrink-0">
-              <h3 className="font-display text-lg text-[#F7EFE5] mb-2">Why {city}?</h3>
-              <p className="text-sm font-medium text-zinc-400 leading-snug">
-                {results.city_vibe_description}
-              </p>
-            </div>
+          {/* Gradient scrim */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.02) 50%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.92) 100%)',
+            }}
+          />
 
-            {/* Match Score & Date */}
-            <div className="flex gap-12 mb-6 shrink-0">
-              <div>
-                <p className="font-display text-md text-[#F7EFE5] mb-1">Match Score</p>
-                <p className="text-xl font-display italic text-[#D1BB99]">{bufferedScore.toFixed(2)}%</p>
-              </div>
-              <div>
-                <p className="font-display text-md text-[#F7EFE5] mb-1">Date Booked</p>
-                <p className="text-xl font-display italic text-[#D1BB99]">{dateStr}</p>
+          {/* Top bar */}
+          <div
+            className="absolute top-0 inset-x-0 flex justify-between items-start"
+            style={{ padding: '20px 20px 0' }}
+          >
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.65)', lineHeight: 1.55 }}>
+              LOOKBOOK AIRWAYS //<br />SS26 COLLECTION
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.40)', lineHeight: 1.55 }}>
+                STYLE<br />DESTINATION
               </div>
             </div>
-        
-            {/* Disclaimer
-            <div className="mt-12 shrink-0">
-              <p className="font-display text-xs text-zinc-500 mb-1">Disclaimer:</p>
-              <p className="text-[10px] text-zinc-600 leading-relaxed">
-                Lookbook is not a travel agency and is not responsible for any life-altering relocation decisions made after viewing this result.
-              </p>
-            </div> */}
           </div>
+
+          {/* Match score badge */}
+          <div className="absolute" style={{ top: 68, right: 20 }}>
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={isActive ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0 }}
+              transition={{ delay: 0.4, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+              style={{
+                width: 80, height: 80,
+                borderRadius: '50%',
+                backgroundColor: TAG_BG_CITY,
+                backgroundImage: GRAIN_CITY,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35)',
+              }}
+            >
+              <div style={{ fontFamily: BEBAS_CITY, fontSize: 24, color: '#1a1a1a', lineHeight: 1, letterSpacing: '0.02em' }}>
+                {rawScore.toFixed(1)}%
+              </div>
+              <div style={{ fontSize: 7, fontWeight: 700, color: '#1a1a1a', letterSpacing: '0.10em', opacity: 0.55, lineHeight: 1, marginTop: 3 }}>
+                MATCH
+              </div>
+            </motion.div>
+          </div>
+
+          {/* City name */}
+          <motion.div
+            className="absolute bottom-0 inset-x-0"
+            style={{ padding: '0 20px 16px' }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ delay: 0.15, duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div
+              style={{
+                fontFamily: BEBAS_CITY,
+                fontSize: 'clamp(44px, 16vw, 88px)',
+                lineHeight: 0.88,
+                color: 'white',
+                letterSpacing: '0.01em',
+                textShadow: '0 2px 30px rgba(0,0,0,0.50)',
+              }}
+            >
+              {cityName}
+            </div>
+          </motion.div>
         </div>
-        
-        <NavigationFooter onNext={onNext} onBack={onBack} light={false} nextText="continue →" />
-    </div>
-  );
+
+        {/* ── Info zone ── */}
+        <motion.div
+          className="flex-1 min-h-0 flex flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{
+            backgroundColor: '#0f0f0f',
+            backgroundImage: GRAIN_CITY,
+          }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ delay: 0.3, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        >
+          {/* Cream accent rule */}
+          <div style={{ height: 2, backgroundColor: TAG_BG_CITY, opacity: 0.5, flexShrink: 0 }} />
+
+          {/* Description */}
+          <div style={{ padding: '14px 20px 12px', flexShrink: 0 }}>
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: '0.13em', color: 'rgba(255,255,255,0.28)', marginBottom: 7 }}>
+              DESTINATION PROFILE
+            </div>
+            <p
+              style={{
+                fontSize: 10,
+                color: 'rgba(255,255,255,0.82)',
+                lineHeight: 1.6,
+                fontStyle: 'italic',
+                margin: 0,
+                letterSpacing: '0.01em',
+                fontFamily: 'var(--font-display), Georgia, serif',
+              }}
+            >
+              {results.city_vibe_description}
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.10)', margin: '0 20px', flexShrink: 0 }} />
+
+          {/* Stats row */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              padding: '12px 20px',
+              flexShrink: 0,
+            }}
+          >
+            {stats.map((s, i) => {
+              const col = i % 3;
+              return (
+                <div
+                  key={s.label}
+                  style={{
+                    paddingLeft: col > 0 ? 14 : 0,
+                    borderLeft: col > 0 ? '1px solid rgba(255,255,255,0.09)' : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: 7, fontWeight: 400, letterSpacing: '0.10em', color: 'rgba(255,255,255,0.30)', marginBottom: 4, lineHeight: 1 }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.88)', letterSpacing: '0.01em', lineHeight: 1.2 }}>
+                    {s.value}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.10)', margin: '0 20px', flexShrink: 0 }} />
+
+          {/* Style DNA pills */}
+          <div
+            style={{
+              padding: '10px 20px 16px',
+              display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.27)', marginRight: 2, whiteSpace: 'nowrap' }}>
+              STYLE DNA:
+            </div>
+            {topStyles.map(s => (
+              <div
+                key={s.style_name}
+                style={{
+                  border: `1px solid rgba(232,228,200,0.35)`,
+                  borderRadius: 99,
+                  padding: '3px 11px',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: TAG_BG_CITY,
+                  letterSpacing: '0.09em',
+                }}
+              >
+                {s.style_name.toUpperCase()}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ── Navigation ── */}
+        <div
+          className="shrink-0 px-5 pb-4 pt-2"
+          style={{ backgroundColor: '#0a0a0a' }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={false} nextText="continue →" />
+        </div>
+      </div>
+    );
   };
 
   // Photo flipping sequence (multiple pages at once)
@@ -2752,7 +3001,7 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-black z-0">
-              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} />
+              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} isActive={false} />
             </div>
             <FlipPage key="city-intro" isFlipped={cityIntroFlip.isFlipped} zIndex={10}>
               <CityIntroContent onNext={cityIntroFlip.flip} onBack={onBack['city-intro']} />
@@ -2774,7 +3023,7 @@ export default function ResultsPage({ params }: Props) {
               />
             </div>
             <FlipPage key="city-reveal" isFlipped={cityRevealFlip.isFlipped} zIndex={10}>
-              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} />
+              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );
@@ -2821,7 +3070,9 @@ export default function ResultsPage({ params }: Props) {
   return (
     <div className="h-[100dvh] overflow-hidden bg-[#FFFAF4]">
       <div className="w-full max-w-md mx-auto h-[100dvh] relative bg-[#FFFAF4]">
-        {renderStep()}
+        <Suspense fallback={null}>
+          {renderStep()}
+        </Suspense>
       </div>
     </div>
   );

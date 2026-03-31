@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, DM_Serif_Text, Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { Bebas_Neue, DM_Serif_Display, DM_Serif_Text, Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const dmSerifDisplay = DM_Serif_Display({
@@ -27,6 +27,12 @@ const instrumentSerif = Instrument_Serif({
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+});
+
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  variable: "--font-bebas-neue",
   subsets: ["latin"],
 });
 
@@ -62,7 +68,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dmSerifDisplay.variable} ${dmSerifText.variable} ${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${dmSerifDisplay.variable} ${dmSerifText.variable} ${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${bebasNeue.variable} antialiased`}
       >
         {children}
       </body>

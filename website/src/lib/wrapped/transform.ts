@@ -11,6 +11,12 @@ import type { BackendWrappedInsights } from '@/types/wrapped-api';
  * e.g., "minimalist_streetwear" -> "Minimalist Streetwear"
  */
 export const formatStyleName = (style: string): string => {
+  const normalized = style.toLowerCase().replace(/_/g, ' ');
+
+  if (normalized === 'contemporary professional') {
+    return 'Office Chic';
+  }
+
   return style
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))

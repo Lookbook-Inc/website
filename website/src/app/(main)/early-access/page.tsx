@@ -132,7 +132,7 @@ export default function EarlyAccessPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.8 }}
-                className="text-white/50 font-sans text-sm leading-relaxed max-w-xl"
+                className="text-white/50 font-sans font-medium text-sm leading-relaxed tracking-normal max-w-xl"
               >
                 Lookbook is a living journal of your outfits, your finds, and the clothes you like to wear.
                 We use the taste that you&apos;ve curated in your photo gallery to give you 
@@ -143,7 +143,7 @@ export default function EarlyAccessPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.88 }}
-                className="text-white/50 font-sans text-sm leading-relaxed max-w-xl mt-4"
+                className="text-white/50 font-sans font-medium text-sm leading-relaxed tracking-normal max-w-xl mt-4"
               >
                 We&apos;re inviting ~100 users into a one-month beta.
                 Our only ask: use the app regularly and share honest feedback.
@@ -153,7 +153,7 @@ export default function EarlyAccessPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.95 }}
-                className="text-white/50 font-sans text-sm leading-relaxed max-w-xl mt-4"
+                className="text-white/50 font-sans font-medium text-sm leading-relaxed tracking-normal max-w-xl mt-4"
               >
                 Your input will directly shape what we build next.
                 Thank you for becoming part of our journey.

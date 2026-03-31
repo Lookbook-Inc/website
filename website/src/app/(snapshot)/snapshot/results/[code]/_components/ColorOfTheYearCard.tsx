@@ -26,7 +26,7 @@ export const ColorOfTheYearCard = ({ results }: ShareableCardProps) => {
           style={{ backgroundColor: hexCode }}
         >
           <h2 className="text-white text-[24px] font-bold leading-[1.1] opacity-95">
-            {firstName}'s<br />
+            {firstName}&apos;s<br />
             Color of<br />
             the Year<br />
             {year}

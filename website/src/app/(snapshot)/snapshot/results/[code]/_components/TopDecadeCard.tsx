@@ -15,7 +15,7 @@ export const TopDecadeCard = ({ results }: ShareableCardProps) => {
       <div className="aspect-square w-full border-[2px] border-[#DDDDDD] rounded-[40px] px-8 py-6 flex flex-col justify-center relative">
         <div>
           <h2 className="font-display text-[24px] leading-[1.1] text-[#D1BB99] font-medium">
-            {results.userName}'s<br />
+            {results.userName}&apos;s<br />
             favorite era<br />
             was the
           </h2>

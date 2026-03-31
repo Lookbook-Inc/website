@@ -38,3 +38,5 @@ next-env.d.ts
 # sample data
 sampleresults.json
 .gstack/
+
+CLAUDE.md

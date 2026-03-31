@@ -147,7 +147,7 @@ export const ColorAuraCard = ({ results, selectedOutfitIndex }: ShareableCardPro
             return (
               <div 
                 key={i}
-                className="rounded-[18px] p-3 flex flex-col justify-end shadow-lg relative overflow-hidden h-[72px]"
+                className="rounded-[18px] px-3 py-2 flex flex-col justify-end shadow-lg relative overflow-hidden h-[72px]"
                 style={{ backgroundColor: color.top_shade_hex, color: contrast }}
               >
                 <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />

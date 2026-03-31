@@ -2513,77 +2513,226 @@ export default function ResultsPage({ params }: Props) {
           </div>
   );
 
-  const CityRevealContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => {
-    // Use the completion date from results, fallback to today if null
-    const displayDate = results.completedAt ? new Date(results.completedAt) : new Date();
-    const dateStr = displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    
-    const city = results.city_vibe || 'New York';
+  const CityRevealContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
+    const BEBAS_CITY = `var(--font-bebas-neue), "Bebas Neue", sans-serif`;
+    const MONO_CITY  = `var(--font-jetbrains-mono), "IBM Plex Mono", monospace`;
+    const TAG_BG_CITY = '#e8e4c8';
+    const GRAIN_CITY = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E")`;
 
-    // Compress 90-100% band into 90-97% (taking 70% of the value above 90)
-    const rawScore = results.city_vibe_similarity_score || 0;
-    const bufferedScore = rawScore > 90 
-      ? 90 + (rawScore - 90) * 0.7 
-      : rawScore;
+    const cityName   = (results.city_vibe || 'New York').toUpperCase();
+    const rawScore   = results.city_vibe_similarity_score || 0;
+
+    const topStyles = [...results.top_styles]
+      .sort((a, b) => (b.points || 0) - (a.points || 0))
+      .slice(0, 3);
+
+    const stats = [
+      { label: 'MATCH',   value: `${rawScore.toFixed(1)}%`                   },
+      { label: 'PHOTOS',  value: `${results.total_outfits_analyzed}`          },
+      { label: 'CAPSULE', value: `${results.total_clothing_items} pieces`     },
+    ];
 
     return (
-      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex flex-col pb-4">
-            <h1 className="font-display text-2xl leading-[1.1] mb-6 shrink-0">
-              Your look gives... <br /><span className="italic">{city}</span>.
-            </h1>
+      <div
+        className="flex flex-col h-[100dvh]"
+        style={{ backgroundColor: '#0a0a0a', fontFamily: MONO_CITY }}
+      >
+        {/* ── Photo hero ── */}
+        <div className="relative shrink-0" style={{ height: '52vh' }}>
+          {results.city_photo_url ? (
+            <img
+              src={results.city_photo_url}
+              alt={cityName}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(160deg, #2d3748 0%, #1a202c 100%)' }}
+            />
+          )}
 
-            {/* City Image */}
-            <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative mb-4 shrink-0">
-              {results.city_photo_url ? (
-                <img
-                  src={results.city_photo_url}
-                  alt={city}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-zinc-500 text-sm uppercase tracking-widest">
-                    {city}
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {/* Why this city? */}
-            <div className="mb-6 shrink-0">
-              <h3 className="font-display text-lg text-[#F7EFE5] mb-2">Why {city}?</h3>
-              <p className="text-sm font-medium text-zinc-400 leading-snug">
-                {results.city_vibe_description}
-              </p>
-            </div>
+          {/* Gradient scrim */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.02) 50%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.92) 100%)',
+            }}
+          />
 
-            {/* Match Score & Date */}
-            <div className="flex gap-12 mb-6 shrink-0">
-              <div>
-                <p className="font-display text-md text-[#F7EFE5] mb-1">Match Score</p>
-                <p className="text-xl font-display italic text-[#D1BB99]">{bufferedScore.toFixed(2)}%</p>
-              </div>
-              <div>
-                <p className="font-display text-md text-[#F7EFE5] mb-1">Date Booked</p>
-                <p className="text-xl font-display italic text-[#D1BB99]">{dateStr}</p>
+          {/* Top bar */}
+          <div
+            className="absolute top-0 inset-x-0 flex justify-between items-start"
+            style={{ padding: '20px 20px 0' }}
+          >
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.65)', lineHeight: 1.55 }}>
+              LOOKBOOK AIRWAYS //<br />SS26 COLLECTION
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.40)', lineHeight: 1.55 }}>
+                STYLE<br />DESTINATION
               </div>
             </div>
-        
-            {/* Disclaimer
-            <div className="mt-12 shrink-0">
-              <p className="font-display text-xs text-zinc-500 mb-1">Disclaimer:</p>
-              <p className="text-[10px] text-zinc-600 leading-relaxed">
-                Lookbook is not a travel agency and is not responsible for any life-altering relocation decisions made after viewing this result.
-              </p>
-            </div> */}
           </div>
+
+          {/* Match score badge */}
+          <div className="absolute" style={{ top: 68, right: 20 }}>
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={isActive ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0 }}
+              transition={{ delay: 0.4, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+              style={{
+                width: 80, height: 80,
+                borderRadius: '50%',
+                backgroundColor: TAG_BG_CITY,
+                backgroundImage: GRAIN_CITY,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35)',
+              }}
+            >
+              <div style={{ fontFamily: BEBAS_CITY, fontSize: 24, color: '#1a1a1a', lineHeight: 1, letterSpacing: '0.02em' }}>
+                {rawScore.toFixed(1)}%
+              </div>
+              <div style={{ fontSize: 7, fontWeight: 700, color: '#1a1a1a', letterSpacing: '0.10em', opacity: 0.55, lineHeight: 1, marginTop: 3 }}>
+                MATCH
+              </div>
+            </motion.div>
+          </div>
+
+          {/* City name */}
+          <motion.div
+            className="absolute bottom-0 inset-x-0"
+            style={{ padding: '0 20px 16px' }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ delay: 0.15, duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div
+              style={{
+                fontFamily: BEBAS_CITY,
+                fontSize: 'clamp(44px, 16vw, 88px)',
+                lineHeight: 0.88,
+                color: 'white',
+                letterSpacing: '0.01em',
+                textShadow: '0 2px 30px rgba(0,0,0,0.50)',
+              }}
+            >
+              {cityName}
+            </div>
+          </motion.div>
         </div>
-        
-        <NavigationFooter onNext={onNext} onBack={onBack} light={false} nextText="continue →" />
-    </div>
-  );
+
+        {/* ── Info zone ── */}
+        <motion.div
+          className="flex-1 min-h-0 flex flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{
+            backgroundColor: '#0f0f0f',
+            backgroundImage: GRAIN_CITY,
+          }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ delay: 0.3, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        >
+          {/* Cream accent rule */}
+          <div style={{ height: 2, backgroundColor: TAG_BG_CITY, opacity: 0.5, flexShrink: 0 }} />
+
+          {/* Description */}
+          <div style={{ padding: '14px 20px 12px', flexShrink: 0 }}>
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: '0.13em', color: 'rgba(255,255,255,0.28)', marginBottom: 7 }}>
+              DESTINATION PROFILE
+            </div>
+            <p
+              style={{
+                fontSize: 10,
+                color: 'rgba(255,255,255,0.82)',
+                lineHeight: 1.6,
+                fontStyle: 'italic',
+                margin: 0,
+                letterSpacing: '0.01em',
+                fontFamily: 'var(--font-display), Georgia, serif',
+              }}
+            >
+              {results.city_vibe_description}
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.10)', margin: '0 20px', flexShrink: 0 }} />
+
+          {/* Stats row */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              padding: '12px 20px',
+              flexShrink: 0,
+            }}
+          >
+            {stats.map((s, i) => {
+              const col = i % 3;
+              return (
+                <div
+                  key={s.label}
+                  style={{
+                    paddingLeft: col > 0 ? 14 : 0,
+                    borderLeft: col > 0 ? '1px solid rgba(255,255,255,0.09)' : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: 7, fontWeight: 400, letterSpacing: '0.10em', color: 'rgba(255,255,255,0.30)', marginBottom: 4, lineHeight: 1 }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.88)', letterSpacing: '0.01em', lineHeight: 1.2 }}>
+                    {s.value}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.10)', margin: '0 20px', flexShrink: 0 }} />
+
+          {/* Style DNA pills */}
+          <div
+            style={{
+              padding: '10px 20px 16px',
+              display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.27)', marginRight: 2, whiteSpace: 'nowrap' }}>
+              STYLE DNA:
+            </div>
+            {topStyles.map(s => (
+              <div
+                key={s.style_name}
+                style={{
+                  border: `1px solid rgba(232,228,200,0.35)`,
+                  borderRadius: 99,
+                  padding: '3px 11px',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: TAG_BG_CITY,
+                  letterSpacing: '0.09em',
+                }}
+              >
+                {s.style_name.toUpperCase()}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ── Navigation ── */}
+        <div
+          className="shrink-0 px-5 pb-4 pt-2"
+          style={{ backgroundColor: '#0a0a0a' }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={false} nextText="continue →" />
+        </div>
+      </div>
+    );
   };
 
   // Photo flipping sequence (multiple pages at once)
@@ -2852,7 +3001,7 @@ export default function ResultsPage({ params }: Props) {
         return (
           <FlipContainer>
             <div className="absolute inset-0 bg-black z-0">
-              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} />
+              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} isActive={false} />
             </div>
             <FlipPage key="city-intro" isFlipped={cityIntroFlip.isFlipped} zIndex={10}>
               <CityIntroContent onNext={cityIntroFlip.flip} onBack={onBack['city-intro']} />
@@ -2874,7 +3023,7 @@ export default function ResultsPage({ params }: Props) {
               />
             </div>
             <FlipPage key="city-reveal" isFlipped={cityRevealFlip.isFlipped} zIndex={10}>
-              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} />
+              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} isActive={true} />
             </FlipPage>
           </FlipContainer>
         );

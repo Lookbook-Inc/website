@@ -223,8 +223,9 @@ export const StyleDestinationCard = ({ results }: ShareableCardProps) => {
       ) : (
         <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #4a5568 0%, #1a202c 100%)' }} />
       )}
-      {/* Scrim so the tag reads cleanly */}
-      <div className="absolute inset-0 bg-black/30" />
+      
+      {/* Scrim so the tag reads cleanly
+      <div className="absolute inset-0 bg-black/30" /> */}
 
       {/* ── String: from card top down to grommet ── */}
       <div style={{
@@ -386,22 +387,21 @@ export const StyleDestinationCard = ({ results }: ShareableCardProps) => {
               src="/images/lb_barcode_only.png" 
               alt="Barcode"
               style={{ 
-                width: '180px', // Fixed width for the barcode
-                height: 40,      // Increased height
+                width: '180px',
+                height: 40,
                 display: 'block',
                 mixBlendMode: 'darken',
                 objectFit: 'fill'
               }} 
             />
           </div>
-          {/* 2. Flexible Spacer (Pushes items apart) */}
+          {/* 2. Flexible Spacer */}
           <div style={{ flex: 1 }} />
 
           {/* Logo badge */}
           <div style={{ width: 46, height: 46, flexShrink: 0 }}>
             <svg viewBox="0 0 46 46" xmlns="http://www.w3.org/2000/svg" width="46" height="46">
               <polygon points="23,2 44,23 23,44 2,23" fill="none" stroke={INK} strokeWidth="1.5"/>
-              {/* Logo centered inside the diamond */}
               <image 
                 href="/LB-logo-dark.svg" 
                 x="13" y="13" 

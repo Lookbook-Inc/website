@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 export default function Support() {
   return (
     <main className="min-h-screen w-full p-2 md:p-4">
-      <section className="relative min-h-[calc(100vh-1rem)] md:min-h-[calc(100vh-2rem)] w-full rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden flex flex-col items-center justify-center text-center px-6 bg-zinc-100">
+      <section className="relative min-h-[calc(100vh-1rem)] md:min-h-[calc(100vh-2rem)] w-full rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden flex flex-col items-center justify-center text-center px-6 bg-[#f5f2ee]">
         <div className="absolute inset-0 pointer-events-none z-20">
           <div className="absolute top-6 md:top-10 left-6 md:left-10 pointer-events-auto">
             <Link href="/" aria-label="Lookbook home" className="inline-block">

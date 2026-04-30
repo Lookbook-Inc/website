@@ -381,10 +381,23 @@ export default function EarlyAccessPage() {
                     exit="exit"
                     transition={slideTransition}
                   >
-                    <p className="font-sans text-sm text-gray-500 leading-relaxed mb-6">
-                      We&apos;ll reach out to <span className="text-gray-900">{email}</span> when
-                      your early access is ready.
-                    </p>
+                    <div className="font-sans text-sm text-gray-500 leading-relaxed mb-6 space-y-4">
+                      <p>You can get started with Lookbook here:</p>
+                      <p>
+                        <a
+                          href="https://testflight.apple.com/join/mtKqj7V7"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 transition-colors"
+                        >
+                          https://testflight.apple.com/join/mtKqj7V7
+                        </a>
+                      </p>
+                      <p>
+                        We&apos;ll also be in touch via email to{' '}
+                        <span className="text-gray-900">{email}</span>.
+                      </p>
+                    </div>
                     <Link
                       href="/"
                       className="font-mono text-xs tracking-[0.2em] uppercase text-gray-400 hover:text-gray-900 transition-colors"

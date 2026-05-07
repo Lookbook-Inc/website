@@ -91,17 +91,29 @@ export default function LookbookPrivacyPolicy() {
                   <h2 className="font-display text-2xl md:text-3xl text-black/80">
                     How We Use Information
                   </h2>
-                  <p>We use this information to:</p>
+                  <p>We use your information to:</p>
                   <ul className="list-disc pl-6 space-y-2">
-                    <li>Provide and operate the app</li>
-                    <li>Process your inputs and generate AI-powered responses</li>
-                    <li>Store and manage your content</li>
+                    <li>Provide, operate, and maintain Lookbook.</li>
+                    <li>Create and manage your account.</li>
                     <li>
-                      Generate weather-aware clothing recommendations based on
-                      your zip code
+                      Store and organize your uploaded photos, clothing items,
+                      outfits, and saved content.
                     </li>
-                    <li>Send push notifications (if you enable them)</li>
-                    <li>Improve app functionality</li>
+                    <li>
+                      Analyze your photos and content to identify clothing items,
+                      aesthetics, and create outfit recommendations.
+                    </li>
+                    <li>
+                      Create weather-aware outfit recommendations based on your
+                      zip code.
+                    </li>
+                    <li>Send push notifications, if you enable them.</li>
+                    <li>
+                      Understand app usage, diagnose issues, and improve Lookbook.
+                    </li>
+                    <li>
+                      Protect the security and integrity of the app.
+                    </li>
                   </ul>
                 </section>
 
@@ -109,34 +121,37 @@ export default function LookbookPrivacyPolicy() {
                   <h2 className="font-display text-2xl md:text-3xl text-black/80">
                     Third-Party Services
                   </h2>
-                  <p>We use third-party services to run the app:</p>
+                  <p>
+                    We do not sell your data to any third party. Our
+                    third-party providers do not use data from our app to track
+                    individual users for analytics or advertising. We use
+                    third-party services to provide some app functionalities:
+                  </p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>
                       <strong className="font-medium">Supabase</strong>{" "}
                       (authentication, database, and storage)
                     </li>
                     <li>
-                      <strong className="font-medium">OpenAI API</strong> (AI
-                      processing)
+                      <strong className="font-medium">OpenAI API</strong>{" "}
+                      (Image processing &amp; visual intelligence)
                     </li>
                     <li>
                       <strong className="font-medium">Google Gemini API</strong>{" "}
-                      (AI processing)
+                      (Image processing &amp; visual intelligence)
                     </li>
                     <li>
                       <strong className="font-medium">PostHog</strong> (product
-                      analytics &mdash; used only for our own analytics; not
-                      shared or sold)
+                      analytics)
                     </li>
                     <li>
-                      <strong className="font-medium">WeatherAPI</strong>{" "}
-                      (provides local weather data based on your zip code, used
-                      to generate weather-aware clothing recommendations)
+                      <strong className="font-medium">WeatherAPI</strong> (local
+                      weather data)
                     </li>
                   </ul>
                   <p>
-                    These services may process your data only as needed to
-                    provide the app&apos;s functionality.
+                    These services process data only as needed to provide the
+                    app&apos;s functionality.
                   </p>
                 </section>
 
@@ -155,9 +170,42 @@ export default function LookbookPrivacyPolicy() {
                     Data Retention
                   </h2>
                   <p>
-                    We keep your data only for as long as needed to provide the
-                    app. You can request deletion of your account and data at
-                    any time by contacting us.
+                    We keep your information for as long as needed to provide
+                    Lookbook, maintain your account, comply with legal
+                    obligations, resolve disputes, and improve the app. You can
+                    request deletion of your account and data via the app, or
+                    by contacting us at{" "}
+                    <a
+                      href="mailto:hq@lookbook.inc"
+                      className="underline hover:text-black/60 transition-colors"
+                    >
+                      hq@lookbook.inc
+                    </a>
+                    .
+                  </p>
+                </section>
+
+                <section className="space-y-3">
+                  <h2 className="font-display text-2xl md:text-3xl text-black/80">
+                    Face Data
+                  </h2>
+                  <p>
+                    If you choose to use the auto photo selection feature,
+                    Lookbook may ask you to take a photo of your face for
+                    reference. This photo is used only on your device to help
+                    find outfit photos in your photo library that are likely to
+                    include you.
+                  </p>
+                  <p>
+                    <strong className="font-medium">
+                      Your face photo never leaves your phone.
+                    </strong>{" "}
+                    It is not uploaded, stored on our servers, shared with third
+                    parties, or used for advertising or tracking. It is stored
+                    locally on your device so you do not need to retake it each
+                    time you use auto photo selection. It remains on your
+                    device until you delete the app or remove the app&apos;s
+                    local data.
                   </p>
                 </section>
 
@@ -182,7 +230,12 @@ export default function LookbookPrivacyPolicy() {
                   <h2 className="font-display text-2xl md:text-3xl text-black/80">
                     Changes
                   </h2>
-                  <p>We may update this policy from time to time.</p>
+                  <p>
+                    We may update this Privacy Policy from time to time. If we
+                    make material changes, we will update the effective date and
+                    may provide additional notice in the app or by other
+                    reasonable means.
+                  </p>
                 </section>
 
                 <section className="space-y-3">
@@ -190,14 +243,15 @@ export default function LookbookPrivacyPolicy() {
                     Contact
                   </h2>
                   <p>
-                    For questions, contact us at{" "}
+                    For questions or requests, contact us at:
+                  </p>
+                  <p>
                     <a
                       href="mailto:hq@lookbook.inc"
                       className="underline hover:text-black/60 transition-colors"
                     >
                       hq@lookbook.inc
                     </a>
-                    .
                   </p>
                 </section>
               </div>

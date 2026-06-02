@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     description: "Lookbook: Your Style Anthology.",
     images: ["/images/unfurl-card.jpg"],
   },
+  other: {
+    "apple-itunes-app": "app-id=6762231832",
+  },
 };
 
 export default function MainLayout({

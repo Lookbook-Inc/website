@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useMotionValue, useSpring, useMotionTemplate, animate } from "framer-motion";
 import { useRef, useEffect } from "react";
+import posthog from "posthog-js";
 
 export function HeroPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -84,13 +85,13 @@ export function HeroPanel() {
             </Link>
           </div>
 
-          {/* Top Right: Our Waitlist */}
+          {/* Top Right: Get the App */}
           <div className="absolute top-6 md:top-10 right-6 md:right-10 pointer-events-auto">
-            <Link 
-              href="#waitlist" 
+            <Link
+              href="#waitlist"
               className="text-zinc-400 hover:text-zinc-200 font-mono text-xs md:text-sm tracking-[0.2em] uppercase transition-colors"
             >
-              Our Waitlist
+              Get the App
             </Link>
           </div>
 
@@ -123,8 +124,8 @@ export function HeroPanel() {
         </motion.div>
 
         {/* Central Text Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
-          <div className="text-center">
+        <div className="absolute inset-0 z-10 pointer-events-none md:bg-black/20">
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
             <h1 className="text-6xl md:text-[12cqw] font-display text-zinc-200 mix-blend-difference">
               Lookbook
             </h1>
@@ -132,6 +133,29 @@ export function HeroPanel() {
               Your Style Anthology
             </p>
           </div>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 1.2, ease: "easeOut" }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[9rem] md:translate-y-[12rem] pointer-events-auto md:hidden"
+          >
+            <a
+              href="https://apps.apple.com/us/app/lookbook-your-style-anthology/id6762231832?itscg=30200&itsct=apps_box_badge&mttnsubad=6762231832"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => posthog.capture("app_store_click", { source: "hero" })}
+              className="hover:scale-105 active:scale-95 transition-transform duration-200 inline-block drop-shadow-2xl"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://toolbox.marketingtools.apple.com/api/v2/badges/download-on-the-app-store/black/en-us?releaseDate=1780012800"
+                alt="Download on the App Store"
+                width={155}
+                height={52}
+                className="w-[155px] h-auto"
+              />
+            </a>
+          </motion.div>
         </div>
       </div>
     </section>

@@ -37,6 +37,7 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://lookbook.inc"),
   title: "Lookbook",
   description: "Your Style Anthology.",
   openGraph: {

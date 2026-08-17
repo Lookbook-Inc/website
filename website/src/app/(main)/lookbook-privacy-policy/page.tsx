@@ -49,7 +49,7 @@ export default function LookbookPrivacyPolicy() {
 
             <div className="relative">
               <div className="text-xs md:text-sm font-mono text-zinc-500 uppercase tracking-[0.3em] mb-4">
-                Effective April 30, 2026
+                Effective August 11, 2026
               </div>
               <h1 className="text-4xl md:text-5xl font-display text-black/80 mb-10 leading-tight">
                 Privacy Policy
@@ -73,7 +73,8 @@ export default function LookbookPrivacyPolicy() {
                     </li>
                     <li>
                       <strong className="font-medium">User Content</strong>{" "}
-                      (such as photos you upload and outfits you save)
+                      (such as photos you upload, Friends posts you choose to
+                      share, reports you submit, and outfits you save)
                     </li>
                     <li>
                       <strong className="font-medium">Device Token</strong>{" "}
@@ -108,6 +109,10 @@ export default function LookbookPrivacyPolicy() {
                       zip code.
                     </li>
                     <li>Send push notifications, if you enable them.</li>
+                    <li>
+                      Operate Friends connections, sharing, image safety checks,
+                      blocking, and member-report review.
+                    </li>
                     <li>
                       Understand app usage, diagnose issues, and improve Lookbook.
                     </li>
@@ -152,6 +157,35 @@ export default function LookbookPrivacyPolicy() {
                   <p>
                     These services process data only as needed to provide the
                     app&apos;s functionality.
+                  </p>
+                </section>
+
+                <section className="space-y-3">
+                  <h2 className="font-display text-2xl md:text-3xl text-black/80">
+                    Friends Sharing and Safety
+                  </h2>
+                  <p>
+                    Friends sharing is optional and off by default during an
+                    upload. A Friends post contains only the selected display
+                    image, a safe profile summary, and publication metadata.
+                    Accepted friends can see currently active historical shares.
+                    Public web profiles show only your avatar, display name, and
+                    handle; they never show your posts.
+                  </p>
+                  <p>
+                    Images are checked for safety before publication. Flagged
+                    images and images whose check is unavailable remain private.
+                    Member reports are stored for review and may include the
+                    reported profile and originating post. Blocking removes the
+                    relationship and hides both members from one another; unblocking
+                    does not restore it.
+                  </p>
+                  <p>
+                    Learn more in our{" "}
+                    <Link href="/community-standards" className="underline hover:text-black/60 transition-colors">
+                      Community Standards
+                    </Link>
+                    .
                   </p>
                 </section>
 

@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["382UFHQ64F.com.studiomaven.Lookbook-frontend"],
+        "components": [
+          { "/": "/u/*", "comment": "Permanent Friends profile links" },
+          { "/": "/user/*", "comment": "Current-handle Friends profile links" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["382UFHQ64F.com.studiomaven.Lookbook-frontend"]
+  }
+}

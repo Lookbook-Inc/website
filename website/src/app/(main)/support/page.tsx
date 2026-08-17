@@ -63,7 +63,16 @@ export default function Support() {
             </p>
 
             <p className="relative mt-4 text-base md:text-lg font-mono font-thin text-black max-w-xl mx-auto leading-relaxed text-center">
-              We typically respond within 48 hours.
+              We typically respond to general support requests within 48 hours.
+            </p>
+            <p className="relative mt-4 text-sm md:text-base font-mono font-thin text-black/70 max-w-xl mx-auto leading-relaxed text-center">
+              In-app Friends reports enter our safety queue immediately, with a
+              24-hour review target. For an urgent safety concern, include
+              &ldquo;Safety&rdquo; in your email subject. You can also review our{" "}
+              <Link href="/community-standards" className="underline hover:text-black/60">
+                Community Standards
+              </Link>
+              .
             </p>
           </div>
         </div>

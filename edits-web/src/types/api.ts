@@ -40,6 +40,8 @@ export type FitPicCard = {
   garment_count: number;
 };
 
+export type FitPicPage = CursorPage<FitPicCard>;
+
 export type FitPicDetail = FitPicCard & {
   details: string | null;
   user_notes: string | null;

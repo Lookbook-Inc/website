@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The dev badge defaults to bottom-left, directly on top of the rail avatar.
+  devIndicators: { position: "bottom-right" },
   poweredByHeader: false,
   allowedDevOrigins: ["127.0.0.1"],
   async headers() {

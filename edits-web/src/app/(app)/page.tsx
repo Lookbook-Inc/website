@@ -1,27 +1,31 @@
-import Link from "next/link";
-import { FitPicGrid, OutfitGrid, PageHeading, SectionHeading } from "@/components/ui";
+import { AuraApp } from "@/components/aura/AuraApp";
+import { requireViewer } from "@/lib/auth";
 import { readWeb } from "@/lib/data";
-import type { Home } from "@/types/api";
+import type { Home, WardrobePage } from "@/types/api";
 
-export default async function HomePage() {
-  const data = await readWeb<Home>("/web/v1/home");
-  const recommendations = data.recommendations.members.flatMap((member) => member.combos).slice(0, 3);
+/** Server-side date, corrected to the viewer's own timezone once mounted. */
+function serverDateISO() {
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+export default async function EditorPage() {
+  const viewer = await requireViewer();
+  const [home, wardrobe] = await Promise.all([
+    readWeb<Home>("/web/v1/home"),
+    readWeb<WardrobePage>("/web/v1/wardrobe?limit=60"),
+  ]);
+
   return (
-    <div className="page">
-      <PageHeading eyebrow="Your Lookbook" title={data.first_name ? `Good to see you, ${data.first_name}.` : "Good to see you."} copy="A clear view of what you own, what you wore, and the ideas waiting for you." />
-      <section className="stat-grid" aria-label="Wardrobe summary">
-        <Link href="/wardrobe" className="stat-card"><span>Wardrobe</span><strong>{data.wardrobe_count}</strong><small>owned pieces</small></Link>
-        <Link href="/outfits" className="stat-card dark"><span>Outfits</span><strong>{data.outfit_count}</strong><small>saved combinations</small></Link>
-        <Link href="/recommendations" className="stat-card editorial"><span>Latest edit</span><strong>{recommendations.length ? "Ready" : "—"}</strong><small>{data.recommendations.generated_at ? "fresh recommendations" : "nothing new yet"}</small></Link>
-      </section>
-      <section className="content-section">
-        <SectionHeading title="Recently worn" href="/fit-pics" />
-        {data.recent_fit_pics.length ? <FitPicGrid items={data.recent_fit_pics} compact /> : <p className="inline-empty">Your latest fit pics will appear here.</p>}
-      </section>
-      <section className="content-section recommendation-preview">
-        <SectionHeading title="The latest edit" href="/recommendations" label="See the full edit" />
-        {recommendations.length ? <OutfitGrid items={recommendations} /> : <p className="inline-empty">Your next recommendation set hasn’t been generated yet.</p>}
-      </section>
-    </div>
+    <AuraApp
+      email={viewer.email}
+      firstName={home.first_name}
+      initialWardrobe={wardrobe.items}
+      itemTypes={wardrobe.available_item_types ?? []}
+      wardrobeCount={home.wardrobe_count}
+      outfitCount={home.outfit_count}
+      serverDateISO={serverDateISO()}
+    />
   );
 }

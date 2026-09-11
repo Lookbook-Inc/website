@@ -14,13 +14,22 @@ const image = (label: string, hue: string) =>
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000"><rect width="800" height="1000" fill="${hue}"/><circle cx="400" cy="430" r="225" fill="none" stroke="#1a1916" stroke-width="2" opacity=".22"/><text x="400" y="500" text-anchor="middle" font-family="Georgia" font-size="42" fill="#1a1916">${label}</text></svg>`,
   )}`;
 
+/**
+ * `item_type` uses the real `GarmentType` StrEnum values the upload pipeline
+ * writes (mvp-backend/python-backend/src/models/clothing.py). Keep them exact —
+ * the card's slot and silhouette mapping keys off this vocabulary.
+ */
 const wardrobe = [
-  { id: "10000000-0000-0000-0000-000000000001", name: "Ink chore coat", item_type: "Outerwear", brand: "Lemaire", image_url: image("CHORE COAT", "#b9c0bd"), created_at: "2026-08-30T10:00:00Z", fit_pic_count: 8, shades: [{ name: "Ink", hex_code: "#252b31" }] },
-  { id: "10000000-0000-0000-0000-000000000002", name: "Soft poplin shirt", item_type: "Tops", brand: "Studio Nicholson", image_url: image("POPLIN SHIRT", "#e1ded4"), created_at: "2026-08-29T10:00:00Z", fit_pic_count: 5, shades: [{ name: "Chalk", hex_code: "#e6e2d7" }] },
-  { id: "10000000-0000-0000-0000-000000000003", name: "Wide pleated trouser", item_type: "Bottoms", brand: "COS", image_url: image("TROUSER", "#a6a194"), created_at: "2026-08-28T10:00:00Z", fit_pic_count: 11, shades: [{ name: "Mushroom", hex_code: "#817a6e" }] },
-  { id: "10000000-0000-0000-0000-000000000004", name: "Leather fisherman sandal", item_type: "Shoes", brand: "Hereu", image_url: image("SANDAL", "#c4a27b"), created_at: "2026-08-27T10:00:00Z", fit_pic_count: 6, shades: [{ name: "Chestnut", hex_code: "#754f35" }] },
-  { id: "10000000-0000-0000-0000-000000000005", name: "Fine knit polo", item_type: "Tops", brand: "Our Legacy", image_url: image("KNIT POLO", "#bac2ad"), created_at: "2026-08-26T10:00:00Z", fit_pic_count: 4, shades: [{ name: "Sage", hex_code: "#8d987e" }] },
-  { id: "10000000-0000-0000-0000-000000000006", name: "Canvas market tote", item_type: "Accessories", brand: null, image_url: image("MARKET TOTE", "#d7cab1"), created_at: "2026-08-25T10:00:00Z", fit_pic_count: 3, shades: [{ name: "Canvas", hex_code: "#c9b894" }] },
+  { id: "10000000-0000-0000-0000-000000000001", name: "Ink chore coat", item_type: "jacket", brand: "Lemaire", image_url: image("CHORE COAT", "#b9c0bd"), created_at: "2026-08-30T10:00:00Z", fit_pic_count: 8, shades: [{ name: "Ink", color_group: "Blue", hex_code: "#252B31", importance: 3 }] },
+  { id: "10000000-0000-0000-0000-000000000002", name: "Soft poplin shirt", item_type: "button-up-shirt", brand: "Studio Nicholson", image_url: image("POPLIN SHIRT", "#e1ded4"), created_at: "2026-08-29T10:00:00Z", fit_pic_count: 5, shades: [{ name: "Chalk", color_group: "White", hex_code: "#E6E2D7", importance: 3 }] },
+  { id: "10000000-0000-0000-0000-000000000003", name: "Wide pleated trouser", item_type: "pants", brand: "COS", image_url: image("TROUSER", "#a6a194"), created_at: "2026-08-28T10:00:00Z", fit_pic_count: 11, shades: [{ name: "Mushroom", color_group: "Beige", hex_code: "#817A6E", importance: 3 }] },
+  { id: "10000000-0000-0000-0000-000000000004", name: "Leather fisherman sandal", item_type: "shoes", brand: "Hereu", image_url: image("SANDAL", "#c4a27b"), created_at: "2026-08-27T10:00:00Z", fit_pic_count: 6, shades: [{ name: "Chestnut", color_group: "Brown", hex_code: "#754F35", importance: 3 }] },
+  { id: "10000000-0000-0000-0000-000000000005", name: "Fine knit polo", item_type: "sweater", brand: "Our Legacy", image_url: image("KNIT POLO", "#bac2ad"), created_at: "2026-08-26T10:00:00Z", fit_pic_count: 4, shades: [{ name: "Sage", color_group: "Green", hex_code: "#8D987E", importance: 3 }] },
+  { id: "10000000-0000-0000-0000-000000000006", name: "Canvas market tote", item_type: "purse", brand: null, image_url: image("MARKET TOTE", "#d7cab1"), created_at: "2026-08-25T10:00:00Z", fit_pic_count: 3, shades: [{ name: "Canvas", color_group: "Beige", hex_code: "#C9B894", importance: 3 }] },
+  { id: "10000000-0000-0000-0000-000000000007", name: "Corduroy baseball cap", item_type: "hat", brand: "Norse Projects", image_url: image("CAP", "#8d9aa6"), created_at: "2026-08-24T10:00:00Z", fit_pic_count: 2, shades: [{ name: "Slate", color_group: "Blue", hex_code: "#48586B", importance: 3 }] },
+  { id: "10000000-0000-0000-0000-000000000008", name: "Bias cut midi skirt", item_type: "skirt", brand: "Réalisation", image_url: image("MIDI SKIRT", "#c2a6b4"), created_at: "2026-08-23T10:00:00Z", fit_pic_count: 7, shades: [{ name: "Plum", color_group: "Purple", hex_code: "#6B4257", importance: 3 }] },
+  { id: "10000000-0000-0000-0000-000000000009", name: "Washed cotton tee", item_type: "t-shirt", brand: "Everlane", image_url: image("COTTON TEE", "#d5d2cb"), created_at: "2026-08-22T10:00:00Z", fit_pic_count: 9, shades: [{ name: "Bone", color_group: "White", hex_code: "#E4DED2", importance: 3 }] },
+  { id: "10000000-0000-0000-0000-000000000010", name: "Silk slip dress", item_type: "dress", brand: "Vintage", image_url: image("SLIP DRESS", "#9a95a8"), created_at: "2026-08-21T10:00:00Z", fit_pic_count: 4, shades: [{ name: "Midnight", color_group: "Black", hex_code: "#1B1A1D", importance: 3 }] },
 ];
 
 const fitPics = [
@@ -56,7 +65,11 @@ export const fixtures = {
       members: [{ folder_id: "50000000-0000-0000-0000-000000000001", folder_name: "In rotation", combos: outfitBase.slice(0, 2).map(outfitDetail) }],
     },
   } satisfies Home,
-  wardrobe: { items: wardrobe, next_cursor: null, available_item_types: ["Accessories", "Bottoms", "Outerwear", "Shoes", "Tops"] } satisfies WardrobePage,
+  wardrobe: {
+    items: wardrobe,
+    next_cursor: null,
+    available_item_types: [...new Set(wardrobe.map((item) => item.item_type))].sort(),
+  } satisfies WardrobePage,
   wardrobeDetail: { ...wardrobe[0], caption: "A softly constructed cotton layer.", material: "Cotton twill", details: "Relaxed fit · patch pockets" } satisfies WardrobeDetail,
   fitPics: { items: fitPics, next_cursor: null },
   fitPicDetail: { ...fitPics[0], details: null, user_notes: "Felt balanced and comfortable.", last_worn: "2026-09-04", favorited: true, garments: wardrobe.slice(0, 3) } satisfies FitPicDetail,

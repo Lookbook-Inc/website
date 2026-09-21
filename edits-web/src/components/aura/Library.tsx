@@ -61,9 +61,8 @@ export function Library({
   return (
     <div className="toolwrap">
       <header className="tp-head">
-        <p className="eyebrow">Your Lookbook</p>
-        <h1>Everything you <em>own</em>.</h1>
-        <div className="lib-stats" style={{ marginTop: "18px" }}>
+        <h2>Everything you own</h2>
+        <div className="lib-stats">
           <span className="lib-stat"><strong>{wardrobeCount}</strong> pieces</span>
           <span className="lib-stat"><strong>{outfitCount}</strong> outfits</span>
         </div>

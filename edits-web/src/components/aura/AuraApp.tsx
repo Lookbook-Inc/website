@@ -12,11 +12,12 @@ import { LineSection } from "./LineSection";
 import { PaletteSection } from "./PaletteSection";
 import { PickerSheet } from "./PickerSheet";
 import { SearchList } from "./SearchList";
-import { Section } from "./Section";
+import { SongSection } from "./SongSection";
+import { pickRandom, type Line, type Song } from "./banks";
 import { downloadCard } from "./download";
 import { classify } from "./garments";
 import { paletteNamesFor } from "./palette";
-import { BLOB_COLORS, LINES, MAX_PIECES, PLACES, SONGS, WEATHER } from "./placeholders";
+import { BLOB_COLORS, BLOB_SIZE, MAX_PIECES, PLACES, WEATHER } from "./placeholders";
 import type { CardKind, CardState, Catalogue, Placement, Screen } from "./types";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -48,7 +49,7 @@ function seedPieces(wardrobe: WardrobeCard[]) {
   return chosen.slice(0, MAX_PIECES);
 }
 
-function seedCard(kind: CardKind, wardrobe: WardrobeCard[]): CardState {
+function seedCard(kind: CardKind, wardrobe: WardrobeCard[], lines: Line[], songs: Song[]): CardState {
   const pieces = seedPieces(kind === "day" ? wardrobe : [...wardrobe].reverse());
   const names = paletteNamesFor(pieces);
   return {
@@ -57,12 +58,14 @@ function seedCard(kind: CardKind, wardrobe: WardrobeCard[]): CardState {
     temp: WEATHER[kind].temp,
     sky: WEATHER[kind].sky,
     pieces: pieces.map((item) => item.id),
-    line: kind === "day" ? LINES[0].text : LINES[1].text,
+    line: (kind === "day" ? lines[0] : (lines[1] ?? lines[0]))?.aura_text ?? "",
     palName: names[0],
     blob: kind === "day" ? BLOB_COLORS[0].hex : BLOB_COLORS[1].hex,
-    song: kind === "day" ? SONGS[0] : SONGS[4],
+    blobSize: BLOB_SIZE[kind],
+    song: (kind === "day" ? songs[0] : (songs[1] ?? songs[0])) ?? null,
     place: kind === "day" ? PLACES[0] : PLACES[6],
     layout: {},
+    photo: null,
   };
 }
 
@@ -95,9 +98,20 @@ function initials(email: string | null) {
   return letters.toUpperCase();
 }
 
+type Tab = "fit" | "line" | "palette" | "song" | "place" | "day";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "fit", label: "Outfit" },
+  { id: "line", label: "Line" },
+  { id: "palette", label: "Palette" },
+  { id: "song", label: "Song" },
+  { id: "place", label: "Place" },
+  { id: "day", label: "Day" },
+];
+
 const RAIL: { id: Screen; label: string; icon: React.ReactNode }[] = [
   {
-    id: "today", label: "Today's edit",
+    id: "today", label: "Edit card",
     icon: <><rect x="3.5" y="4.5" width="17" height="16" rx="2.5" /><path d="M3.5 9.5h17M8.5 3v3M15.5 3v3" /></>,
   },
   {
@@ -115,6 +129,8 @@ export function AuraApp({
   firstName,
   initialWardrobe,
   itemTypes,
+  lines,
+  songs,
   wardrobeCount,
   outfitCount,
   serverDateISO,
@@ -123,6 +139,8 @@ export function AuraApp({
   firstName: string | null;
   initialWardrobe: WardrobeCard[];
   itemTypes: string[];
+  lines: Line[];
+  songs: Song[];
   wardrobeCount: number;
   outfitCount: number;
   serverDateISO: string;
@@ -131,12 +149,12 @@ export function AuraApp({
     Object.fromEntries(initialWardrobe.map((item) => [item.id, item])),
   );
   const [cards, setCards] = useState<Record<CardKind, CardState>>(() => ({
-    day: seedCard("day", initialWardrobe),
-    night: seedCard("night", initialWardrobe),
+    day: seedCard("day", initialWardrobe, lines, songs),
+    night: seedCard("night", initialWardrobe, lines, songs),
   }));
   const [active, setActive] = useState<CardKind>("day");
   const [screen, setScreen] = useState<Screen>("today");
-  const [openSection, setOpenSection] = useState<number | null>(1);
+  const [tab, setTab] = useState<Tab>("fit");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [fullOpen, setFullOpen] = useState(false);
@@ -171,6 +189,8 @@ export function AuraApp({
     [card.pieces, catalogue],
   );
   const other = cards[active === "day" ? "night" : "day"];
+  /** The palette follows whatever the card shows: the fit pic's garments, or the pieces. */
+  const paletteItems = card.photo?.garments.length ? card.photo.garments : items;
 
   const patch = useCallback(
     (changes: Partial<CardState>) => {
@@ -196,6 +216,7 @@ export function AuraApp({
             ...target,
             pieces: capped.map((item) => item.id),
             palName: names.includes(target.palName) ? target.palName : names[0],
+            photo: null,
           },
         };
       });
@@ -258,9 +279,10 @@ export function AuraApp({
         ...current[active],
         pieces: picked.map((item) => item.id),
         layout: {},
-        line: LINES[Math.floor(Math.random() * LINES.length)].text,
+        photo: null,
+        line: pickRandom<Line | null>(lines, null)?.aura_text ?? current[active].line,
         palName: names[0],
-        song: SONGS[Math.floor(Math.random() * SONGS.length)],
+        song: pickRandom(songs, current[active].song),
         place: PLACES[Math.floor(Math.random() * PLACES.length)],
         blob: BLOB_COLORS[Math.floor(Math.random() * BLOB_COLORS.length)].hex,
       },
@@ -306,7 +328,7 @@ export function AuraApp({
   }, [fullOpen]);
 
   /**
-   * Shrink the full-view card until the action bar fits on screen. `zoom` is used
+   * Shrink the full-view card until all of it fits on screen. `zoom` is used
    * rather than `transform` because it actually reflows the box, so nothing is
    * left floating over empty space. Written straight to the node — no state, so
    * no re-render per resize tick.
@@ -341,13 +363,14 @@ export function AuraApp({
 
   const which = active === "day" ? "Today's" : "Tonight's";
   const crumb =
-    screen === "today" ? `${which} edit`
+    screen === "today" ? `Edit ${which.toLowerCase()} card`
     : screen === "library" ? "Your Lookbook"
     : "How to use";
 
   const cardProps = {
     card,
     items,
+    paletteItems,
     ownerLabel: `${(firstName ?? email?.split("@")[0] ?? "Your").toUpperCase()}'S EDIT.`,
     weekday: today.weekday,
     monthDay: today.monthDay,
@@ -397,11 +420,20 @@ export function AuraApp({
       <div className="layout">
         <aside className="cardpane">
           <div className="cardpane-head">
-            <div>
-              <p className="eyebrow">{active === "day" ? "Today's card" : "Tonight's card"}</p>
-              <div className="cardpane-date" suppressHydrationWarning>{today.long}</div>
+            <div className="cardpane-date" suppressHydrationWarning>{today.long}</div>
+            <div className="seg" role="group" aria-label="Which card">
+              {(["day", "night"] as const).map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  className={active === kind ? "on" : ""}
+                  aria-pressed={active === kind}
+                  onClick={() => setActive(kind)}
+                >
+                  {kind === "day" ? "Today" : "Tonight"}
+                </button>
+              ))}
             </div>
-            <span className="synced"><span className="dot" />Live</span>
           </div>
 
           <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
@@ -411,103 +443,90 @@ export function AuraApp({
               onLayoutChange={onLayoutChange}
               onPeek={() => {
                 setActive(active === "day" ? "night" : "day");
-                say(active === "day" ? "Editing tonight's edit" : "Editing today's edit");
+                say(active === "day" ? "Editing tonight's card" : "Editing today's card");
               }}
             />
           </div>
 
           <div className="cardpane-foot">
             <button className="btn btn-primary" type="button" onClick={download} disabled={busy}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5" /><path d="M4.5 16.5v2A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-2" /></svg>
               Download image
             </button>
-            <button className="btn btn-ghost narrow" type="button" title="Surprise me" aria-label="Shuffle the edit" onClick={shuffle}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M4 7h4l8 10h4M4 17h4l2-2.5M16 7h4M18 5l2 2-2 2M18 15l2 2-2 2" /></svg>
-            </button>
           </div>
-          <div className="cardpane-foot" style={{ marginTop: "-8px" }}>
+          <div className="cardpane-foot">
+            <button className="btn btn-ghost" type="button" onClick={shuffle}>
+              Shuffle
+            </button>
             <button className="btn btn-ghost" type="button" onClick={() => setFullOpen(true)}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M15 20h5v-5M9 20H4v-5" /></svg>
-              See final aura card
+              Full screen
             </button>
           </div>
         </aside>
 
         <div className="toolpane">
           <div className="toolbar">
-            <strong className="crumb">{crumb}</strong>
-            <span className="synced"><span className="dot" />{wardrobeCount} pieces synced</span>
+            <h1 className="crumb">{crumb}</h1>
           </div>
 
           {screen === "today" ? (
             <div className="toolwrap">
-              <header className="tp-head">
-                <p className="eyebrow">Signed in as {firstName ?? email ?? "Lookbook member"}</p>
-                <h1>Generate your own <em>edit</em>.</h1>
-              </header>
+              <div className="tabs-row" role="tablist" aria-label="Edit the card">
+                {TABS.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    role="tab"
+                    id={`tab-${entry.id}`}
+                    aria-controls="edit-panel"
+                    aria-selected={tab === entry.id}
+                    className={`tab${tab === entry.id ? " on" : ""}`}
+                    onClick={() => setTab(entry.id)}
+                  >
+                    {entry.label}
+                  </button>
+                ))}
+              </div>
 
-              <Section
-                index={1} title="The fit" value={`${items.length} pieces`}
-                open={openSection === 1} onToggle={() => setOpenSection(openSection === 1 ? null : 1)}
-              >
+              <div className="tab-panel" role="tabpanel" id="edit-panel" aria-labelledby={`tab-${tab}`}>
+              {tab === "fit" ? (
                 <FitSection
                   items={items}
                   layout={card.layout}
                   onOpenPicker={openPicker}
                   onResize={(id, size) => onLayoutChange(id, { s: size })}
                   onSetPieces={setPieces}
+                  photo={card.photo}
+                  onSetPhoto={(photo) => {
+                    const names = paletteNamesFor(photo?.garments.length ? photo.garments : items);
+                    patch({ photo, palName: names.includes(card.palName) ? card.palName : names[0] });
+                  }}
                   onResetLayout={() => { patch({ layout: {} }); say("Layout reset"); }}
                   onToast={say}
                 />
-              </Section>
+              ) : null}
 
-              <Section
-                index={2} title="The line" value={`“${card.line}”`}
-                open={openSection === 2} onToggle={() => setOpenSection(openSection === 2 ? null : 2)}
-              >
-                <LineSection line={card.line} onChange={(line) => patch({ line })} onToast={say} />
-              </Section>
+              {tab === "line" ? (
+                <LineSection lines={lines} line={card.line} onChange={(line) => patch({ line })} onToast={say} />
+              ) : null}
 
-              <Section
-                index={3} title="The palette" value={card.palName}
-                open={openSection === 3} onToggle={() => setOpenSection(openSection === 3 ? null : 3)}
-              >
+              {tab === "palette" ? (
                 <PaletteSection
-                  items={items} palName={card.palName}
+                  items={paletteItems} palName={card.palName}
                   onChange={(palName) => patch({ palName })} onToast={say}
                 />
-              </Section>
+              ) : null}
 
-              <Section
-                index={4} title="Your soundtrack" value={`${card.song.title} · ${card.song.artist}`}
-                open={openSection === 4} onToggle={() => setOpenSection(openSection === 4 ? null : 4)}
-              >
-                <SearchList
-                  round
-                  options={SONGS.map((song) => ({
-                    id: song.id, primary: song.title, secondary: song.artist, colors: song.colors,
-                  }))}
-                  selectedId={card.song.id}
-                  placeholder="Search a song or artist…"
-                  label="Search a song or artist"
-                  emptyNote={(q) => `No track matches “${q}”.`}
-                  onSelect={(id) => {
-                    const song = SONGS.find((entry) => entry.id === id);
-                    if (song) patch({ song });
-                  }}
-                />
-              </Section>
+              {tab === "song" ? (
+                <SongSection songs={songs} song={card.song} onChange={(song) => patch({ song })} />
+              ) : null}
 
-              <Section
-                index={5} title="Your place" value={card.place.name}
-                open={openSection === 5} onToggle={() => setOpenSection(openSection === 5 ? null : 5)}
-              >
+              {tab === "place" ? (
                 <SearchList
                   options={PLACES.map((place) => ({
                     id: place.id, primary: place.name, secondary: place.city, colors: place.colors,
                   }))}
                   selectedId={card.place.id}
-                  placeholder="Search a place…"
+                  placeholder="Search places"
                   label="Search a place"
                   emptyNote={(q) => `No place matches “${q}”.`}
                   onSelect={(id) => {
@@ -515,12 +534,9 @@ export function AuraApp({
                     if (place) patch({ place });
                   }}
                 />
-              </Section>
+              ) : null}
 
-              <Section
-                index={6} title="The day" value={`${today.monthDay} · ${card.temp} ${card.sky}`}
-                open={openSection === 6} onToggle={() => setOpenSection(openSection === 6 ? null : 6)}
-              >
+              {tab === "day" ? (
                 <DaySection
                   dateISO={dateISO}
                   temp={card.temp}
@@ -530,18 +546,11 @@ export function AuraApp({
                   onSkyChange={(sky) => patch({ sky })}
                   blob={card.blob}
                   onBlobChange={(blob) => patch({ blob })}
+                  blobSize={card.blobSize}
+                  onBlobSizeChange={(blobSize) => patch({ blobSize })}
                   onToast={say}
                 />
-              </Section>
-
-              <div className="publish">
-                <button className="btn btn-brass" type="button" style={{ padding: "13px 26px" }} onClick={download} disabled={busy}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5" /><path d="M4.5 16.5v2A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-2" /></svg>
-                  Download image
-                </button>
-                <button className="btn btn-ghost" type="button" style={{ padding: "13px 22px" }} onClick={() => setFullOpen(true)}>
-                  See final aura card
-                </button>
+              ) : null}
               </div>
             </div>
           ) : null}
@@ -569,8 +578,8 @@ export function AuraApp({
         onToast={say}
       />
 
-      <div className={`fv${fullOpen ? " open" : ""}`} role="dialog" aria-label="Final aura card" aria-hidden={!fullOpen}>
-        <span className="fv-mark">{which} aura card</span>
+      <div className={`fv${fullOpen ? " open" : ""}`} role="dialog" aria-label="Full screen card" aria-hidden={!fullOpen}>
+        <span className="fv-mark">{which} card</span>
         <button className="fv-close" type="button" aria-label="Close" onClick={() => setFullOpen(false)}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
@@ -584,7 +593,6 @@ export function AuraApp({
               </button>
               <button className="btn btn-ghost" type="button" onClick={() => setFullOpen(false)}>Back to editing</button>
             </div>
-            <p className="fv-note">Nothing else on screen — screenshot away, or download the PNG.</p>
           </div>
         ) : null}
       </div>

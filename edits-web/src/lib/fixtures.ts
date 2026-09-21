@@ -1,10 +1,12 @@
 import type {
+  EditLineList,
   FitPicDetail,
   FolderList,
   Home,
   OutfitDetail,
   OutfitPage,
   Recommendations,
+  SongList,
   WardrobeDetail,
   WardrobePage,
 } from "@/types/api";
@@ -88,6 +90,34 @@ export const fixtures = {
   } satisfies Recommendations,
 };
 
+/** Shaped like the real banks: lines ordered by text, songs by sort_order. */
+const editLines = [
+  "dressed for the weather i wanted.",
+  "left the house. that's the win.",
+  "overdressed for a tuesday.",
+  "quiet day, loud shoes.",
+  "the commute is the runway.",
+  "the moon saved you a seat.",
+].map((aura_text, index) => ({ id: `60000000-0000-0000-0000-00000000000${index + 1}`, aura_text }));
+
+const songs = [
+  { song_title: "Wildflower", artist_display: "Billie Eilish" },
+  { song_title: "Cranes in the Sky", artist_display: "Solange" },
+  { song_title: "Space Song", artist_display: "Beach House" },
+  { song_title: "Nights", artist_display: "Frank Ocean" },
+  { song_title: "Bags", artist_display: "Clairo" },
+].map((song, index) => ({
+  ...song,
+  id: `70000000-0000-0000-0000-00000000000${index + 1}`,
+  cover_url: index === 0 ? image("WILDFLOWER", "#b7c4a8") : null,
+  sort_order: index + 1,
+}));
+
+export const bankFixtures = {
+  editLines: { items: editLines } satisfies EditLineList,
+  songs: { items: songs } satisfies SongList,
+};
+
 export function fixtureForPath<T>(path: string): T {
   const [pathname, queryString] = path.split("?");
   const query = new URLSearchParams(queryString);
@@ -126,5 +156,7 @@ export function fixtureForPath<T>(path: string): T {
     return outfitDetail(outfit) as T;
   }
   if (pathname === "/web/v1/recommendations/latest") return fixtures.recommendations as T;
+  if (pathname === "/web/v1/banks/edits-lines") return bankFixtures.editLines as T;
+  if (pathname === "/web/v1/banks/songs") return bankFixtures.songs as T;
   throw new Error(`No fixture for ${pathname}`);
 }

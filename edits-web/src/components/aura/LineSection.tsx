@@ -1,23 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { LINES, MOODS } from "./placeholders";
+import type { Line } from "./banks";
 
 const MAX_LINE = 46;
 
 export function LineSection({
+  lines,
   line,
   onChange,
   onToast,
 }: {
+  lines: Line[];
   line: string;
   onChange: (line: string) => void;
   onToast: (message: string) => void;
 }) {
-  const [mood, setMood] = useState<string>("All");
   const [own, setOwn] = useState("");
-
-  const list = LINES.filter((entry) => mood === "All" || entry.mood === mood);
 
   function applyOwn() {
     const value = own.trim();
@@ -32,28 +31,19 @@ export function LineSection({
 
   return (
     <>
-      <div className="moods">
-        {MOODS.map((entry) => (
-          <button
-            key={entry}
-            type="button"
-            className={`mchip${mood === entry ? " on" : ""}`}
-            onClick={() => setMood(entry)}
-          >
-            {entry}
-          </button>
-        ))}
-      </div>
+      <p className="hint">Pick a line. It goes at the top of the card.</p>
 
       <div className="lines">
-        {list.map((entry) => (
+        {lines.length ? null : <div className="empty-note">No lines in the bank yet.</div>}
+        {lines.map((entry) => (
           <button
-            key={entry.text}
+            key={entry.id}
             type="button"
-            className={`lineopt${entry.text === line ? " on" : ""}`}
-            onClick={() => onChange(entry.text)}
+            className={`lineopt${entry.aura_text === line ? " on" : ""}`}
+            aria-pressed={entry.aura_text === line}
+            onClick={() => onChange(entry.aura_text)}
           >
-            <span>{`“${entry.text}”`}</span>
+            <span>{entry.aura_text}</span>
             <span className="tick">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M5 13l4.5 4.5L19 7" /></svg>
             </span>
@@ -61,11 +51,13 @@ export function LineSection({
         ))}
       </div>
 
+      <label className="field-label" htmlFor="own-line">Or write your own</label>
       <div className="own">
         <input
+          id="own-line"
           value={own}
           maxLength={MAX_LINE}
-          placeholder="Write your own…"
+          placeholder="Type a line…"
           aria-label="Write your own line"
           onChange={(event) => setOwn(event.target.value)}
           onKeyDown={(event) => {
@@ -75,11 +67,11 @@ export function LineSection({
             }
           }}
         />
-        <button className="btn btn-brass" type="button" style={{ padding: "10px 18px", fontSize: "13px" }} onClick={applyOwn}>
+        <button className="btn btn-brass" type="button" onClick={applyOwn}>
           Use it
         </button>
       </div>
-      <div className="counter">{own.length}/{MAX_LINE} · shows on the top of the card</div>
+      <div className="counter">{own.length}/{MAX_LINE}</div>
     </>
   );
 }

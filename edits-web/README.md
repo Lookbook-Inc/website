@@ -7,7 +7,7 @@ Signing in opens today's card, already built from the member's own wardrobe. The
 Two things to know before changing it:
 
 - **Nothing is saved.** Card state lives in React state for the session and is gone on refresh. There is no backend home for saved cards, which is why the read-only boundary below still holds.
-- **The line, soundtrack, place, weather and the day/night split are placeholders.** They exist nowhere in the backend and ship as typed constants in `src/components/aura/placeholders.ts`. The palette is the exception — it derives from real `shades[].hex_code`.
+- **The line, soundtrack, place, weather and the day/night split are placeholders.** They exist nowhere in the backend and ship as typed constants: the line and song banks in `src/components/aura/banks.ts`, the rest in `src/components/aura/placeholders.ts`. The palette is the exception — it derives from real `shades[].hex_code`.
 
 ## Local development
 

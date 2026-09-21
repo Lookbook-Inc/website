@@ -40,7 +40,7 @@ export function PaletteSection({
           <i key={`${color}-${index}`} style={{ background: color }} />
         ))}
       </div>
-      <p className="pal-note">Pulled from the pieces on the card. Pick a name or write one.</p>
+      <p className="hint">These colours come from your pieces. Pick a name for them.</p>
 
       <div className="namegrid">
         {names.map((name) => (
@@ -50,18 +50,19 @@ export function PaletteSection({
             className={`nameopt${name === palName ? " on" : ""}`}
             onClick={() => onChange(name)}
           >
-            {`“${name}”`}
+            {name}
           </button>
         ))}
       </div>
 
-      <div className="own" style={{ marginTop: "14px" }}>
+      <label className="field-label" htmlFor="own-palette">Or name it yourself</label>
+      <div className="own">
         <input
           value={own}
           maxLength={MAX_NAME}
-          placeholder="Name it yourself…"
+          id="own-palette"
+          placeholder="Type a name…"
           aria-label="Name the palette"
-          style={{ fontStyle: "italic", letterSpacing: ".1em" }}
           onChange={(event) => setOwn(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -70,7 +71,7 @@ export function PaletteSection({
             }
           }}
         />
-        <button className="btn btn-brass" type="button" style={{ padding: "10px 18px", fontSize: "13px" }} onClick={applyOwn}>
+        <button className="btn btn-brass" type="button" onClick={applyOwn}>
           Use it
         </button>
       </div>

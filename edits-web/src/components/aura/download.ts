@@ -1,6 +1,7 @@
 "use client";
 
 import { domToBlob } from "modern-screenshot";
+import { EDIT_UI_CLASS } from "./Collage";
 
 function fileName() {
   const now = new Date();
@@ -22,6 +23,8 @@ export async function downloadCard(node: HTMLElement) {
     quality: 1,
     backgroundColor: null,
     fetch: { requestInit: { mode: "cors", credentials: "omit" } },
+    // Leave out the selection box, resize handles and layer menu.
+    filter: (node) => !(node instanceof Element && node.classList.contains(EDIT_UI_CLASS)),
   });
   if (!blob) throw new Error("The card could not be rendered.");
 

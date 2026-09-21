@@ -35,7 +35,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         <a className="skip-link" href="#main-content">Skip to content</a>
-        <div className="grain" aria-hidden="true" />
         <Analytics>{children}</Analytics>
       </body>
     </html>

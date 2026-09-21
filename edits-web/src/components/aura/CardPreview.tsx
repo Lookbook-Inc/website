@@ -1,7 +1,9 @@
 "use client";
 
 import type { WardrobeCard } from "@/types/api";
+import { songColors } from "./banks";
 import { Collage } from "./Collage";
+import { CoverArt } from "./CoverArt";
 import { GradientArt } from "./GradientArt";
 import { hash, swatchColors } from "./palette";
 import type { CardKind, CardState, Placement } from "./types";
@@ -24,6 +26,7 @@ function StatusBar() {
 export function CardPreview({
   card,
   items,
+  paletteItems,
   ownerLabel,
   weekday,
   monthDay,
@@ -37,6 +40,8 @@ export function CardPreview({
 }: {
   card: CardState;
   items: WardrobeCard[];
+  /** What the palette reads — the fit pic's garments when one is on the card. */
+  paletteItems: WardrobeCard[];
   ownerLabel: string;
   weekday: string;
   monthDay: string;
@@ -48,7 +53,7 @@ export function CardPreview({
   onPeek?: () => void;
   cardRef?: React.Ref<HTMLDivElement>;
 }) {
-  const swatches = swatchColors(items);
+  const swatches = swatchColors(paletteItems);
   const peekNight = otherKind === "night";
 
   return (
@@ -78,15 +83,24 @@ export function CardPreview({
               </div>
             </div>
 
-            <p className="quote">{`“${strip(card.line)}”`}</p>
+            <p className="quote">{strip(card.line)}</p>
 
-            <Collage
-              items={items}
-              layout={card.layout}
-              blob={card.blob}
-              onLayoutChange={onLayoutChange}
-              interactive={Boolean(onLayoutChange)}
-            />
+            {card.photo ? (
+              <div className="fitphoto">
+                {/* Signed private media: plain img, eager so the PNG export has it. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={card.photo.url} alt={card.photo.title} referrerPolicy="no-referrer" />
+              </div>
+            ) : (
+              <Collage
+                items={items}
+                layout={card.layout}
+                blob={card.blob}
+                blobSize={card.blobSize}
+                onLayoutChange={onLayoutChange}
+                interactive={Boolean(onLayoutChange)}
+              />
+            )}
 
             <p className="palette-name">{`“${card.palName}”`}</p>
             <div className="card-swatches">
@@ -104,14 +118,16 @@ export function CardPreview({
                 <div className="col">
                   <div className="row">
                     <span className="art">
-                      <GradientArt colors={card.song.colors} seed={hash(card.song.id)} />
+                      {card.song ? (
+                        <CoverArt id={card.song.id} imageUrl={card.song.cover_url} colors={songColors(card.song)} />
+                      ) : null}
                       <span className="play">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
                       </span>
                     </span>
                     <span style={{ minWidth: 0 }}>
-                      <span className="t1">{card.song.title}</span>
-                      <span className="t2">{card.song.artist}</span>
+                      <span className="t1">{card.song?.song_title ?? "No song yet"}</span>
+                      <span className="t2">{card.song?.artist_display ?? ""}</span>
                     </span>
                   </div>
                 </div>
@@ -131,13 +147,6 @@ export function CardPreview({
             </div>
           </div>
 
-          <div className="actbar" style={{ background: card.blob }}>
-            <span className="pill out">Did smth diff</span>
-            <span className="shr">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 15V3.5m0 0L8 7.5M12 3.5 16 7.5" /><path d="M4.5 13v6a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-6" /></svg>
-            </span>
-            <span className="pill fill">I fw this</span>
-          </div>
         </div>
 
         {/* Tonight's strip is dark like its card and wears its accent on the line;
@@ -151,7 +160,7 @@ export function CardPreview({
         >
           <span className="go-edit">Edit this →</span>
           <b>{otherTitle}</b>
-          <span>{`“${strip(otherLine).toLowerCase()}”`}</span>
+          <span>{strip(otherLine).toLowerCase()}</span>
         </button>
       </div>
     </div>

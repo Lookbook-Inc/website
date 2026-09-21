@@ -6,7 +6,7 @@ import { PieceArt } from "./PieceArt";
 import { SIZE_MAX, SIZE_MIN } from "./Collage";
 import { readApi, query } from "./client-api";
 import { MAX_PIECES } from "./placeholders";
-import type { Placement } from "./types";
+import type { CardPhoto, Placement } from "./types";
 
 type Mode = "combo" | "collection";
 
@@ -19,6 +19,8 @@ export function FitSection({
   onOpenPicker,
   onResize,
   onSetPieces,
+  photo,
+  onSetPhoto,
   onResetLayout,
   onToast,
 }: {
@@ -27,6 +29,8 @@ export function FitSection({
   onOpenPicker: () => void;
   onResize: (id: string, size: number) => void;
   onSetPieces: (items: WardrobeCard[]) => void;
+  photo: CardPhoto | null;
+  onSetPhoto: (photo: CardPhoto | null) => void;
   onResetLayout: () => void;
   onToast: (message: string) => void;
 }) {
@@ -116,21 +120,28 @@ export function FitSection({
 
   return (
     <>
-      <div className="modes">
-        <button type="button" className={`mode${mode === "combo" ? " on" : ""}`} onClick={() => setMode("combo")}>
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3" y="3" width="7.5" height="18" rx="1.5" /><rect x="13.5" y="3" width="7.5" height="8" rx="1.5" /><rect x="13.5" y="13" width="7.5" height="8" rx="1.5" /></svg>
-          <strong>Pick the pieces</strong><span>Lay them out yourself</span>
+      <div className="seg seg-wide" role="group" aria-label="How to add the outfit">
+        <button type="button" className={mode === "combo" ? "on" : ""} aria-pressed={mode === "combo"} onClick={() => setMode("combo")}>
+          Pick pieces
         </button>
-        <button type="button" className={`mode${mode === "collection" ? " on" : ""}`} onClick={() => setMode("collection")}>
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="2.5" y="6" width="19" height="14" rx="2" /><circle cx="12" cy="13" r="3.4" /><path d="M8.5 6l1.4-2.2h4.2L15.5 6" /></svg>
-          <strong>From your Collection</strong><span>A fit pic you already took</span>
+        <button type="button" className={mode === "collection" ? "on" : ""} aria-pressed={mode === "collection"} onClick={() => setMode("collection")}>
+          Use a fit pic
         </button>
       </div>
+
+      {photo ? (
+        <div className="photo-note">
+          <span>Your fit pic is on the card.</span>
+          <button className="link-btn" type="button" onClick={() => onSetPhoto(null)}>
+            Switch back to pieces
+          </button>
+        </div>
+      ) : null}
 
       {mode === "combo" ? (
         <div>
           <div className="pane-mini" ref={paneRef}>
-            {!items.length ? <div className="pane-empty">Tap + to add clothing items</div> : null}
+            {!items.length ? <div className="pane-empty">No pieces yet</div> : null}
             {items.map((item) => {
               const spot = positions[item.id];
               return (
@@ -157,26 +168,31 @@ export function FitSection({
             })}
           </div>
           <div className="mini-acts">
-            <button className="fab" type="button" aria-label="Add clothing items" onClick={onOpenPicker}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            <button className="btn btn-brass" type="button" aria-label="Add clothing items" onClick={onOpenPicker}>
+              Add or change pieces
             </button>
-            <button className="btn btn-ghost" type="button" style={{ padding: "10px 15px", fontSize: "13px" }} onClick={tidy}>
-              Tidy layout
+            <button className="btn btn-ghost" type="button" onClick={tidy}>
+              Tidy
             </button>
-            <span style={{ fontSize: "12.5px", color: "var(--ink-3)" }}>
-              {items.length ? "Drag pieces to arrange" : `Add up to ${MAX_PIECES} pieces`}
+            <span className="hint-inline">
+              {items.length ? `${items.length} of ${MAX_PIECES} pieces` : `Add up to ${MAX_PIECES} pieces`}
             </span>
           </div>
         </div>
       ) : (
-        <CollectionGrid onSetPieces={onSetPieces} onToast={onToast} />
+        <CollectionGrid
+          photoId={photo?.id ?? null}
+          onSetPieces={onSetPieces}
+          onSetPhoto={onSetPhoto}
+          onToast={onToast}
+        />
       )}
 
-      {items.length ? (
+      {items.length && !photo ? (
         <div className="sizes">
           <div className="sizes-head">
-            <span className="eyebrow">Sizes on the card</span>
-            <span>Or drag a piece&rsquo;s corner on the card</span>
+            <span className="field-label">Size on the card</span>
+            <span>You can also drag pieces on the card itself.</span>
           </div>
           <div className="size-grid">
             {items.map((item) => {
@@ -202,41 +218,37 @@ export function FitSection({
         </div>
       ) : null}
 
-      <div className="chosen">
-        <span className="eyebrow" style={{ marginRight: "4px" }}>On the card</span>
-        {items.map((item) => (
-          <span className="ct" key={item.id} title={item.name}>
-            <PieceArt item={item} />
-          </span>
-        ))}
-        <button
-          className="btn btn-ghost"
-          type="button"
-          style={{ padding: "8px 14px", fontSize: "12.5px", marginLeft: "6px" }}
-          onClick={onOpenPicker}
-        >
-          Change pieces
-        </button>
-        <button className="link-btn" type="button" style={{ marginLeft: "4px" }} onClick={onResetLayout}>
-          Reset card layout
-        </button>
-      </div>
+      {photo ? null : (
+        <div className="chosen">
+          <button className="link-btn" type="button" onClick={onResetLayout}>
+            Reset card layout
+          </button>
+        </div>
+      )}
     </>
   );
 }
 
-/** Your fit pics. Tapping one pulls its real garments onto the card. */
+/**
+ * Your fit pics. Hovering (or tapping, on touch) one offers two things: pull its
+ * tagged garments onto the card as pieces, or put the photo itself on the card.
+ */
 function CollectionGrid({
+  photoId,
   onSetPieces,
+  onSetPhoto,
   onToast,
 }: {
+  photoId: string | null;
   onSetPieces: (items: WardrobeCard[]) => void;
+  onSetPhoto: (photo: CardPhoto) => void;
   onToast: (message: string) => void;
 }) {
   const [photos, setPhotos] = useState<FitPicCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(photoId);
+  const [open, setOpen] = useState<string | null>(null);
   const [pulling, setPulling] = useState<string | null>(null);
 
   useEffect(() => {
@@ -255,6 +267,7 @@ function CollectionGrid({
 
   async function pull(photo: FitPicCard) {
     setSelected(photo.id);
+    setOpen(null);
     setPulling(photo.id);
     try {
       const detail = await readApi<FitPicDetail>(`/fit-pics/${photo.id}`);
@@ -272,6 +285,29 @@ function CollectionGrid({
     }
   }
 
+  async function putPicture(photo: FitPicCard) {
+    const url = photo.image_url;
+    if (!url) {
+      onToast("That fit pic has no image to use");
+      return;
+    }
+    setSelected(photo.id);
+    setOpen(null);
+    setPulling(photo.id);
+    // The tagged garments drive the palette. If they can't be read, the photo
+    // still goes on the card and the palette keeps the pieces' colours.
+    let garments: WardrobeCard[] = [];
+    try {
+      garments = (await readApi<FitPicDetail>(`/fit-pics/${photo.id}`)).garments ?? [];
+    } catch {
+      // fall through with no garments
+    } finally {
+      setPulling(null);
+    }
+    onSetPhoto({ id: photo.id, url, title: photo.title, garments });
+    onToast("Fit pic is on the card");
+  }
+
   if (loading) return <div className="empty-note">Loading your Collection…</div>;
   if (error) return <div className="empty-note">{error}</div>;
   if (!photos.length) return <div className="empty-note">No fit pics yet. Add some in the Lookbook app.</div>;
@@ -279,11 +315,10 @@ function CollectionGrid({
   return (
     <div className="pgrid">
       {photos.map((photo) => (
-        <button
-          type="button"
-          className={`pg${selected === photo.id ? " sel" : ""}`}
+        <div
+          className={`pg${selected === photo.id ? " sel" : ""}${open === photo.id ? " open" : ""}`}
           key={photo.id}
-          onClick={() => pull(photo)}
+          onClick={() => setOpen(photo.id)}
         >
           {photo.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -293,7 +328,23 @@ function CollectionGrid({
           )}
           <span className="bdg">{pulling === photo.id ? "…" : `${photo.garment_count} items`}</span>
           <div className="cap">{photo.title}</div>
-        </button>
+          <div className="pg-ov">
+            <button
+              type="button"
+              aria-label={`Use pieces from ${photo.title}`}
+              onClick={(event) => { event.stopPropagation(); pull(photo); }}
+            >
+              Use pieces from picture
+            </button>
+            <button
+              type="button"
+              aria-label={`Use ${photo.title} on the card`}
+              onClick={(event) => { event.stopPropagation(); putPicture(photo); }}
+            >
+              Use this picture
+            </button>
+          </div>
+        </div>
       ))}
     </div>
   );

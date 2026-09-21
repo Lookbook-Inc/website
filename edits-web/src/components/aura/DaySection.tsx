@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BLOB_COLORS, CONDITIONS } from "./placeholders";
+import { BLOB_COLORS, BLOB_SIZE, CONDITIONS } from "./placeholders";
 
 const TEMP = /^(-?\d+)\s*°?\s*([CF])?$/i;
 
@@ -16,7 +16,7 @@ export function parseTemp(value: string) {
 }
 
 /**
- * Section 6 — the date and weather printed across the top of the card.
+ * The Day tab — the date and weather printed across the top of the card.
  *
  * Both are the member's to set: the web has no weather source (the iOS app reads
  * WeatherKit on-device), and the date is worth changing when you're making a
@@ -27,20 +27,24 @@ export function DaySection({
   temp,
   sky,
   blob,
+  blobSize,
   onDateChange,
   onTempChange,
   onSkyChange,
   onBlobChange,
+  onBlobSizeChange,
   onToast,
 }: {
   dateISO: string;
   temp: string;
   sky: string;
   blob: string;
+  blobSize: number;
   onDateChange: (iso: string) => void;
   onTempChange: (temp: string) => void;
   onSkyChange: (sky: string) => void;
   onBlobChange: (hex: string) => void;
+  onBlobSizeChange: (size: number) => void;
   onToast: (message: string) => void;
 }) {
   const { degrees, unit } = parseTemp(temp);
@@ -107,25 +111,43 @@ export function DaySection({
         </label>
       </div>
 
-      <p className="pal-note" style={{ marginTop: "16px" }}>
-        Conditions — shown under the temperature.
-      </p>
-      <div className="moods">
+      <p className="field-label">Weather</p>
+      <div className="banks">
         {CONDITIONS.map((condition) => (
           <button
             key={condition}
             type="button"
-            className={`mchip${sky === condition ? " on" : ""}`}
+            className={`chip${sky === condition ? " on" : ""}`}
+            aria-pressed={sky === condition}
             onClick={() => onSkyChange(condition)}
           >
-            {condition}
+            {condition.charAt(0) + condition.slice(1).toLowerCase()}
           </button>
         ))}
       </div>
 
-      <p className="pal-note" style={{ marginTop: "20px" }}>
-        Backdrop — the shape behind the outfit, and the bar under it.
-      </p>
+      <label className="field-label" htmlFor="own-weather">Or write your own weather</label>
+      <div className="own">
+        <input
+          id="own-weather"
+          value={own}
+          maxLength={14}
+          placeholder="e.g. Breezy"
+          aria-label="Write your own condition"
+          onChange={(event) => setOwn(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              applyOwn();
+            }
+          }}
+        />
+        <button className="btn btn-brass" type="button" onClick={applyOwn}>
+          Use it
+        </button>
+      </div>
+
+      <p className="field-label">Background colour</p>
       <div className="blob-row">
         {BLOB_COLORS.map((option) => (
           <button
@@ -150,24 +172,19 @@ export function DaySection({
         </label>
       </div>
 
-      <div className="own">
+      <label className="field-label" htmlFor="blob-size">Background size</label>
+      <div className="blob-size">
         <input
-          value={own}
-          maxLength={14}
-          placeholder="Write your own…"
-          aria-label="Write your own condition"
-          style={{ fontFamily: "var(--sans)", fontSize: "14px", letterSpacing: ".08em" }}
-          onChange={(event) => setOwn(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              applyOwn();
-            }
-          }}
+          id="blob-size"
+          type="range"
+          min={Math.round(BLOB_SIZE.min * 100)}
+          max={Math.round(BLOB_SIZE.max * 100)}
+          step={5}
+          value={Math.round(blobSize * 100)}
+          aria-label="Background size"
+          onChange={(event) => onBlobSizeChange(Number(event.target.value) / 100)}
         />
-        <button className="btn btn-brass" type="button" style={{ padding: "10px 18px", fontSize: "13px" }} onClick={applyOwn}>
-          Use it
-        </button>
+        <output className="size-val" htmlFor="blob-size">{Math.round(blobSize * 100)}%</output>
       </div>
     </>
   );

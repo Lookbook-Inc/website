@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { GradientArt } from "./GradientArt";
-import { hash } from "./palette";
+import { CoverArt } from "./CoverArt";
 
 export type SearchOption = {
   id: string;
   primary: string;
   secondary: string;
   colors: string[];
+  /** Real artwork, e.g. a song cover. The gradient is the fallback. */
+  imageUrl?: string | null;
 };
 
 /**
- * The soundtrack and place pickers. Both run over placeholder banks
- * (see ./placeholders.ts), so search is a local filter rather than a fetch.
+ * The song and place pickers. Songs come from the backend bank, loaded once
+ * with the page; places are ./placeholders.ts. Either way the whole list is
+ * already in memory, so search is a local filter rather than a fetch.
  */
 export function SearchList({
   options,
@@ -41,7 +43,7 @@ export function SearchList({
   return (
     <>
       <div className="srch">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ color: "var(--ink-3)", flex: "0 0 auto" }} aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="srch-icon" aria-hidden="true">
           <circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" />
         </svg>
         <input
@@ -62,7 +64,7 @@ export function SearchList({
               onClick={() => onSelect(option.id)}
             >
               <span className={`art${round ? " rd" : ""}`}>
-                <GradientArt colors={option.colors} seed={hash(option.id)} />
+                <CoverArt id={option.id} imageUrl={option.imageUrl} colors={option.colors} />
               </span>
               <span style={{ minWidth: 0 }}>
                 <b>{option.primary}</b>

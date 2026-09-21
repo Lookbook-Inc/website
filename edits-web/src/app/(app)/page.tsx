@@ -1,7 +1,7 @@
 import { AuraApp } from "@/components/aura/AuraApp";
 import { requireViewer } from "@/lib/auth";
 import { readWeb } from "@/lib/data";
-import type { Home, WardrobePage } from "@/types/api";
+import type { EditLineList, Home, SongList, WardrobePage } from "@/types/api";
 
 /** Server-side date, corrected to the viewer's own timezone once mounted. */
 function serverDateISO() {
@@ -12,9 +12,11 @@ function serverDateISO() {
 
 export default async function EditorPage() {
   const viewer = await requireViewer();
-  const [home, wardrobe] = await Promise.all([
+  const [home, wardrobe, lines, songs] = await Promise.all([
     readWeb<Home>("/web/v1/home"),
     readWeb<WardrobePage>("/web/v1/wardrobe?limit=60"),
+    readWeb<EditLineList>("/web/v1/banks/edits-lines"),
+    readWeb<SongList>("/web/v1/banks/songs"),
   ]);
 
   return (
@@ -23,6 +25,8 @@ export default async function EditorPage() {
       firstName={home.first_name}
       initialWardrobe={wardrobe.items}
       itemTypes={wardrobe.available_item_types ?? []}
+      lines={lines.items}
+      songs={songs.items}
       wardrobeCount={home.wardrobe_count}
       outfitCount={home.outfit_count}
       serverDateISO={serverDateISO()}

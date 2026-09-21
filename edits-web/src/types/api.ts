@@ -113,3 +113,20 @@ export type Home = {
   recent_fit_pics: FitPicCard[];
   recommendations: Recommendations;
 };
+
+/** `GET /web/v1/banks/edits-lines` — the whole line bank, ordered by text. */
+export type EditLine = { id: string; aura_text: string };
+export type EditLineList = { items: EditLine[] };
+
+/**
+ * `GET /web/v1/banks/songs` — active songs in curated order. `cover_url` is a
+ * one-hour signed URL, or null when the song has no cover yet.
+ */
+export type BankSong = {
+  id: string;
+  song_title: string;
+  artist_display: string;
+  cover_url: string | null;
+  sort_order: number;
+};
+export type SongList = { items: BankSong[] };

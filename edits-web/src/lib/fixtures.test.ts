@@ -4,10 +4,10 @@ import type { OutfitPage, WardrobePage } from "@/types/api";
 
 describe("fixture-backed data contract", () => {
   it("filters wardrobe by name and type", () => {
-    const result = fixtureForPath<WardrobePage>("/web/v1/wardrobe?query=shirt&item_type=Tops");
+    const result = fixtureForPath<WardrobePage>("/web/v1/wardrobe?query=shirt&item_type=button-up-shirt");
     expect(result.items).toHaveLength(1);
     expect(result.items[0].name).toContain("shirt");
-    expect(result.available_item_types).toContain("Tops");
+    expect(result.available_item_types).toContain("button-up-shirt");
   });
 
   it("filters outfits by folder", () => {

@@ -111,3 +111,24 @@ export type Home = {
   recent_fit_pics: FitPicCard[];
   recommendations: Recommendations;
 };
+
+export type EditLine = {
+  id: string;
+  aura_text: string;
+};
+
+export type EditLineListResponse = {
+  items: EditLine[];
+};
+
+export type Song = {
+  id: string;
+  song_title: string;
+  artist_display: string;
+  cover_url: string | null;
+  sort_order: number;
+};
+
+export type SongListResponse = {
+  items: Song[];
+};

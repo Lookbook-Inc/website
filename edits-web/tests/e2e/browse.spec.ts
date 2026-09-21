@@ -12,11 +12,27 @@ test("existing-user login and all read-only surfaces", async ({ page }) => {
     ["/wardrobe", "Wardrobe"],
     ["/fit-pics", "Fit pics"],
     ["/outfits", "Outfits"],
+    ["/banks", "Banks"],
     ["/recommendations", "The latest edit"],
   ] as const) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
   }
+});
+
+test("creative banks can be searched and switched", async ({ page }) => {
+  await page.goto("/banks");
+  await expect(page.getByRole("heading", { name: "Banks", exact: true })).toBeVisible();
+  await expect(page.getByRole("tabpanel", { name: /Songs/ })).toBeVisible();
+
+  await page.getByRole("searchbox", { name: "Search songs or artists" }).fill("Billie");
+  await expect(page.getByRole("heading", { name: "Wildflower" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lose Control" })).toHaveCount(0);
+
+  await page.getByRole("tab", { name: /Edit Lines/ }).click();
+  await page.getByRole("searchbox", { name: "Search edit lines" }).fill("moon");
+  await expect(page.getByText("the moon saved you a seat.")).toBeVisible();
+  await expect(page.getByText("velvet skies ahead.")).toHaveCount(0);
 });
 
 test("wardrobe filtering and detail relationships", async ({ page }) => {

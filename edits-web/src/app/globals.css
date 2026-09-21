@@ -116,6 +116,25 @@ img { display: block; }
 .recommendation-title span { font-size: 10px; color: var(--muted); }
 .recommendation-title h2 { font-size: 36px; }
 
+.bank-browser { display: grid; gap: 32px; }
+.bank-controls { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+.bank-tabs { display: flex; border-bottom: 1px solid var(--line); }
+.bank-tabs button { appearance: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; color: var(--muted); padding: 12px 20px 13px 0; cursor: pointer; font: 400 21px/1 var(--serif); white-space: nowrap; }
+.bank-tabs button + button { padding-left: 20px; }
+.bank-tabs button.active { border-bottom-color: var(--ink); color: var(--ink); }
+.bank-tabs button span { margin-left: 6px; color: var(--muted); font: 500 9px/1 var(--sans); vertical-align: top; }
+.bank-search { width: min(360px, 100%); display: grid; gap: 7px; }
+.bank-search span { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }
+.bank-search input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 0; background: rgba(255,255,255,.3); padding: 0 14px; color: var(--ink); }
+.song-bank-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 30px 15px; }
+.song-bank-card { min-width: 0; }
+.song-bank-card h2 { margin: 11px 0 0; font: 400 17px/1.2 var(--serif); }
+.song-bank-card p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.edit-line-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.edit-line-card { min-height: 210px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 18px 20px 24px; }
+.edit-line-card > span { color: var(--muted); font-size: 9px; letter-spacing: .12em; }
+.edit-line-card blockquote { margin: 35px 0 0; font: italic 400 27px/1.15 var(--serif); letter-spacing: -.02em; }
+
 .auth-shell { min-height: 100vh; display: grid; grid-template-columns: 1.05fr .95fr; }
 .auth-editorial { padding: 40px 48px; color: var(--paper); background: var(--ink); display: flex; flex-direction: column; justify-content: space-between; }
 .wordmark.light, .eyebrow.light { color: var(--paper); }
@@ -149,12 +168,14 @@ img { display: block; }
   .wardrobe-grid { grid-template-columns: repeat(3, 1fr); }
   .fit-grid.compact { grid-template-columns: repeat(3, 1fr); }
   .garment-strip { grid-template-columns: repeat(4, 1fr); }
+  .song-bank-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .edit-line-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
   .app-shell { display: block; }
   .side-nav { display: none; }
-  .mobile-nav { position: fixed; display: grid; grid-template-columns: repeat(5, 1fr); bottom: 0; left: 0; right: 0; z-index: 30; min-height: 68px; padding-bottom: env(safe-area-inset-bottom); background: rgba(244,240,231,.97); border-top: 1px solid var(--line); backdrop-filter: blur(12px); }
+  .mobile-nav { position: fixed; display: grid; grid-template-columns: repeat(6, 1fr); bottom: 0; left: 0; right: 0; z-index: 30; min-height: 68px; padding-bottom: env(safe-area-inset-bottom); background: rgba(244,240,231,.97); border-top: 1px solid var(--line); backdrop-filter: blur(12px); }
   .mobile-nav a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: 8px; }
   .mobile-nav a.active { color: var(--ink); }
   .mobile-nav svg { width: 18px; height: 18px; }
@@ -180,6 +201,13 @@ img { display: block; }
   .auth-panel { min-height: 100vh; padding: 30px 22px; }
   .mobile-wordmark { display: block; margin-bottom: 70px; }
   .skeleton-grid { grid-template-columns: repeat(2, 1fr); }
+  .bank-controls { display: grid; align-items: stretch; }
+  .bank-tabs { width: 100%; }
+  .bank-tabs button { flex: 1; text-align: left; }
+  .bank-search { width: 100%; }
+  .song-bank-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 25px 10px; }
+  .edit-line-grid { grid-template-columns: 1fr; }
+  .edit-line-card { min-height: 180px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fixtureForPath, fixtures } from "@/lib/fixtures";
-import type { OutfitPage, WardrobePage } from "@/types/api";
+import type { EditLineListResponse, OutfitPage, SongListResponse, WardrobePage } from "@/types/api";
 
 describe("fixture-backed data contract", () => {
   it("filters wardrobe by name and type", () => {
@@ -19,5 +19,13 @@ describe("fixture-backed data contract", () => {
   it("returns only the latest recommendation contract", () => {
     expect(fixtures.recommendations.generated_at).toBeTruthy();
     expect(fixtures.recommendations.members.length).toBeGreaterThan(0);
+  });
+
+  it("returns both creative-bank contracts", () => {
+    const songs = fixtureForPath<SongListResponse>("/web/v1/banks/songs");
+    const editLines = fixtureForPath<EditLineListResponse>("/web/v1/banks/edits-lines");
+
+    expect(songs.items[0]).toMatchObject({ song_title: expect.any(String), sort_order: 1 });
+    expect(editLines.items[0]).toMatchObject({ aura_text: expect.any(String) });
   });
 });

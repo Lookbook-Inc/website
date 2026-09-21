@@ -1,10 +1,12 @@
 import type {
+  EditLineListResponse,
   FitPicDetail,
   FolderList,
   Home,
   OutfitDetail,
   OutfitPage,
   Recommendations,
+  SongListResponse,
   WardrobeDetail,
   WardrobePage,
 } from "@/types/api";
@@ -45,6 +47,24 @@ const outfitDetail = (outfit = outfitBase[0]): OutfitDetail => ({
   visual_assets: [],
 });
 
+const songs = [
+  { id: "60000000-0000-0000-0000-000000000001", song_title: "Die With A Smile", artist_display: "Lady Gaga & Bruno Mars", cover_url: image("DIE WITH A SMILE", "#c5aa9b"), sort_order: 1 },
+  { id: "60000000-0000-0000-0000-000000000002", song_title: "Birds of a Feather", artist_display: "Billie Eilish", cover_url: image("BIRDS OF A FEATHER", "#9ba8a2"), sort_order: 2 },
+  { id: "60000000-0000-0000-0000-000000000003", song_title: "Wildflower", artist_display: "Billie Eilish", cover_url: image("WILDFLOWER", "#bbb28f"), sort_order: 3 },
+  { id: "60000000-0000-0000-0000-000000000004", song_title: "Red Wine Supernova", artist_display: "Chappell Roan", cover_url: image("RED WINE", "#b78781"), sort_order: 4 },
+  { id: "60000000-0000-0000-0000-000000000005", song_title: "Lose Control", artist_display: "Teddy Swims", cover_url: image("LOSE CONTROL", "#8f959a"), sort_order: 5 },
+  { id: "60000000-0000-0000-0000-000000000006", song_title: "A Bar Song (Tipsy)", artist_display: "Shaboozey", cover_url: image("A BAR SONG", "#c0a77f"), sort_order: 6 },
+] satisfies SongListResponse["items"];
+
+const editLines = [
+  { id: "70000000-0000-0000-0000-000000000001", aura_text: "the moon saved you a seat." },
+  { id: "70000000-0000-0000-0000-000000000002", aura_text: "morning light chose your side." },
+  { id: "70000000-0000-0000-0000-000000000003", aura_text: "today belongs to the quiet." },
+  { id: "70000000-0000-0000-0000-000000000004", aura_text: "velvet skies ahead." },
+  { id: "70000000-0000-0000-0000-000000000005", aura_text: "soft hours make room for you." },
+  { id: "70000000-0000-0000-0000-000000000006", aura_text: "something lovely is already on its way." },
+] satisfies EditLineListResponse["items"];
+
 export const fixtures = {
   home: {
     first_name: "Alex",
@@ -73,6 +93,8 @@ export const fixtures = {
       { folder_id: "50000000-0000-0000-0000-000000000002", folder_name: "Something different", combos: [outfitDetail(outfitBase[2])] },
     ],
   } satisfies Recommendations,
+  songs: { items: songs } satisfies SongListResponse,
+  editLines: { items: editLines } satisfies EditLineListResponse,
 };
 
 export function fixtureForPath<T>(path: string): T {
@@ -113,5 +135,7 @@ export function fixtureForPath<T>(path: string): T {
     return outfitDetail(outfit) as T;
   }
   if (pathname === "/web/v1/recommendations/latest") return fixtures.recommendations as T;
+  if (pathname === "/web/v1/banks/songs") return fixtures.songs as T;
+  if (pathname === "/web/v1/banks/edits-lines") return fixtures.editLines as T;
   throw new Error(`No fixture for ${pathname}`);
 }

@@ -10,6 +10,7 @@ const links = [
   ["Wardrobe", "/wardrobe"],
   ["Fit Pics", "/fit-pics"],
   ["Outfits", "/outfits"],
+  ["Banks", "/banks"],
   ["Recommendations", "/recommendations"],
 ] as const;
 

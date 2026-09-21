@@ -10,14 +10,35 @@ import type { CardKind, CardState, Placement } from "./types";
 
 const strip = (value: string) => value.replace(/^["“]|["”]$/g, "");
 
+/**
+ * The iOS status bar around the Dynamic Island: the time centred in the left
+ * ear, and cellular, Wi-Fi and battery centred in the right — as on an iPhone
+ * 15/16 Pro. Glyphs are drawn to the SF Symbols proportions.
+ */
 function StatusBar() {
   return (
     <div className="statusbar">
-      <span>9:41</span>
-      <span className="sb-r">
-        <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1" /><rect x="4.5" y="5" width="3" height="7" rx="1" /><rect x="9" y="2.5" width="3" height="9.5" rx="1" /><rect x="13.5" y="0" width="3" height="12" rx="1" /></svg>
-        <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><path d="M8 11.2l2.1-2.4a3.1 3.1 0 0 0-4.2 0zM8 6.1c1.5 0 2.9.6 3.9 1.6l1.4-1.6A7.6 7.6 0 0 0 8 4a7.6 7.6 0 0 0-5.3 2.1l1.4 1.6A5.4 5.4 0 0 1 8 6.1zM8 1.4c2.5 0 4.8 1 6.5 2.5l1.3-1.5A11.3 11.3 0 0 0 8 0C5 0 2.3 1.1.2 2.4l1.3 1.5A9.9 9.9 0 0 1 8 1.4z" /></svg>
-        <svg width="24" height="12" viewBox="0 0 24 12" fill="none" aria-hidden="true"><rect x=".7" y=".7" width="19.6" height="10.6" rx="3.2" stroke="currentColor" strokeOpacity=".5" /><rect x="2.2" y="2.2" width="16.6" height="7.6" rx="1.9" fill="currentColor" /><path d="M22 4.3v3.4a2 2 0 0 0 0-3.4z" fill="currentColor" fillOpacity=".5" /></svg>
+      <span className="sb-time">9:41</span>
+      <span className="island" aria-hidden="true">
+        <i className="lens" />
+      </span>
+      <span className="sb-icons" aria-hidden="true">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor">
+          <rect x="0" y="7.5" width="3.2" height="4.5" rx="0.9" />
+          <rect x="4.8" y="5.2" width="3.2" height="6.8" rx="0.9" />
+          <rect x="9.6" y="2.7" width="3.2" height="9.3" rx="0.9" />
+          <rect x="14.4" y="0" width="3.2" height="12" rx="0.9" />
+        </svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor">
+          <path d="M8 2.3c2.3 0 4.4.9 6 2.4.2.2.5.2.7 0l1-1c.2-.2.2-.5 0-.7A11 11 0 0 0 8 0 11 11 0 0 0 .3 3c-.2.2-.2.5 0 .7l1 1c.2.2.5.2.7 0A8.6 8.6 0 0 1 8 2.3z" />
+          <path d="M8 6c1.3 0 2.5.5 3.4 1.3.2.2.5.2.7 0l1-1c.2-.2.2-.5 0-.7A7.4 7.4 0 0 0 8 3.7c-1.9 0-3.7.7-5.1 1.9-.2.2-.2.5 0 .7l1 1c.2.2.5.2.7 0C5.5 6.5 6.7 6 8 6z" />
+          <path d="M10.3 9.3c.2-.2.2-.5 0-.7A3.4 3.4 0 0 0 8 7.7c-.9 0-1.7.3-2.3.9-.2.2-.2.5 0 .7l1.9 1.9c.2.2.5.2.7 0z" />
+        </svg>
+        <svg width="26" height="12" viewBox="0 0 26 12" fill="none">
+          <rect x="0.5" y="0.5" width="22" height="11" rx="3.4" stroke="currentColor" strokeOpacity="0.4" />
+          <rect x="2" y="2" width="19" height="8" rx="2.1" fill="currentColor" />
+          <path d="M24 4v4c.8-.3 1.3-1.1 1.3-2S24.8 4.3 24 4z" fill="currentColor" fillOpacity="0.45" />
+        </svg>
       </span>
     </div>
   );
@@ -58,6 +79,10 @@ export function CardPreview({
 
   return (
     <div className={`phone${card.kind === "night" ? " night" : ""}`} ref={cardRef}>
+      <i className="hw hw-action" aria-hidden="true" />
+      <i className="hw hw-vol-up" aria-hidden="true" />
+      <i className="hw hw-vol-down" aria-hidden="true" />
+      <i className="hw hw-power" aria-hidden="true" />
       <div className="phone-screen">
         <StatusBar />
 
@@ -162,6 +187,8 @@ export function CardPreview({
           <b>{otherTitle}</b>
           <span>{strip(otherLine).toLowerCase()}</span>
         </button>
+
+        <div className="home-indicator" aria-hidden="true" />
       </div>
     </div>
   );

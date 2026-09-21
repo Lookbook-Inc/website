@@ -19,6 +19,7 @@
 
   --serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
   --sans: var(--font-inter), "Helvetica Neue", Arial, sans-serif;
+  --brand: var(--font-dm-serif), Georgia, "Times New Roman", serif;
 }
 
 /* Light (daytime) is the default whatever the OS prefers; dark is opt-in from
@@ -72,7 +73,7 @@ img { display: block; }
 .button.secondary:hover { background: var(--bone); border-color: var(--ink-3); }
 .button.wide { width: 100%; }
 
-.wordmark { font-size: 20px; line-height: 1; font-weight: 700; }
+.wordmark { font-family: var(--brand); font-size: 22px; line-height: 1; font-weight: 400; }
 
 /* ================= AUTH ================= */
 .auth-shell { min-height: 100vh; display: grid; grid-template-columns: 1.05fr 0.95fr; }

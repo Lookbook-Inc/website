@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter } from "next/font/google";
+import { DM_Serif_Display, Instrument_Serif, Inter } from "next/font/google";
 import { Analytics } from "@/components/analytics";
 import "./globals.css";
 
@@ -12,6 +12,13 @@ const instrumentSerif = Instrument_Serif({
   variable: "--font-instrument-serif",
   subsets: ["latin"],
   style: ["normal", "italic"],
+  weight: "400",
+});
+
+/** The Lookbook wordmark. */
+const dmSerif = DM_Serif_Display({
+  variable: "--font-dm-serif",
+  subsets: ["latin"],
   weight: "400",
 });
 
@@ -29,7 +36,7 @@ const themeScript = `try{var t=localStorage.getItem("lb-theme");if(t==="dark"||t
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${instrumentSerif.variable} ${dmSerif.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

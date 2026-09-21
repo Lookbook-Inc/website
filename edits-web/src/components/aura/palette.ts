@@ -8,20 +8,54 @@
 
 import type { Shade, WardrobeCard } from "@/types/api";
 
-const PAL_NAMES: { h: [number, number]; n: string[] }[] = [
-  { h: [0, 22], n: ["EMBER", "POPPY", "SUNBURN"] },
-  { h: [23, 46], n: ["GOLDLEAF", "AMBER", "HONEYED"] },
-  { h: [47, 72], n: ["BUTTER", "CITRINE", "DAYLIGHT"] },
-  { h: [73, 155], n: ["FIELD", "MOSS", "VERDANT"] },
-  { h: [156, 200], n: ["SEAGLASS", "TIDAL", "MENTHOL"] },
-  { h: [201, 255], n: ["OCEANIC", "INDIGO", "PORCELAIN"] },
-  { h: [256, 295], n: ["DUSK", "ORCHID", "VIOLET HOUR"] },
-  { h: [296, 340], n: ["ORCHARD", "PLUM", "BRUISE"] },
-  { h: [341, 360], n: ["POPPY", "CRIMSON", "SIGNAL"] },
-];
+/**
+ * Palette names, by colour family. Each piece's main shade is sorted into one of
+ * these families; the outfit's families (and its overall mood, below) decide
+ * which names are suggested. Every name here is also offered in the Palette
+ * tab's "All names", so the member can pick any of them.
+ */
+export const COLOR_FAMILIES = [
+  { id: "red", label: "Red", names: ["CRIMSON", "CHERRY", "SCARLET", "EMBER", "POPPY"] },
+  { id: "burgundy", label: "Burgundy", names: ["BURGUNDY", "OXBLOOD", "MERLOT", "BORDEAUX"] },
+  { id: "pink", label: "Pink", names: ["BLUSH", "ROSE", "PEONY", "BUBBLEGUM", "FLAMINGO"] },
+  { id: "plum", label: "Plum", names: ["PLUM", "BERRY", "MULBERRY", "ORCHARD", "BRUISE"] },
+  { id: "purple", label: "Purple", names: ["LAVENDER", "ORCHID", "AMETHYST", "DUSK", "VIOLET HOUR"] },
+  { id: "navy", label: "Navy", names: ["NAVY", "INDIGO", "ADMIRAL", "NIGHTFALL"] },
+  { id: "denim", label: "Denim", names: ["DENIM", "CHAMBRAY", "WASHED INDIGO", "WORKWEAR"] },
+  { id: "blue", label: "Blue", names: ["OCEANIC", "CORNFLOWER", "CERULEAN", "SKYLINE", "PORCELAIN"] },
+  { id: "teal", label: "Teal", names: ["SEAGLASS", "LAGOON", "JADE", "TIDAL", "MENTHOL"] },
+  { id: "green", label: "Green", names: ["FIELD", "VERDANT", "FERN", "EMERALD", "JUNIPER"] },
+  { id: "olive", label: "Olive", names: ["OLIVE", "SAGE", "MOSS", "LICHEN", "FATIGUES"] },
+  { id: "yellow", label: "Yellow", names: ["BUTTER", "CITRINE", "DAYLIGHT", "LEMONADE", "MARIGOLD"] },
+  { id: "gold", label: "Gold", names: ["GOLDLEAF", "MUSTARD", "AMBER", "HONEYED", "SAFFRON"] },
+  { id: "orange", label: "Orange", names: ["TANGERINE", "APRICOT", "SUNBURN", "PAPAYA", "CLEMENTINE"] },
+  { id: "rust", label: "Rust", names: ["TERRACOTTA", "RUST", "CINNAMON", "PAPRIKA", "CLAY"] },
+  { id: "brown", label: "Brown", names: ["COCOA", "ESPRESSO", "CHESTNUT", "MOCHA", "TOFFEE"] },
+  { id: "beige", label: "Beige", names: ["CAMEL", "SAND", "OATMEAL", "LINEN", "BISCUIT"] },
+  { id: "white", label: "White", names: ["PAPER", "BONE", "IVORY", "CREAM", "CHALK"] },
+  { id: "grey", label: "Grey", names: ["GRAPHITE", "SLATE", "STONE", "ASH", "PEWTER"] },
+  { id: "black", label: "Black", names: ["NOIR", "ONYX", "INK", "MIDNIGHT", "JET"] },
+] as const;
 
-const NEUTRAL_DARK = ["MIDNIGHT", "GRAPHITE", "NOIR"];
-const NEUTRAL_LIGHT = ["PAPER", "BONE", "IVORY"];
+export type FamilyId = (typeof COLOR_FAMILIES)[number]["id"];
+
+/** Names for the outfit as a whole, suggested ahead of any single colour's. */
+export const MOODS = [
+  { id: "monochrome", label: "Monochrome", names: ["MONOCHROME", "TUXEDO", "NEWSPRINT", "SALT & PEPPER"] },
+  { id: "earth", label: "Earth tones", names: ["EARTHBOUND", "HARVEST", "DESERT", "SAFARI"] },
+  { id: "pastel", label: "Pastels", names: ["PASTEL", "SORBET", "CANDY FLOSS", "SPRINGTIME"] },
+  { id: "jewel", label: "Jewel tones", names: ["JEWEL BOX", "VELVET", "OPULENT", "STAINED GLASS"] },
+  { id: "bright", label: "Brights", names: ["ELECTRIC", "NEON", "CANDY", "SIGNAL"] },
+  { id: "muted", label: "Muted", names: ["DUSTY", "FADED", "HUSHED", "WASHED"] },
+] as const;
+
+type MoodId = (typeof MOODS)[number]["id"];
+
+const NEUTRAL: ReadonlySet<FamilyId> = new Set(["black", "white", "grey", "beige"]);
+const EARTHY: ReadonlySet<FamilyId> = new Set(["brown", "beige", "rust", "olive", "gold"]);
+
+/** How many names the Palette tab suggests for an outfit. */
+const MAX_SUGGESTED = 9;
 
 export const NEUTRAL_SWATCH = "#DDD8D0";
 
@@ -73,22 +107,100 @@ export function swatchColors(items: WardrobeCard[]) {
   return colors.slice(0, 5);
 }
 
-export function paletteNamesFor(items: WardrobeCard[]) {
-  const hsls = items
+/** Sort one colour into a colour family. */
+export function colorFamily(hex: string): FamilyId {
+  const { h, s, l } = hexToHsl(hex);
+  if (l < 13) return "black";
+  // Barely any colour: black, white or grey by lightness.
+  if (s < 10 || (s < 18 && (l < 25 || l > 80))) return l > 82 ? "white" : l < 28 ? "black" : "grey";
+  if (l > 90) return "white";
+
+  if (h < 15 || h >= 345) {
+    if (l > 70) return "pink";
+    return l < 32 ? "burgundy" : "red";
+  }
+  // The warm band holds the browns, tans and creams as well as orange and gold.
+  if (h < 50) {
+    if (l < 36) return "brown";
+    if (s < 40 && l >= 60) return l > 82 ? "white" : "beige";
+    if (s < 55 && l < 60) return h < 32 ? "rust" : "brown";
+    if (h < 38) return l < 55 ? "rust" : "orange";
+    return l < 60 ? "gold" : "yellow";
+  }
+  if (h < 65) return s < 40 && l < 55 ? "olive" : l < 45 ? "gold" : "yellow";
+  if (h < 160) return s < 30 || (h < 90 && l < 40) ? "olive" : "green";
+  if (h < 195) return "teal";
+  if (h < 250) {
+    if (s < 22) return "grey";
+    if (l < 30) return "navy";
+    return s < 45 && l < 65 ? "denim" : "blue";
+  }
+  if (h < 290) return "purple";
+  if (h < 320) return l > 72 ? "pink" : "plum";
+  return l < 35 ? "plum" : "pink";
+}
+
+function familyNames(id: FamilyId): readonly string[] {
+  return COLOR_FAMILIES.find((family) => family.id === id)?.names ?? [];
+}
+
+function moodNames(id: MoodId): readonly string[] {
+  return MOODS.find((mood) => mood.id === id)?.names ?? [];
+}
+
+/**
+ * The outfit's overall character, if it has a clear one. Checked in order, so
+ * a black-and-white fit reads as monochrome before it reads as muted.
+ */
+function moodOf(colors: { hex: string; family: FamilyId }[]): MoodId | null {
+  const hsls = colors.map((c) => ({ ...hexToHsl(c.hex), family: c.family }));
+  const chromatic = hsls.filter((c) => !NEUTRAL.has(c.family));
+  const lightNeutral = (c: { family: FamilyId }) => c.family === "white" || c.family === "beige";
+
+  if (!chromatic.length) {
+    const dark = hsls.some((c) => c.family === "black");
+    return dark && hsls.some(lightNeutral) ? "monochrome" : null;
+  }
+  if (hsls.filter((c) => EARTHY.has(c.family)).length >= Math.max(2, hsls.length * 0.6)) return "earth";
+  const pastel = chromatic.filter((c) => c.l >= 70 && c.s >= 25);
+  if (pastel.length >= 2 && pastel.length >= chromatic.length * 0.6) return "pastel";
+  if (chromatic.filter((c) => c.s >= 75 && c.l >= 40 && c.l <= 65).length >= 2) return "bright";
+  if (chromatic.filter((c) => c.s >= 45 && c.l >= 20 && c.l <= 45).length >= 2) return "jewel";
+  if (chromatic.length >= 2 && chromatic.every((c) => c.s < 35)) return "muted";
+  return null;
+}
+
+/**
+ * Palette names for an outfit, best match first — the first becomes the card's
+ * default. The mood leads, then the families by weight: colourful families
+ * outrank neutrals, and a family seen on more pieces outranks a one-off.
+ */
+export function paletteNamesFor(items: WardrobeCard[]): string[] {
+  const colors = items
     .map(itemColor)
     .filter((hex): hex is string => hex !== null)
-    .map(hexToHsl);
-  if (!hsls.length) return NEUTRAL_LIGHT;
+    .map((hex) => ({ hex, family: colorFamily(hex) }));
+  if (!colors.length) return [...familyNames("white"), ...familyNames("grey")].slice(0, MAX_SUGGESTED);
 
-  const chroma = hsls.filter((c) => c.s > 16 && c.l > 8 && c.l < 93);
-  if (!chroma.length) {
-    const avg = hsls.reduce((total, c) => total + c.l, 0) / hsls.length;
-    return avg < 46 ? NEUTRAL_DARK : NEUTRAL_LIGHT;
+  const weights = new Map<FamilyId, number>();
+  for (const { hex, family } of colors) {
+    const { s } = hexToHsl(hex);
+    const weight = NEUTRAL.has(family) ? 1 : 2 + s / 50;
+    weights.set(family, (weights.get(family) ?? 0) + weight);
   }
+  const families = [...weights.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
 
-  const weight = (c: { s: number; l: number }) => c.s * 0.7 + (50 - Math.abs(50 - c.l)) * 0.3;
-  const dominant = [...chroma].sort((a, b) => weight(b) - weight(a))[0];
-  return (PAL_NAMES.find((p) => dominant.h >= p.h[0] && dominant.h <= p.h[1]) ?? PAL_NAMES[5]).n;
+  const mood = moodOf(colors);
+  // First pass: two mood names, three for the lead family and two for each other
+  // family, so a mixed outfit offers something for each of its colours. Second
+  // pass tops up with the rest, in the same order.
+  const lead = (index: number) => (index === 0 ? 3 : 2);
+  const picks: string[] = mood ? moodNames(mood).slice(0, 2) : [];
+  families.forEach((id, index) => picks.push(...familyNames(id).slice(0, lead(index))));
+  if (mood) picks.push(...moodNames(mood).slice(2));
+  families.forEach((id, index) => picks.push(...familyNames(id).slice(lead(index))));
+
+  return [...new Set(picks)].slice(0, MAX_SUGGESTED);
 }
 
 /** Stable 32-bit hash — seeds the gradient art so a song always paints the same. */

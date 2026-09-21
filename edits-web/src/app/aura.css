@@ -131,45 +131,78 @@
 .toolwrap.narrow { max-width: 640px; }
 
 /* ================= THE AURA CARD (fixed design) =================
-   Modelled on the reference render: a black handset, black screen, and a white
-   sheet floating inside it. Only
-   the accent colours change — everything else here is fixed design.
+   Drawn as an iPhone 15/16 Pro: a thin titanium band, a black glass bezel, the
+   Dynamic Island and iOS status bar, and a white sheet floating on the black
+   screen. Proportions are the real device's (393pt screen, ~55pt corners)
+   scaled to the card. Only the accent colours change.
    ============================================================================ */
 .phone {
+  --ios: -apple-system, "SF Pro Text", BlinkMacSystemFont, var(--font-inter), "Helvetica Neue", sans-serif;
   width: 100%; max-width: 358px; flex: 0 0 auto; position: relative;
-  background: linear-gradient(150deg, #2a2a2f 0%, #0b0b0d 22%, #0b0b0d 78%, #303036 100%);
-  border-radius: 54px; padding: 11px;
+  /* Titanium band: dark natural titanium with a lit top-left edge. */
+  background:
+    linear-gradient(145deg, #8d8c88 0%, #4a4a4c 9%, #2c2c2e 22%, #1f1f21 50%, #2c2c2e 78%, #5d5c5a 94%, #8a8985 100%);
+  border-radius: 57px; padding: 3.5px;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
-    0 2px 5px rgba(20, 17, 16, 0.18),
-    0 34px 60px -24px rgba(20, 17, 16, 0.55);
+    0 0 0 0.5px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.28),
+    0 1.5px 3px rgba(20, 17, 16, 0.22),
+    0 24px 48px -18px rgba(20, 17, 16, 0.5),
+    0 50px 80px -40px rgba(20, 17, 16, 0.35);
 }
-/* Side hardware. Left: silence switch and volume pair. Right: the power key. */
-.phone::before, .phone::after {
-  content: ""; position: absolute; width: 2.5px; background: #202024; border-radius: 3px;
+/* Side hardware, in the same titanium. Left: Action button and the volume pair.
+   Right: the side button. */
+.phone .hw {
+  position: absolute; width: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, #19191b, #75746f 45%, #2a2a2c);
 }
-.phone::before {
-  left: -1.5px; top: 20%; height: 26px;
-  box-shadow: 0 42px 0 #202024, 0 88px 0 #202024;
-}
-.phone::after { right: -1.5px; top: 30%; height: 62px; }
+.phone .hw-action { left: -2.5px; top: 110px; height: 22px; }
+.phone .hw-vol-up { left: -2.5px; top: 152px; height: 44px; }
+.phone .hw-vol-down { left: -2.5px; top: 206px; height: 44px; }
+.phone .hw-power { right: -2.5px; top: 172px; height: 68px; }
 
+/* Black glass bezel around the display, then the display itself. */
 .phone-screen {
-  background: #000; border-radius: 44px; overflow: hidden;
-  position: relative; padding-bottom: 9px;
+  background: #000; border-radius: 53.5px; overflow: hidden; position: relative;
+  border: 8px solid #050505; padding-bottom: 22px;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
+
 .statusbar {
-  color: #fff; display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 26px 7px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em;
+  display: grid; grid-template-columns: 1fr 108px 1fr; align-items: center;
+  height: 46px; padding: 0 6px; color: #fff; font-family: var(--ios);
 }
-.statusbar .sb-r { display: flex; align-items: center; gap: 5px; }
+.sb-time {
+  justify-self: center; font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums; padding-top: 1px;
+}
+.sb-icons { justify-self: center; display: flex; align-items: center; gap: 5.5px; }
+/* The Dynamic Island: a black pill 11pt below the top, with the front camera's
+   lens glinting in its right end. */
+.island {
+  justify-self: center; align-self: start; margin-top: 9px;
+  width: 104px; height: 30px; border-radius: 16px; background: #000;
+  display: flex; align-items: center; justify-content: flex-end; padding-right: 10px;
+}
+.island .lens {
+  width: 10px; height: 10px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(120, 140, 200, 0.55) 0 1.2px, transparent 2px),
+    radial-gradient(circle, #1a1d2b 0 38%, #0b0c12 62%, #050507 100%);
+  box-shadow: 0 0 0 1px #0d0d10;
+}
+/* iOS home indicator, floating over the bottom of the display. */
+.home-indicator {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  width: 118px; height: 4.5px; border-radius: 3px; background: rgba(255, 255, 255, 0.92);
+}
 .lb-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 3px 20px 13px;
 }
 .lb-word {
-  font-family: var(--serif); font-weight: 400; font-size: 26px;
-  letter-spacing: -0.015em; color: #fff; line-height: 1;
+  font-family: var(--brand); font-weight: 400; font-size: 24px;
+  letter-spacing: -0.01em; color: #fff; line-height: 1;
 }
 .lb-head svg { color: #fff; }
 
@@ -458,6 +491,16 @@
 }
 .nameopt:hover { border-color: var(--ink-3); }
 .nameopt.on { border-color: var(--brass); background: var(--brass); color: var(--on-brass); }
+.allnames { margin-top: 18px; }
+.allnames summary {
+  cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); width: fit-content;
+}
+.allnames summary:hover { color: var(--ink); }
+.namegroup { margin-top: 14px; }
+.namegroup-label {
+  display: block; margin-bottom: 7px; font-size: 11.5px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3);
+}
 .swrow { display: flex; gap: 7px; margin-bottom: 14px; }
 .swrow i { width: 34px; height: 34px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
 .srch {

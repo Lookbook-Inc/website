@@ -13,9 +13,8 @@ export type SearchOption = {
 };
 
 /**
- * The song and place pickers. Songs come from the backend bank, loaded once
- * with the page; places are ./placeholders.ts. Either way the whole list is
- * already in memory, so search is a local filter rather than a fetch.
+ * The song and place pickers. Both banks arrive with the page, so search is a
+ * local filter rather than another fetch.
  */
 export function SearchList({
   options,

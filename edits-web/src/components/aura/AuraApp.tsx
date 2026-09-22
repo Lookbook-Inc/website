@@ -13,11 +13,11 @@ import { PaletteSection } from "./PaletteSection";
 import { PickerSheet } from "./PickerSheet";
 import { SearchList } from "./SearchList";
 import { SongSection } from "./SongSection";
-import { pickRandom, type Line, type Song } from "./banks";
+import { pickRandom, placeColors, placeImageUrl, type Line, type Place, type Song } from "./banks";
 import { downloadCard } from "./download";
 import { classify } from "./garments";
 import { paletteNamesFor } from "./palette";
-import { BLOB_COLORS, BLOB_SIZE, MAX_PIECES, PLACES, WEATHER } from "./placeholders";
+import { BLOB_COLORS, BLOB_SIZE, MAX_PIECES, WEATHER } from "./placeholders";
 import type { CardKind, CardState, Catalogue, Placement, Screen } from "./types";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -49,7 +49,7 @@ function seedPieces(wardrobe: WardrobeCard[]) {
   return chosen.slice(0, MAX_PIECES);
 }
 
-function seedCard(kind: CardKind, wardrobe: WardrobeCard[], lines: Line[], songs: Song[]): CardState {
+function seedCard(kind: CardKind, wardrobe: WardrobeCard[], lines: Line[], songs: Song[], places: Place[]): CardState {
   const pieces = seedPieces(kind === "day" ? wardrobe : [...wardrobe].reverse());
   const names = paletteNamesFor(pieces);
   return {
@@ -63,7 +63,7 @@ function seedCard(kind: CardKind, wardrobe: WardrobeCard[], lines: Line[], songs
     blob: kind === "day" ? BLOB_COLORS[0].hex : BLOB_COLORS[1].hex,
     blobSize: BLOB_SIZE[kind],
     song: (kind === "day" ? songs[0] : (songs[1] ?? songs[0])) ?? null,
-    place: kind === "day" ? PLACES[0] : PLACES[6],
+    place: kind === "day" ? (places[0] ?? null) : (places[6] ?? places[0] ?? null),
     layout: {},
     photo: null,
   };
@@ -131,6 +131,7 @@ export function AuraApp({
   itemTypes,
   lines,
   songs,
+  places,
   wardrobeCount,
   outfitCount,
   serverDateISO,
@@ -141,6 +142,7 @@ export function AuraApp({
   itemTypes: string[];
   lines: Line[];
   songs: Song[];
+  places: Place[];
   wardrobeCount: number;
   outfitCount: number;
   serverDateISO: string;
@@ -149,8 +151,8 @@ export function AuraApp({
     Object.fromEntries(initialWardrobe.map((item) => [item.id, item])),
   );
   const [cards, setCards] = useState<Record<CardKind, CardState>>(() => ({
-    day: seedCard("day", initialWardrobe, lines, songs),
-    night: seedCard("night", initialWardrobe, lines, songs),
+    day: seedCard("day", initialWardrobe, lines, songs, places),
+    night: seedCard("night", initialWardrobe, lines, songs, places),
   }));
   const [active, setActive] = useState<CardKind>("day");
   const [screen, setScreen] = useState<Screen>("today");
@@ -283,7 +285,7 @@ export function AuraApp({
         line: pickRandom<Line | null>(lines, null)?.aura_text ?? current[active].line,
         palName: names[0],
         song: pickRandom(songs, current[active].song),
-        place: PLACES[Math.floor(Math.random() * PLACES.length)],
+        place: pickRandom<Place | null>(places, current[active].place),
         blob: BLOB_COLORS[Math.floor(Math.random() * BLOB_COLORS.length)].hex,
       },
     }));
@@ -522,15 +524,19 @@ export function AuraApp({
 
               {tab === "place" ? (
                 <SearchList
-                  options={PLACES.map((place) => ({
-                    id: place.id, primary: place.name, secondary: place.city, colors: place.colors,
+                  options={places.map((place) => ({
+                    id: place.id,
+                    primary: place.place_name,
+                    secondary: `${place.category} · ${place.geography_display}`,
+                    colors: placeColors(place),
+                    imageUrl: placeImageUrl(place),
                   }))}
-                  selectedId={card.place.id}
+                  selectedId={card.place?.id ?? ""}
                   placeholder="Search places"
                   label="Search a place"
-                  emptyNote={(q) => `No place matches “${q}”.`}
+                  emptyNote={(q) => q ? `No place matches “${q}”.` : "No places are available yet."}
                   onSelect={(id) => {
-                    const place = PLACES.find((entry) => entry.id === id);
+                    const place = places.find((entry) => entry.id === id);
                     if (place) patch({ place });
                   }}
                 />

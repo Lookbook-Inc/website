@@ -1,11 +1,10 @@
 "use client";
 
 import type { WardrobeCard } from "@/types/api";
-import { songColors } from "./banks";
+import { placeColors, placeImageUrl, songColors } from "./banks";
 import { Collage } from "./Collage";
 import { CoverArt } from "./CoverArt";
-import { GradientArt } from "./GradientArt";
-import { hash, swatchColors } from "./palette";
+import { swatchColors } from "./palette";
 import type { CardKind, CardState, Placement } from "./types";
 
 const strip = (value: string) => value.replace(/^["“]|["”]$/g, "");
@@ -160,11 +159,13 @@ export function CardPreview({
                 <div className="col">
                   <div className="row">
                     <span className="art sq">
-                      <GradientArt colors={card.place.colors} seed={hash(card.place.id)} />
+                      {card.place ? (
+                        <CoverArt id={card.place.id} imageUrl={placeImageUrl(card.place)} colors={placeColors(card.place)} />
+                      ) : null}
                     </span>
                     <span style={{ minWidth: 0 }}>
-                      <span className="t1">{card.place.name}</span>
-                      <span className="t2">{card.place.city}</span>
+                      <span className="t1">{card.place?.place_name ?? "No place yet"}</span>
+                      <span className="t2">{card.place?.geography_display ?? ""}</span>
                     </span>
                   </div>
                 </div>

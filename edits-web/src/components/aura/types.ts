@@ -1,6 +1,5 @@
 import type { WardrobeCard } from "@/types/api";
-import type { Song } from "./banks";
-import type { Place } from "./placeholders";
+import type { Place, Song } from "./banks";
 
 export type CardKind = "day" | "night";
 
@@ -26,7 +25,8 @@ export type CardState = {
   blobSize: number;
   /** Null only when the song bank is empty. */
   song: Song | null;
-  place: Place;
+  /** Null only when the place bank is empty. */
+  place: Place | null;
   layout: Record<string, Placement>;
   /**
    * A fit pic shown on the card in place of the pieces collage and palette.

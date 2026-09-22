@@ -83,10 +83,21 @@ test("song bank and place search filter and apply to the card", async ({ page })
   await expect(page.locator(".duo .col").first().locator(".t2")).toHaveText("Solange");
 
   await page.getByRole("tab", { name: "Place", exact: true }).click();
+  await expect(page.locator(".ritem")).toHaveCount(9);
+  await expect(page.locator(".ritem").first()).toContainText("Four Barrel Coffee");
   await page.getByLabel("Search a place").fill("Dolores");
   await expect(page.locator(".ritem")).toHaveCount(1);
   await page.locator(".ritem").click();
   await expect(page.locator(".duo .col").last().locator(".t1")).toHaveText("Dolores Park");
+  await expect(page.locator(".duo .col").last().locator(".art img")).toHaveAttribute("src", /^data:image\/svg\+xml/);
+
+  await page.getByLabel("Search a place").fill("Ritual");
+  await page.locator(".ritem").click();
+  await expect(page.locator(".duo .col").last().locator(".t1")).toHaveText("Ritual Coffee Roasters");
+  await expect(page.locator(".duo .col").last().locator(".art canvas")).toBeVisible();
+
+  await page.getByLabel("Search a place").fill("not a place");
+  await expect(page.getByText("No place matches “not a place”.")).toBeVisible();
 });
 
 const NIGHT_SHEET = "rgb(23, 23, 26)";

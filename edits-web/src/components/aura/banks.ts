@@ -1,19 +1,20 @@
 /**
  * ============================================================================
- * LINE + SONG BANKS
+ * EDIT BANKS
  * ============================================================================
  *
- * Both banks come from the Lookbook backend (`banks_edits_lines` and
- * `banks_songs`, served by `GET /web/v1/banks/*`). They are loaded once on the
+ * Lines, songs, and places come from the Lookbook backend (`GET /web/v1/banks/*`).
+ * They are loaded once on the
  * server in `app/(app)/page.tsx` and passed down, so the editor only ever offers
  * what is in the banks. Nothing is hard-coded here.
  */
 
-import type { BankSong, EditLine } from "@/types/api";
+import type { BankPlace, BankSong, EditLine } from "@/types/api";
 import { hash } from "./palette";
 
 export type Line = EditLine;
 export type Song = BankSong;
+export type Place = BankPlace;
 
 /**
  * Gradient pairs for a song whose cover is missing or fails to load. The pair
@@ -30,6 +31,15 @@ const COVER_FALLBACKS = [
 
 export function songColors(song: Song) {
   return COVER_FALLBACKS[hash(song.id) % COVER_FALLBACKS.length];
+}
+
+/** Use the first available signed photo; the bank's photo order is curated. */
+export function placeImageUrl(place: Place): string | null {
+  return place.photos.find((photo) => photo.image_url)?.image_url ?? null;
+}
+
+export function placeColors(place: Place) {
+  return COVER_FALLBACKS[(hash(place.id) + 2) % COVER_FALLBACKS.length];
 }
 
 /** A random entry, or `fallback` when the bank came back empty. */

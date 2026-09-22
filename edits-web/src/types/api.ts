@@ -130,3 +130,25 @@ export type BankSong = {
   sort_order: number;
 };
 export type SongList = { items: BankSong[] };
+
+/** `GET /web/v1/banks/places` — active places with ordered, nested photos. */
+export type BankPlacePhoto = {
+  id: string;
+  photo_order: number;
+  image_url: string | null;
+  width: number;
+  height: number;
+  review_status: string;
+};
+export type BankPlace = {
+  id: string;
+  place_name: string;
+  category: string;
+  geography_display: string;
+  city: string;
+  region: string;
+  country_code: string;
+  sort_order: number;
+  photos: BankPlacePhoto[];
+};
+export type PlaceList = { items: BankPlace[] };

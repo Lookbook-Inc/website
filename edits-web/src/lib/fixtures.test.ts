@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fixtureForPath, fixtures } from "@/lib/fixtures";
-import type { OutfitPage, WardrobePage } from "@/types/api";
+import type { OutfitPage, PlaceList, WardrobePage } from "@/types/api";
 
 describe("fixture-backed data contract", () => {
   it("filters wardrobe by name and type", () => {
@@ -19,5 +19,14 @@ describe("fixture-backed data contract", () => {
   it("returns only the latest recommendation contract", () => {
     expect(fixtures.recommendations.generated_at).toBeTruthy();
     expect(fixtures.recommendations.members.length).toBeGreaterThan(0);
+  });
+
+  it("serves the nested places bank in fixture mode", () => {
+    const result = fixtureForPath<PlaceList>("/web/v1/banks/places");
+    expect(result.items).toHaveLength(9);
+    expect(result.items.map((place) => place.sort_order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(result.items[0].photos.map((photo) => photo.review_status)).toEqual(["validated", "needs_review"]);
+    expect(result.items[0].photos[0].image_url).toMatch(/^data:image\/svg\+xml/);
+    expect(result.items[1].photos).toEqual([]);
   });
 });

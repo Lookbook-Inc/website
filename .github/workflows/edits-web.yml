@@ -1,0 +1,35 @@
+name: Edits web
+
+on:
+  pull_request:
+    paths:
+      - "edits-web/**"
+      - ".github/workflows/edits-web.yml"
+  push:
+    branches: [main]
+    paths:
+      - "edits-web/**"
+      - ".github/workflows/edits-web.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: edits-web
+    env:
+      EDITS_DATA_MODE: fixture
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: edits-web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

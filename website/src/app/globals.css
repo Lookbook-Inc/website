@@ -13,6 +13,7 @@
   --font-display: var(--font-dm-serif-display);
   --font-waitlist: var(--font-instrument-serif);
   --font-mono: var(--font-jetbrains-mono);
+  --font-bebas: var(--font-bebas-neue);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -26,7 +27,6 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), sans-serif;
-  overflow-y: scroll; /* Always show scrollbar space to prevent layout shift */
 }
 
 code, pre, kbd, samp {
@@ -99,6 +99,16 @@ code, pre, kbd, samp {
   animation: slide-fade-in 0.5s ease-out forwards;
 }
 
+/* Infinite Marquee */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
 /* Animated ellipses */
 @keyframes ellipses {
   0% { content: ''; }
@@ -111,4 +121,14 @@ code, pre, kbd, samp {
 .animate-ellipses::after {
   content: '';
   animation: ellipses 1.5s infinite;
+}
+
+/* Boarding tag drop-in animation */
+@keyframes tag-drop {
+  from { transform: translateY(-32px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+.animate-tag-drop {
+  animation: tag-drop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sample data
+sampleresults.json
+.gstack/
+
+CLAUDE.md
+AGENTS.md

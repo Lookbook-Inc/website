@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, DM_Serif_Text, Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { Bebas_Neue, DM_Serif_Display, DM_Serif_Text, Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import Navigation from "./components/Navigation";
 
 const dmSerifDisplay = DM_Serif_Display({
   weight: "400",
@@ -31,9 +30,34 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  variable: "--font-bebas-neue",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "Lookbook - Home",
-  description: "Studio Maven Inc. presents - Lookbook: Your Style Anthology.",
+  title: "Lookbook",
+  description: "Your Style Anthology.",
+  openGraph: {
+    title: "Lookbook",
+    description: "Your Style Anthology.",
+    images: [
+      {
+        url: "/images/unfurl-card.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Lookbook - Your Style Anthology",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Lookbook",
+    description: "Your Style Anthology.",
+    images: ["/images/unfurl-card.jpg"],
+  },
 };
 
 export default function RootLayout({
@@ -44,9 +68,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dmSerifDisplay.variable} ${dmSerifText.variable} ${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${dmSerifDisplay.variable} ${dmSerifText.variable} ${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} ${bebasNeue.variable} antialiased`}
       >
-        <Navigation />
         {children}
       </body>
     </html>

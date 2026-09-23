@@ -1,0 +1,3079 @@
+'use client';
+
+import { useState, useEffect, ReactNode, useRef, Suspense } from 'react';
+import { FlipPage } from './_components/FlipPage';
+import { useFlip } from '@/hooks/useFlip';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getInsightsByShareCode } from '@/lib/api/wrapped';
+import { transformWrappedInsights, isInsightsCompleted, isInsightsProcessing } from '@/lib/wrapped/transform';
+import { BackendWrappedInsights } from '@/types/wrapped-api';
+import {
+  UploadedPhoto,
+  WrappedResults,
+  Step
+} from '@/types/wrapped-frontend';
+import { NavigationFooter } from './_components/NavigationFooter';
+import { SummaryContent } from './_components/SummaryContent';
+import { TopOutfitsSelectionContent } from './_components/TopOutfitsSelectionContent';
+import { usePostHog } from 'posthog-js/react';
+import { useSearchParams } from 'next/navigation';
+
+// --- Types ---
+// Moved to @/types/wrapped-frontend
+
+// Mock backend data following the BackendWrappedInsights interface
+const mockBackendResults: BackendWrappedInsights = {
+  id: 'mock-id',
+  user_id: 'mock-user-id',
+  status: 'completed',
+  created_at: '2025-12-23T12:00:00Z',
+  updated_at: '2025-12-23T12:00:00Z',
+  completed_at: '2025-12-23T12:00:00Z',
+  share_code: 'ANIRUDH',
+  user_first_name: 'Anirudh',
+  user_last_name: 'Satish',
+  user_city: 'San Francisco',
+  
+  // Clothing items
+  top_clothing_items: [],
+  most_worn_item: {
+    name: 'Light-colored athletic sneakers',
+    path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/246970f9-304c-40ec-9e15-654469e023b0_original.webp',
+    signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/246970f9-304c-40ec-9e15-654469e023b0_original.webp',
+    photo_id: '246970f9-304c-40ec-9e15-654469e023b0',
+    item_type: 'shoes',
+    outfit_count: 3,
+    shade_hex_1: '#CED4D7',
+    shade_name_1: 'grout',
+    shade_hex_2: null,
+    shade_hex_3: null,
+    shade_name_2: null,
+    shade_name_3: null,
+    shade_color_1: null,
+    shade_color_2: null,
+    shade_color_3: null,
+    shade_importance_1: null,
+    shade_importance_2: null,
+    shade_importance_3: null,
+    details: null,
+    brand: null,
+    material: null,
+    avatar: false,
+    shared: false,
+    caption: null,
+    user_id: 'mock-user-id',
+    created_at: '2025-12-23T12:00:00Z',
+    tagged_photo_ids: []
+  },
+  best_pairings: [
+    { garment_name: 'Medium-wash blue jeans', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...', times_paired: 2 },
+    { garment_name: 'Black pullover sweater', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...', times_paired: 1 },
+    { garment_name: 'Dark green puffer jacket', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...', times_paired: 1 }
+  ],
+  unworn_pairings: [
+    { reasoning: '...', garment_name: 'Medium-wash blue jeans', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...' },
+    { reasoning: '...', garment_name: 'Light gray T-shirt', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...' },
+    { reasoning: '...', garment_name: 'Dark casual jacket', garment_path: '...', signed_url: '...', garment_photo_id: '...', garment_item_type: '...', garment_color: '...' }
+  ],
+  clothing_items_description: 'Cozy but make it fashion. This knit never missed.',
+
+  // Colors
+  top_colors: [
+    { color: 'blue', top_shade: 'Silhouette', top_shade_hex: '#242b36', piece_count: 5, importance_score: 10 },
+    { color: 'gray', top_shade: 'grout', top_shade_hex: '#ced4d7', piece_count: 3, importance_score: 8 },
+    { color: 'blue', top_shade: 'bluebird', top_shade_hex: '#758fbf', piece_count: 1, importance_score: 5 },
+    { color: 'gray', top_shade: 'Cathedral Spire', top_shade_hex: '#A5A5A5', piece_count: 1, importance_score: 4 },
+    { color: 'white', top_shade: 'bone', top_shade_hex: '#FDFDFD', piece_count: 1, importance_score: 3 }
+  ],
+  top_color: { color: 'blue', top_shade: 'Silhouette', top_shade_hex: '#242b36', piece_count: 5, importance_score: 10 },
+  top_shades: [
+    { color_result: 'blue', photo_ids_result: ['4a7e547f-bca7-4c8e-9326-7fcf216161a8', 'cc3144a8-b42f-47b7-8b47-c58d5ad1c723', 'd6473945-b446-41e0-800d-b4792f869b8d'], shade_hex_result: '#242b36', shade_name_result: 'Silhouette', importance_score_result: 9 },
+    { color_result: 'off_white', photo_ids_result: ['246970f9-304c-40ec-9e15-654469e023b0'], shade_hex_result: '#F9F9F7', shade_name_result: 'alabaster', importance_score_result: 5 }
+  ],
+  top_color_pairings: [],
+  color_aura: 'candlelit_dinner',
+  color_aura_id: 'candlelit_dinner',
+  color_aura_description: 'Deep blacks and cool, muted supporting tones. An intimate, evening-leaning mood that reads polished and understated.',
+  color_aura_percentage: 85,
+  color_aura_shades: ['#1E3A8A', '#3B82F6', '#60A5FA', '#93C5FD', '#DBEAFE'],
+  colors_description: null,
+
+  // Styles
+  top_styles: [
+    { style_name: 'contemporary_professional', points: 9, appearances: 3, avg_rank: 1 },
+    { style_name: 'streetwear', points: 5, appearances: 2, avg_rank: 2 },
+    { style_name: 'basic_casual', points: 2.5, appearances: 1, avg_rank: 3 }
+  ],
+  primary_style: 'contemporary_professional',
+  style_decade: '2020s',
+  style_decade_id: '2020s',
+  style_decade_description: 'Clean lines meet bold individuality. You dress like someone who scrolls Pinterest ironically but saves everything.',
+  style_description: 'Your style profile is being analyzed...',
+  top_outfits_for_style: [
+    {
+      photo_id: 'unsplash-1',
+      path: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
+      signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
+      similarity_score: 0.92
+    },
+    {
+      photo_id: '8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1',
+      path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
+      similarity_score: 0.88
+    },
+    {
+      photo_id: '0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7',
+      path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
+      similarity_score: 0.85
+    }
+  ],
+
+  // Outfits
+  top_outfits: [
+    {
+      photo_id: 'unsplash-1',
+      path: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
+      signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80',
+      similarity_score: 0.2209
+    },
+    {
+      photo_id: '8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1',
+      path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg',
+      similarity_score: 0.2182
+    },
+    {
+      photo_id: '0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7',
+      path: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
+      signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg',
+      similarity_score: 0.1974
+    }
+  ],
+
+  // Celebrity matches
+  celeb_matches: [],
+  top_celeb_match: {
+    celeb_id: 'anirudh-1',
+    celeb_name: 'Anirudh Satish',
+    celeb_photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+    celeb_portrait_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+    description: 'Brown man looking for his place in the world.',
+    similarity_score: 32.78,
+    aura_score: 85,
+    style_score: 90,
+    categories: ['Engineer'],
+    gender: 'male',
+    color_aura_name: 'candlelit_dinner',
+    style_1: 'contemporary_professional',
+    style_2: 'streetwear',
+    style_3: 'basic_casual'
+  },
+  celeb_match_description: null,
+
+  // City vibe
+  city_vibe: 'San Francisco',
+  city_vibe_id: 'san_francisco',
+  city_vibe_similarity_score: 88,
+  city_vibe_description: "You dress like you're late to something important and you'll still be the best-dressed person there.",
+  city_vibe_image_url: null,
+  city_photo_url: null,
+
+  // Reference photo URLs
+  decade_photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+
+  // Statistics
+  total_photos_uploaded: 3,
+  total_clothing_items: 8,
+  total_outfits_analyzed: 3,
+  unique_colors_worn: 5,
+
+  // Uploaded photos
+  all_uploaded_photos: [
+    { signed_url: 'https://images.unsplash.com/photo-1554560397-c4a71373c3a2?w=800&q=80' },
+    { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/8d0c2e1b-b96f-4f63-bdcd-61ee42b477a1_original.jpeg' },
+    { signed_url: '2f5c6299-d234-44da-8b6b-8e928f28a68d/0bdf691d-f8e7-4deb-b3e8-5d4c68ad01c7_original.jpeg' }
+  ],
+};
+
+const mockResults: WrappedResults = transformWrappedInsights(mockBackendResults);
+
+type Props = {
+  params: Promise<{ code: string }>
+}
+
+// Test code to skip backend and use mock data
+const TEST_CODE = 'TESTME';
+
+// Wrapper for perspective context
+const FlipContainer = ({ children }: { children: ReactNode }) => (
+  <div
+    className="absolute inset-0 overflow-hidden"
+    style={{ perspective: '2500px' }}
+  >
+    {children}
+  </div>
+);
+
+export default function ResultsPage({ params }: Props) {
+  const posthog = usePostHog();
+  const searchParams = useSearchParams();
+  const [step, setStep] = useState<Step>('welcome');
+  const [results, setResults] = useState<WrappedResults>(mockResults); // Start with mock data to avoid null checks
+  const [selectedOutfitIndex, setSelectedOutfitIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [colorsView, setColorsView] = useState<'colors' | 'shades'>('colors');
+  const [shareCode, setShareCode] = useState<string>('');
+
+  // Debug skip logic for development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const debugStep = searchParams.get('step');
+      if (debugStep && !loading) {
+        // Simple check to see if it's a valid step
+        const validSteps: Step[] = [
+          'welcome', 'intro', 'photo-flip', 'fav-item', 'fav-pairings', 
+          'unworn-pairings', 'top-styles', 'colors', 'color-aura', 
+          'decade', 'celebrity', 'city-intro', 'city-reveal', 
+          'top-outfits-selection', 'summary'
+        ];
+        
+        if (validSteps.includes(debugStep as Step)) {
+          console.log(`[Debug] Skipping to step: ${debugStep}`);
+          setStep(debugStep as Step);
+          
+          // Special case: if skipping to color-aura, ensure colorsView is shades
+          if (debugStep === 'color-aura') {
+            setColorsView('shades');
+          }
+        }
+      }
+    }
+  }, [searchParams, loading]);
+
+  const TOTAL_FLIP_PAGES = 10;
+
+  // Hardcoded page durations for the photo flip sequence
+  const getPageDuration = (index: number) => {
+    const durations = [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.3, 0.5, 0.7, 1.2];
+    return durations[index - 1] || 0.3;
+  };
+
+  // Helper function to preload images
+  const preloadImages = (imagePaths: (string | null | undefined)[]): Promise<void> => {
+    // Filter out null/undefined paths
+    const validPaths = imagePaths.filter((path): path is string => !!path);
+
+    const promises = validPaths.map((src) => {
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve(); // Resolve even on error to not block
+        img.src = src;
+      });
+    });
+
+    return Promise.all(promises).then(() => undefined);
+  };
+
+  // Fetch insights on mount
+  useEffect(() => {
+    async function fetchInsights() {
+      try {
+        setLoading(true);
+
+        // Get the share code from params
+        const resolvedParams = await params;
+        const code = resolvedParams.code;
+        setShareCode(code);
+
+        // Track results page viewed
+        if (posthog) {
+          posthog.capture('wrapped_results_viewed', {
+            share_code: code,
+            is_test_mode: code.toUpperCase() === TEST_CODE
+          });
+        }
+
+        // Check for test code - skip backend and use mock data
+        if (code.toUpperCase() === TEST_CODE) {
+          console.log('Using test mode with mock data');
+          setResults(mockResults);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch insights from backend
+        const backendData = await getInsightsByShareCode(code);
+
+        // Check status
+        if (!isInsightsCompleted(backendData)) {
+          if (isInsightsProcessing(backendData)) {
+            setError('Your insights are still being generated. Please check back in a few minutes!');
+          } else {
+            setError('Insights not found or failed to generate.');
+          }
+          setLoading(false);
+          return;
+        }
+
+        // Transform backend data to frontend format
+        const transformed = transformWrappedInsights(backendData);
+
+        // Phase 1: Preload critical images (blocks until loaded)
+        // These are needed for the initial flip sequence + first content screen
+        const criticalImages: (string | null | undefined)[] = [
+          // First 10 photos for flip sequence
+          ...transformed.all_uploaded_photos.slice(0, 10).map(p => p.signed_url),
+          // Most worn item (shown right after flip)
+          transformed.most_worn_item.path,
+        ];
+
+        await preloadImages(criticalImages);
+
+        // Set results and hide loading - user can start viewing!
+        setResults(transformed as WrappedResults);
+        setLoading(false);
+
+        // Track results loaded successfully
+        if (posthog) {
+          posthog.capture('wrapped_results_loaded', {
+            share_code: code,
+            total_outfits: transformed.total_outfits_analyzed,
+            primary_style: transformed.primary_style,
+            total_clothing_items: transformed.total_clothing_items
+          });
+        }
+
+        // Phase 2: Preload remaining images in background (non-blocking)
+        const remainingImages: (string | null | undefined)[] = [
+          // Remaining uploaded photos (if more than 10)
+          ...transformed.all_uploaded_photos.slice(10).map(p => p.signed_url),
+          // Best pairings
+          ...transformed.best_pairings.map(p => p.garment_path),
+          // Unworn pairings
+          ...transformed.unworn_pairings.map(p => p.garment_path),
+          // Top outfits for primary style
+          ...transformed.top_outfits_for_style.map(o => o.path),
+          // Celebrity photo
+          transformed.top_celeb_match.celeb_photo_url,
+          // City photo
+          transformed.city_photo_url,
+          // Decade photo
+          transformed.decade_photo_url,
+        ];
+
+        // Fire and forget - loads while user views initial screens
+        preloadImages(remainingImages);
+      } catch (err) {
+        console.error('Failed to fetch insights:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load insights');
+        setLoading(false);
+      }
+    }
+
+    fetchInsights();
+  }, [params]);
+
+  // Track step changes and page flips
+  const [previousStep, setPreviousStep] = useState<Step | null>(null);
+
+  useEffect(() => {
+    if (posthog && step && !loading && shareCode) {
+      // Track page view with step name in event
+      const stepName = step.replace(/-/g, '_'); // Convert kebab-case to snake_case
+      posthog.capture(`wrapped_page_${stepName}_viewed`, {
+        share_code: shareCode,
+        from_step: previousStep || 'initial',
+        step: step
+      });
+
+      // Track completion when reaching summary
+      if (step === 'summary') {
+        posthog.capture('wrapped_results_completed', {
+          share_code: shareCode
+        });
+      }
+
+      // Update previous step for next flip
+      setPreviousStep(step);
+    }
+  }, [step, loading, posthog, shareCode]); // Removed previousStep from dependencies!
+
+  // Individual flip states for single-page transitions
+  const welcomeFlip = useFlip(() => setStep('intro'));
+  const introFlip = useFlip(() => setStep('photo-flip'));
+  const favItemFlip = useFlip(() => setStep('fav-pairings'));
+  const favPairingsFlip = useFlip(() => setStep('unworn-pairings'));
+  const unwornPairingsFlip = useFlip(() => setStep('top-styles'));
+  const topStylesFlip = useFlip(() => { setColorsView('colors'); setStep('colors'); });
+  // colorsFlip is no longer used - transition to shades is internal push animation
+  const colorsFlip = useFlip(() => {}); // Keep for back navigation compatibility
+  const shadesFlip = useFlip(() => setStep('color-aura'));
+  const colorAuraFlip = useFlip(() => setStep('decade'));
+  const decadeFlip = useFlip(() => setStep('celebrity'));
+  const celebrityFlip = useFlip(() => setStep('city-intro'));
+  const cityIntroFlip = useFlip(() => setStep('city-reveal'));
+  const cityRevealFlip = useFlip(() => setStep('top-outfits-selection'));
+  const topOutfitsSelectionFlip = useFlip(() => setStep('summary'));
+  
+  // Track the previous step to handle reverse animations
+  const [prevStep, setPrevStep] = useState<Step | null>(null);
+
+  // Go back handlers
+  const onBack = {
+    'fav-pairings': () => { setPrevStep(step); setStep('fav-item'); },
+    'unworn-pairings': () => { setPrevStep(step); setStep('fav-pairings'); },
+    'top-styles': () => { setPrevStep(step); setStep('unworn-pairings'); },
+    'colors': () => { setPrevStep(step); setStep('top-styles'); },
+    // 'shades' is now internal to 'colors' - back is handled in ColorsShadesContent
+    'color-aura': () => { setPrevStep(step); setColorsView('shades'); setStep('colors'); },
+    'decade': () => { setPrevStep(step); setStep('color-aura'); },
+    'celebrity': () => { setPrevStep(step); setStep('decade'); },
+    'city-intro': () => { setPrevStep(step); setStep('celebrity'); },
+    'city-reveal': () => { setPrevStep(step); setStep('city-intro'); },
+    'top-outfits-selection': () => { setPrevStep(step); setStep('city-reveal'); },
+    'summary': () => { setPrevStep(step); setStep('top-outfits-selection'); },
+  };
+
+  // Handle the reverse animation when moving to a previous step
+  useEffect(() => {
+    if (!prevStep) return;
+
+    // Mapping of step to the flip hook that needs to be reset (when going BACK to this step)
+    const flipHooks: Record<string, ReturnType<typeof useFlip>> = {
+      'fav-item': favItemFlip,
+      'fav-pairings': favPairingsFlip,
+      'unworn-pairings': unwornPairingsFlip,
+      'top-styles': topStylesFlip,
+      'colors': shadesFlip, // shadesFlip.flip() takes us to color-aura, so unflip it when going back
+      'color-aura': colorAuraFlip,
+      'decade': decadeFlip,
+      'celebrity': celebrityFlip,
+      'city-intro': cityIntroFlip,
+      'city-reveal': cityRevealFlip,
+      'top-outfits-selection': topOutfitsSelectionFlip,
+    };
+
+    const hookToReset = flipHooks[step];
+    if (hookToReset && hookToReset.isFlipped) {
+      // Small delay to ensure the component has rendered in the flipped state
+      const timer = setTimeout(() => {
+        hookToReset.unflip();
+        setPrevStep(null);
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      setPrevStep(null);
+    }
+  }, [step, prevStep, favItemFlip, favPairingsFlip, unwornPairingsFlip, topStylesFlip, colorsFlip, shadesFlip, colorAuraFlip, decadeFlip, celebrityFlip, cityIntroFlip, cityRevealFlip, topOutfitsSelectionFlip]);
+  
+  // Track which pages have been flipped for the photo sequence
+  const [flippedPages, setFlippedPages] = useState<boolean[]>(
+    new Array(TOTAL_FLIP_PAGES + 1).fill(false)
+  );
+
+  // Handle the photo flipping sequence
+  useEffect(() => {
+    if (step === 'photo-flip') {
+      let cumulativeDelay = 0;
+      
+      for (let i = 1; i <= TOTAL_FLIP_PAGES; i++) {
+        const pageDuration = getPageDuration(i);
+        const currentDelay = cumulativeDelay;
+
+        setTimeout(() => {
+          setFlippedPages(prev => {
+            const next = [...prev];
+            next[i] = true;
+            return next;
+          });
+          
+          if (i === TOTAL_FLIP_PAGES) {
+            // Wait for the final flip to actually finish before moving on
+            setTimeout(() => {
+              setStep('fav-item');
+            }, pageDuration * 1000 + 100);
+          }
+        }, currentDelay);
+        
+        // Increase the delay by the duration of the current flip
+        // to ensure the next one starts exactly when this one ends
+        cumulativeDelay += (pageDuration * 1000);
+      }
+    }
+  }, [step, TOTAL_FLIP_PAGES]);
+
+  // --- Page Contents ---
+
+  const FavSidebar = ({ light = true }: { light?: boolean }) => (
+    <div className="absolute left-0 top-0 bottom-0 w-24 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
+      <div 
+        className={`whitespace-nowrap transform -rotate-270 translate-y-[-15vh] font-display text-8xl leading-none tracking-tighter flex gap-8 items-center ${
+          light ? 'text-black/5' : 'text-[#F7EFE5]/20'
+        }`}
+      >
+        <span>Your Pieces</span>
+        <span>Your Pieces</span>
+        <span>Your Pieces</span>
+        <span>Your Pieces</span>
+        <span className={light ? 'text-black' : 'text-[#F7EFE5]'}>Your Pieces</span>
+        <span>Your Pieces</span>
+        <span>Your Pieces</span>
+        <span>Your Pieces</span>
+        <span>Your Pieces</span>
+      </div>
+    </div>
+  );
+
+  const FavItemContent = ({ onNext, isActive = true }: { onNext?: () => void; isActive?: boolean }) => {
+    const displayName = results.most_worn_item.name.split('(')[0].trim();
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
+        <FavSidebar />
+        <div className="flex-1 flex flex-col pl-20 relative z-30 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="my-auto py-8">
+            <h3 className="font-display text-2xl text-gray-900 mb-4 text-right">
+              One piece anchored your outfits...
+            </h3>
+            
+            <motion.div
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.8,
+                    delayChildren: 0.8
+                  }
+                }
+              }}
+            >
+              <motion.p 
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  visible: { 
+                    opacity: 1, 
+                    y: 0,
+                    transition: { duration: 0.8, ease: [0.4, 0, 0.2, 1] }
+                  }
+                }}
+                className="text-md text-gray-500 leading-snug mb-8 text-right"
+              >
+                This piece was a constant in your rotation - and for good reason.
+              </motion.p>
+              
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { 
+                    opacity: 1, 
+                    y: 0,
+                    transition: { duration: 1.2, ease: [0.4, 0, 0.2, 1] }
+                  }
+                }}
+                className="flex flex-col rounded-2xl overflow-hidden bg-[#F1EDE7] shadow-sm shrink-0 mb-4 ml-auto w-[30vh] min-w-[100px] max-w-full"
+              >
+                <div className="w-full aspect-square relative overflow-hidden">
+                  <img
+                    src={results.most_worn_item.path}
+                    alt={results.most_worn_item.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-4 text-center">
+                  <p className="font-sans text-xs font-bold uppercase text-gray-900/50 tracking-[0.1em] break-words">{displayName}</p>
+                </div>
+              </motion.div>
+            </motion.div>
+          </div>
+        </div>
+        
+        <NavigationFooter onNext={onNext} />
+      </div>
+    );
+  };
+
+  const FavPairingsContent = ({ 
+    onNext, 
+    onBack,
+    isActive = true 
+  }: { 
+    onNext?: () => void; 
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    // Container variants for staggered children
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.5,
+          delayChildren: 0,
+        },
+      },
+    };
+
+    // Individual item variants - slide up from below
+    const itemVariants = {
+      hidden: {
+        y: 60,
+        opacity: 0,
+      },
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.5,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
+        <FavSidebar />
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-30 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h3 className="font-display text-2xl text-gray-900 mb-8">You&apos;ve paired it with:</h3>
+          
+          <motion.div 
+            className="flex flex-col pb-10"
+            variants={containerVariants}
+            initial="hidden"
+            animate={isActive ? "visible" : "hidden"}
+          >
+            {results.best_pairings.map((pairing, i) => {
+              const zIndex = i;
+              
+              // Overlap and jitter variations
+              const overlaps = [0, -45, -65, -40, -35];
+              // Jitter as vw percentages, capped at proportion of max-w-md (448px)
+              const jitterConfigs = [
+                { pct: -5, max: -22 },
+                { pct: 3, max: 100 }, 
+                { pct: 0, max: 0 },
+                { pct: 0, max: 0 },
+                { pct: -4, max: -18 },
+              ];
+              
+              const marginTop = i > 0 ? overlaps[i % overlaps.length] : 0;
+              const jitter = jitterConfigs[i % jitterConfigs.length];
+              const translateX = jitter.pct >= 0 
+                ? `min(${jitter.pct}vw, ${jitter.max}px)` 
+                : `max(${jitter.pct}vw, ${jitter.max}px)`;
+
+              return (
+                <motion.div 
+                  key={i} 
+                  variants={itemVariants}
+                  className={`w-[40vw] max-w-[200px] aspect-square rounded-xl overflow-hidden bg-[#F1EDE7] shadow-md relative shrink-0 border-1 border-[#FFFAF4] ${
+                    i % 2 === 0 ? 'self-end mr-4' : 'self-start'
+                  }`}
+                  style={{ 
+                    zIndex, 
+                    marginTop: `${marginTop}px`,
+                    transform: `translateX(${translateX})`,
+                    WebkitMaskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)',
+                    maskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)'
+                  }}
+                >
+                  <img
+                    src={pairing.garment_path}
+                    alt={pairing.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {/* 3D effect overlay */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%)'
+                    }}
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+        
+        <NavigationFooter onNext={onNext} onBack={onBack} />
+      </div>
+    );
+  };
+
+  const UnwornPairingsContent = ({ 
+    onNext, 
+    onBack,
+    isActive = true 
+  }: { 
+    onNext?: () => void; 
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    // Container variants for staggered children
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.5,
+          delayChildren: 0,
+        },
+      },
+    };
+
+    // Individual item variants - slide up from below
+    const itemVariants = {
+      hidden: {
+        y: 60,
+        opacity: 0,
+      },
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.5,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-black text-white">
+        <FavSidebar light={false} />
+        <div className="flex-1 flex flex-col pt-4 pl-20 relative z-30 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h3 className="font-display text-2xl text-[#F7EFE5] mb-8 text-right">You haven&apos;t worn it with these yet...</h3>
+          
+          <motion.div 
+            className="flex flex-col pb-10"
+            variants={containerVariants}
+            initial="hidden"
+            animate={isActive ? "visible" : "hidden"}
+          >
+            {results.unworn_pairings.map((pairing, i) => {
+              const zIndex = i;
+              
+              // Overlap and jitter variations
+              const overlaps = [0, -45, -65, -40, -35];
+              // Jitter as vw percentages, capped at proportion of max-w-md (448px)
+              const jitterConfigs = [
+                { pct: -5, max: -22 },
+                { pct: 3, max: 100 }, 
+                { pct: 0, max: 0 },
+                { pct: 0, max: 0 },
+                { pct: -4, max: -18 },
+              ];
+              
+              const marginTop = i > 0 ? overlaps[i % overlaps.length] : 0;
+              const jitter = jitterConfigs[i % jitterConfigs.length];
+              const translateX = jitter.pct >= 0 
+                ? `min(${jitter.pct}vw, ${jitter.max}px)` 
+                : `max(${jitter.pct}vw, ${jitter.max}px)`;
+
+              return (
+                <motion.div 
+                  key={i} 
+                  variants={itemVariants}
+                  className={`w-[40vw] max-w-[200px] aspect-square rounded-xl overflow-hidden bg-zinc-400 shadow-md relative shrink-0 border-1 border-zinc-200 ${
+                    i % 2 === 0 ? 'self-end mr-4' : 'self-start'
+                  }`}
+                  style={{ 
+                    zIndex, 
+                    marginTop: `${marginTop}px`,
+                    transform: `translateX(${translateX})`,
+                    WebkitMaskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)',
+                    maskImage: 'radial-gradient(circle, black 0%, rgba(0,0,0,0.9) 100%)'
+                  }}
+                >
+                  <img
+                    src={pairing.garment_path}
+                    alt={pairing.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {/* 3D effect overlay - adjusted for light card on dark background */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%)'
+                    }}
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+        
+        <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+      </div>
+    );
+  };
+
+  const StyleSidebar = ({ light = true }: { light?: boolean }) => (
+    <div className="absolute left-0 top-0 bottom-0 w-24 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
+      <div 
+        className={`whitespace-nowrap transform -rotate-270 font-display text-8xl leading-none tracking-tighter flex gap-8 items-center ${
+          light ? 'text-black/5' : 'text-[#F7EFE5]/20'
+        }`}
+      >
+        <span>Your Style</span>
+        <span>Your Style</span>
+        <span>Your Style</span>
+        <span>Your Style</span>
+        <span className={light ? 'text-black' : 'text-[#F7EFE5]'}>Your Style</span>
+        <span>Your Style</span>
+        <span>Your Style</span>
+        <span>Your Style</span>
+        <span>Your Style</span>
+      </div>
+    </div>
+  );
+
+  const TopStylesContent = ({
+    onNext,
+    onBack,
+    isActive = true
+  }: {
+    onNext?: () => void;
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    // Phase state management: shuffle -> reveal -> gallery
+    const [phase, setPhase] = useState<'shuffle' | 'reveal' | 'gallery'>('shuffle');
+
+    // Auto-transition from reveal -> gallery after delay
+    useEffect(() => {
+      if (phase === 'reveal' && isActive) {
+        const timer = setTimeout(() => {
+          setPhase('gallery');
+        }, 3000); // 2 second pause on reveal before showing photos
+        return () => clearTimeout(timer);
+      }
+    }, [phase, isActive]);
+
+    // Container variants for staggered children - slide from right
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 1.0,
+          delayChildren: 0.2,
+        },
+      },
+    };
+
+    // Style item variants - slide in from right
+    const styleItemVariants = {
+      hidden: {
+        x: 60,
+        opacity: 0,
+      },
+      visible: {
+        x: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.8,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    // Text variants - fade and slide up from bottom with extra delay
+    const textVariants = {
+      hidden: {
+        y: 20,
+        opacity: 0,
+      },
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.5,
+          // delay: 3.5,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+    };
+
+    // Handle navigation
+    const handleNext = () => {
+      if (phase === 'shuffle') {
+        setPhase('reveal');
+      } else if (phase === 'reveal') {
+        setPhase('gallery'); // Skip ahead if user clicks during reveal
+      } else {
+        onNext?.();
+      }
+    };
+
+    const handleBack = () => {
+      if (phase === 'gallery' || phase === 'reveal') {
+        setPhase('shuffle');
+      } else {
+        onBack?.();
+      }
+    };
+
+    // Animation should play when component isActive AND in shuffle phase
+    const shouldAnimate = isActive && phase === 'shuffle';
+
+    // Check if we're in the gallery phase (photos visible)
+    const isGallery = phase === 'gallery';
+
+    // Shuffle phase inner content
+    const ShuffleInner = () => (
+      <motion.div
+        className="flex-1 flex flex-col"
+        initial="hidden"
+        animate={shouldAnimate ? "visible" : "hidden"}
+        exit={{ opacity: 0, transition: { duration: 0 } }}
+      >
+        <h3 className="font-display text-lg text-gray-900 mb-8">Your top 3 aesthetics</h3>
+
+        {/* Vertical spacer */}
+        <div className="flex-1" />
+
+        <motion.div
+          className="space-y-10"
+          variants={containerVariants}
+        >
+          {results.top_styles.slice(0, 3).map((style) => {
+            const isPrimary = style.style_name === results.primary_style;
+            return (
+              <motion.div
+                key={style.style_name}
+                className="flex flex-col gap-2 shrink-0"
+                variants={styleItemVariants}
+              >
+                <div className="flex items-baseline justify-end border-b border-gray-200 pb-1">
+                  <motion.span
+                    layoutId={isPrimary ? "primary-style-text" : undefined}
+                    className="text-3xl font-display uppercase tracking-tight text-gray-900 text-right"
+                  >
+                    {style.style_name}
+                  </motion.span>
+                </div>
+              </motion.div>
+            );
+          })}
+
+          <motion.p
+            className="text-sm text-gray-600 text-center italic"
+            variants={textVariants}
+          >
+            But if we had to choose one...
+          </motion.p>
+        </motion.div>
+
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+        <div className="flex-1" />
+      </motion.div>
+    );
+
+    // Reveal/Gallery phase inner content - uses layout animations
+    const RevealGalleryInner = () => (
+      <motion.div
+        className="flex-1 flex flex-col min-h-full"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0, transition: { duration: 0.2 } }}
+        layout
+        transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+      >
+        {/* Header section - centered in reveal, top-aligned in gallery */}
+        <motion.div
+          layout
+          className={`flex flex-col ${isGallery ? 'items-start' : 'items-center justify-center flex-1'}`}
+          transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+        >
+          <AnimatePresence>
+            {isGallery && (
+              <motion.p
+                key="label-above"
+                className="font-display text-medium text-gray-500 mb-2"
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+              >
+                Your signature:
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          {/* Primary style name - animates from center to top */}
+          <motion.div
+            layout
+            layoutId="primary-style-text"
+            className="font-display uppercase tracking-tight text-gray-900"
+            style={{
+            fontSize: isGallery ? 'clamp(1.5rem, 8vw, 2.25rem)' : 'clamp(2rem, 12vw, 3.75rem)',
+            marginBottom: isGallery ? '1.5rem' : '0',
+          }}
+          transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+        >
+          {results.primary_style}
+        </motion.div>
+
+          <AnimatePresence>
+          {!isGallery && (
+            <motion.p
+              key="label-below"
+              className="font-display text-lg text-gray-500 mt-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{
+                duration: 0.35,
+                delay: 1.0,
+                ease: [0.4, 0, 0.2, 1] as const,
+              }}
+            >
+              Looking good!
+            </motion.p>
+          )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Outfit photos - only visible in gallery phase */}
+        <AnimatePresence>
+          {isGallery && (
+            <motion.div
+              className="flex-1 flex flex-col pb-4"
+              initial="hidden"
+              animate="visible"
+              exit={{ opacity: 0 }}
+              variants={{
+                hidden: {},
+                visible: {
+                  transition: {
+                    staggerChildren: 0.15,
+                    delayChildren: 0.2,
+                  },
+                },
+              }}
+            >
+              {results.top_outfits_for_style.slice(0, 3).map((outfit, i) => {
+                const zIndex = i;
+
+                // Overlap and jitter variations (similar to FavPairingsContent)
+                const overlaps = [0, -45, -65];
+                const jitterConfigs = [
+                  { pct: -5, max: -22 },
+                  { pct: 8, max: 36 },
+                  { pct: -3, max: -14 },
+                ];
+
+                const marginTop = i > 0 ? overlaps[i] : 0;
+                const jitter = jitterConfigs[i];
+                const translateX = jitter.pct >= 0
+                  ? `min(${jitter.pct}vw, ${jitter.max}px)`
+                  : `max(${jitter.pct}vw, ${jitter.max}px)`;
+
+                return (
+                  <motion.div
+                    key={outfit.photo_id}
+                    variants={{
+                      hidden: { y: 60, opacity: 0 },
+                      visible: {
+                        y: 0,
+                        opacity: 1,
+                        transition: {
+                          duration: 0.5,
+                          ease: [0.4, 0, 0.2, 1] as const,
+                        },
+                      },
+                    }}
+                    className={`w-[45vw] max-w-[220px] max-h-[calc((100dvh-150px)/3)] aspect-[3/4] rounded-xl overflow-hidden bg-[#F1EDE7] shadow-lg relative shrink-0 ${
+                      i % 2 === 0 ? 'self-end mr-4' : 'self-start'
+                    }`}
+                    style={{
+                      zIndex,
+                      marginTop: `${marginTop}px`,
+                      transform: `translateX(${translateX})`,
+                    }}
+                  >
+                    <img
+                      src={outfit.path}
+                      alt={`Outfit ${i + 1}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    {/* 3D effect overlay */}
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%)'
+                      }}
+                    />
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 relative bg-[#FFFAF4]">
+        {/* Show sidebar during shuffle and gallery, hide during reveal */}
+        <AnimatePresence initial={false}>
+          {(phase === 'shuffle' || isGallery) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <StyleSidebar />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className={`flex-1 flex flex-col pt-4 relative z-30 overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${(phase === 'shuffle' || isGallery) ? 'pl-20' : 'pl-0'}`}>
+          {/* Phase-based content rendering with AnimatePresence */}
+          <AnimatePresence mode="wait">
+            {phase === 'shuffle' ? (
+              <ShuffleInner key="shuffle" />
+            ) : (
+              <RevealGalleryInner key="reveal-gallery" />
+            )}
+          </AnimatePresence>
+        </div>
+
+        <NavigationFooter onNext={handleNext} onBack={handleBack} />
+      </div>
+    );
+  };
+
+  const WelcomeContent = ({ onNext, isActive = true }: { onNext?: () => void; isActive?: boolean }) => {
+    const lineVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: (i: number) => ({
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 0.3 + i * 0.2,
+          duration: 0.6,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      }),
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h1 className="font-display text-5xl text-gray-900 leading-[1.1] mb-8">
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={0}
+            >
+              {results.userName}—
+            </motion.span>
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={1}
+            >
+              Welcome to your Lookbook.
+            </motion.span>
+          </h1>
+        </div>
+
+        <NavigationFooter onNext={onNext} nextText="enter →" />
+      </div>
+    );
+  };
+
+  const IntroContent = ({ onNext, isActive = true }: { onNext?: () => void; isActive?: boolean }) => {
+    const lineVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: (i: number) => ({
+        opacity: 1,
+        y: 0,
+        transition: {
+          delay: 0.3 + i * 0.2,
+          duration: 0.6,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      }),
+    };
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4">
+        <div className="flex-1 flex flex-col justify-center overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <h1 className="font-display text-5xl text-gray-900 leading-[1.1] mb-8">
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={0}
+            >
+              We analyzed <span style={{ color: '#8F9779' }}>{results.total_outfits_analyzed}</span> of your outfits
+            </motion.span>
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={1}
+            >
+              to take a <span style={{ color: '#8F9779' }}>snapshot</span> of
+            </motion.span>
+            <motion.span
+              className="block"
+              variants={lineVariants}
+              initial="hidden"
+              animate={isActive ? "visible" : "hidden"}
+              custom={2}
+            >
+              your style.
+            </motion.span>
+          </h1>
+        </div>
+
+        <NavigationFooter onNext={onNext} nextText="enter →" />
+      </div>
+    );
+  };
+
+  const PhotoPageContent = ({ photo, pageNum }: { photo?: UploadedPhoto; pageNum: number }) => (
+    <div className="flex flex-col h-full items-center justify-center p-8">
+      <div className="w-full aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 shadow-lg relative border border-black/5">
+        {photo ? (
+          <img
+            src={photo.signed_url}
+            alt={`Uploaded photo ${pageNum}`}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#FFFAF4] border-2 border-dashed border-gray-200">
+            <span className="font-display text-8xl text-gray-200 select-none">
+              {pageNum}
+            </span>
+          </div>
+        )}
+      </div>
+      {!photo && (
+        <p className="mt-4 font-display text-gray-400">
+          Style Moment {pageNum}
+        </p>
+      )}
+    </div>
+  );
+
+  const ColorAuraContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
+    // Phase state: intro -> reveal -> collage
+    const [phase, setPhase] = useState<'intro' | 'reveal' | 'collage'>('intro');
+
+    // Select 2 outfit pieces and 2 clothing items
+    const outfit1 = results.top_outfits[0];
+    const outfit2 = results.top_outfits[1];
+    const clothing1 = results.best_pairings[0];
+    const clothing2 = results.best_pairings[1];
+
+    // Auto-transition between phases
+    useEffect(() => {
+      if (!isActive) return;
+
+      // Reset to intro when becoming active
+      setPhase('intro');
+    }, [isActive]);
+
+    useEffect(() => {
+      if (!isActive) return;
+
+      if (phase === 'intro') {
+        // intro -> reveal after 1.2s
+        const timer = setTimeout(() => setPhase('reveal'), 1200);
+        return () => clearTimeout(timer);
+      } else if (phase === 'reveal') {
+        // reveal -> collage after 2.5s
+        const timer = setTimeout(() => setPhase('collage'), 1500);
+        return () => clearTimeout(timer);
+      }
+    }, [isActive, phase]);
+
+    // Derived state for easier checks
+    const isReveal = phase === 'reveal' || phase === 'collage';
+    const isCollage = phase === 'collage';
+
+    return (
+      <motion.div
+        className="flex flex-col h-[100dvh] pt-12 pb-4 relative bg-[#FFFAF4] overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isActive ? 1 : 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex-1 relative">
+
+        <motion.div
+            className="absolute left-[25%] w-[10%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.color_aura_shades[2] || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          {/* Top Left - Outfit 1 */}
+          <motion.div
+            className="absolute top-0 left-0 w-[28%] aspect-[3/4] z-5"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              x: [10, 0, -10, 0, 10],
+              y: [0, 8, 0, -8, 0],
+              scale: isCollage ? 1 : 0.6,
+              opacity: isCollage ? 1 : 0.4
+            }}
+            transition={{
+              x: {
+                duration: 6,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 6,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              scale: { duration: 0.8, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.8, ease: [0.4, 0, 0.2, 1] }
+            }}
+          >
+            {/* Shadow/backdrop */}
+            <motion.div
+              className="absolute inset-0 rounded-lg transform translate-x-2 translate-y-2"
+              animate={{
+                backgroundColor: isCollage ? 'rgba(209, 213, 215, 0.3)' : 'rgba(223, 225, 227, 0.2)'
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Main image container */}
+            <motion.div
+              className="relative w-full h-full rounded-lg shadow-xl border border-white/20 overflow-hidden"
+              animate={{
+                backgroundColor: isCollage ? '#D1D5DB' : '#9CA3AF'
+              }}
+              transition={{ duration: 0.6 }}
+            >
+              {/* Image - only shows during collage phase */}
+              <AnimatePresence>
+                {outfit1 && isCollage && (
+                  <motion.img
+                    src={outfit1.path}
+                    alt="Your outfit"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="absolute right-[5%] top-[20%] w-[15%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.color_aura_shades[0] || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          <motion.div
+            className="absolute right-[1%] top-[30%] w-[10%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 9, 0, -4, 0],
+              y: [2, 0, -8, 0, 3],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.color_aura_shades[2] || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.45 },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          {/* Top Right - Clothing 1 with color accents */}
+          <motion.div
+            className="absolute top-0 right-0 w-[30%] aspect-square z-5"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              x: [-8, 0, 8, 0, -8],
+              y: [0, -10, 0, 10, 0],
+              scale: isCollage ? 1 : 0.6,
+              opacity: isCollage ? 1 : 0.4
+            }}
+            transition={{
+              x: {
+                duration: 7,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 7,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              scale: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.1 },
+              opacity: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.1 }
+            }}
+          >
+
+            {/* Color accent block 1 */}
+            <motion.div
+              className="absolute right-[-15%] top-[15%] w-[40%] h-[70%] rounded-lg"
+              animate={{
+                backgroundColor: isReveal ? (results.color_aura_shades[0] || '#F3CD81') : '#9CA3AF',
+                opacity: isReveal ? 0.6 : 0.3
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Color accent block 2 */}
+            <motion.div
+              className="absolute left-[-15%] bottom-[-10%] w-[35%] h-[50%] rounded-lg"
+              animate={{
+                backgroundColor: isReveal ? (results.color_aura_shades[1] || '#4B5563') : '#9CA3AF',
+                opacity: isReveal ? 0.7 : 0.3
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Main image container */}
+            <motion.div
+              className="relative w-full h-full rounded-lg shadow-2xl border border-white/30 overflow-hidden"
+              animate={{
+                backgroundColor: isCollage ? 'rgba(255, 255, 255, 0.8)' : '#9CA3AF'
+              }}
+              transition={{ duration: 0.6 }}
+            >
+              <AnimatePresence>
+                {clothing1 && isCollage && (
+                  <motion.img
+                    src={clothing1.garment_path}
+                    alt={clothing1.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+
+          {/* Central Text */}
+          <div className="absolute top-1/2 left-0 right-0 transform -translate-y-1/2 z-10 text-center px-10">
+            {/* "your palette is" - fades in during intro */}
+            <motion.h2
+              className="font-display text-lg text-gray-900 mb-2 leading-none"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{
+                opacity: isActive ? 1 : 0,
+                y: isActive ? 0 : 10
+              }}
+              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+            >
+              your palette is
+            </motion.h2>
+
+            {/* Color aura name - reveals during reveal phase */}
+            <motion.h1
+              className="font-display text-6xl italic text-gray-900 mb-6 leading-none lowercase"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{
+                opacity: isReveal ? 1 : 0,
+                scale: isReveal ? 1 : 0.9,
+                y: isReveal ? 0 : 20
+              }}
+              transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {results.color_aura}
+            </motion.h1>
+
+            {/* Description - fades in after the name */}
+            <motion.p
+              className="font-light text-md text-gray-900 leading-tight px-4 py-2 bg-[#FFFAF4]/80 backdrop-blur-md rounded-xl shadow-sm mx-auto max-w-md"
+              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{
+                opacity: isReveal ? 1 : 0,
+                y: isReveal ? 0 : 15
+              }}
+              transition={{ duration: 0.5, delay: 1.5, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {results.color_aura_description}
+            </motion.p>
+          </div>
+
+          <motion.div
+            className="absolute left-[1%] bottom-[25%] w-[10%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, -8, 0, 12, 0],
+              y: [9, 0, -5, 0, 10],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.color_aura_shades[1] || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.2 },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          <motion.div
+            className="absolute left-[8%] top-[20%] w-[10%] h-[5%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.color_aura_shades[0] || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          <motion.div
+            className="absolute left-[2%] top-[28%] w-[10%] h-[7%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 10, 0, -4, 3],
+              y: [5, 0, -10, 0, 2],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.color_aura_shades[1] || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 12,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 12,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6, delay: 0.4 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          <motion.div
+            className="absolute left-[8%] bottom-[16%] w-[10%] h-[15%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.color_aura_shades[1] || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+
+          {/* Bottom Left - Clothing 2 with color accent */}
+          <motion.div
+            className="absolute bottom-0 left-0 w-[35%] aspect-square z-5"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              x: [0, 9, 0, -9, 0],
+              y: [7, 0, -7, 0, 7],
+              scale: isCollage ? 1 : 0.6,
+              opacity: isCollage ? 1 : 0.4
+            }}
+            transition={{
+              x: {
+                duration: 5.5,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5.5,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              scale: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.2 },
+              opacity: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.2 }
+            }}
+          >
+            {/* Color accent block */}
+            <motion.div
+              className="absolute right-[-10%] bottom-[-10%] w-[45%] h-[45%] rounded-lg"
+              animate={{
+                backgroundColor: isReveal ? (results.color_aura_shades[2] || '#6B7280') : '#9CA3AF',
+                opacity: isReveal ? 0.75 : 0.3
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Main image container */}
+            <motion.div
+              className="relative w-full h-full rounded-lg shadow-xl border border-white/30 overflow-hidden"
+              animate={{
+                backgroundColor: isCollage ? 'rgba(255, 255, 255, 0.8)' : '#9CA3AF'
+              }}
+              transition={{ duration: 0.6 }}
+            >
+              <AnimatePresence>
+                {clothing2 && isCollage && (
+                  <motion.img
+                    src={clothing2.garment_path}
+                    alt={clothing2.garment_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+          
+          {/* Bottom Right - Outfit 2 */}
+          <motion.div
+            className="absolute bottom-0 right-8 w-[45%] aspect-[3/4] z-5"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              x: [0, -11, 0, 11, 0],
+              y: [-6, 0, 6, 0, -6],
+              scale: isCollage ? 0.8 : 0.6,
+              opacity: isCollage ? 1 : 0.4
+            }}
+            transition={{
+              x: {
+                duration: 6.5,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 6.5,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              scale: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
+              opacity: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 }
+            }}
+          >
+            {/* Color accent block */}
+            <motion.div
+              className="absolute left-[-8%] top-[-5%] w-[30%] h-[25%] rounded-lg"
+              animate={{
+                backgroundColor: isReveal ? (results.color_aura_shades[0] || '#D1D5DB') : '#9CA3AF',
+                opacity: isReveal ? 0.5 : 0.3
+              }}
+              transition={{ duration: 0.6 }}
+            />
+
+            {/* Main image container */}
+            <motion.div
+              className="relative w-full h-full rounded-lg shadow-2xl border border-white/20 overflow-hidden"
+              animate={{
+                backgroundColor: isCollage ? '#E5E7EB' : '#9CA3AF'
+              }}
+              transition={{ duration: 0.6 }}
+            >
+              <AnimatePresence>
+                {outfit2 && isCollage && (
+                  <motion.img
+                    src={outfit2.path}
+                    alt="Your outfit"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="absolute right-[4%] bottom-[1%] w-[10%] h-[12%] rounded-lg"
+            initial={{ scale: 0.6, opacity: 0.4 }}
+            animate={{
+              // Circular floating motion (customize these values for variety)
+              x: [0, 8, 0, -8, 0],
+              y: [5, 0, -5, 0, 5],
+              // Scale/opacity tied to collage phase
+              scale: isReveal ? 1 : 0.6,
+              opacity: isReveal ? 0.5 : 0.3,  // Final opacity when colored
+              // Color transition: gray → actual color
+              backgroundColor: isReveal
+                ? (results.color_aura_shades[1] || '#F3CD81')  // Change index [0-4] for different colors
+                : '#9CA3AF'  // Gray when inactive
+            }}
+            transition={{
+              // Circular motion (runs continuously)
+              x: {
+                duration: 5,  // Customize duration for variety
+                repeat: Infinity,
+                ease: "linear"
+              },
+              y: {
+                duration: 5,  // Keep same as x duration
+                repeat: Infinity,
+                ease: "linear"
+              },
+              // Scale/opacity/color transitions
+              scale: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.6 },
+              backgroundColor: { duration: 0.6 }
+            }}
+          />
+        </div>
+        
+        <div className="px-10 shrink-0">
+          <NavigationFooter onNext={onNext} onBack={onBack} />
+        </div>
+      </motion.div>
+    );
+  };
+  const ColorSidebar = ({ light = true }: { light?: boolean }) => (
+    <div className="absolute left-0 top-0 bottom-0 w-24 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
+      <div 
+        className={`whitespace-nowrap transform -rotate-270 translate-y-[15vh] font-display text-8xl leading-none tracking-tighter flex gap-8 items-center ${
+          light ? 'text-black/5' : 'text-[#F7EFE5]/20'
+        }`}
+      >
+        <span>Your Color</span>
+        <span>Your Color</span>
+        <span>Your Color</span>
+        <span>Your Color</span>
+        <span className={light ? 'text-black' : 'text-[#F7EFE5]'}>Your Color</span>
+        <span>Your Color</span>
+        <span>Your Color</span>
+        <span>Your Color</span>
+        <span>Your Color</span>
+        </div>
+    </div>
+  );
+
+  // Combined Colors & Shades component with staggered push transition
+  const ColorsShadesContent = ({ 
+    view, 
+    onNext, 
+    onBack,
+    onViewChange,
+    isActive = true,
+  }: { 
+    view: 'colors' | 'shades';
+    onNext?: () => void; 
+    onBack?: () => void;
+    onViewChange: (view: 'colors' | 'shades') => void;
+    isActive?: boolean;
+  }) => {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Reset scroll position when view changes
+    useEffect(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+      }
+    }, [view]);
+
+    const isLightColor = (hex: string) => {
+      const color = hex.replace('#', '');
+      const r = parseInt(color.substring(0, 2), 16);
+      const g = parseInt(color.substring(2, 4), 16);
+      const b = parseInt(color.substring(4, 6), 16);
+      const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+      return brightness > 155;
+    };
+
+    // Track direction for animation
+    const [direction, setDirection] = useState<'up' | 'down'>('up');
+
+    const handleNext = () => {
+      if (view === 'colors') {
+        setDirection('up');
+        onViewChange('shades');
+      } else {
+        onNext?.();
+      }
+    };
+
+    const handleBack = () => {
+      if (view === 'shades') {
+        setDirection('down');
+        onViewChange('colors');
+      } else {
+        onBack?.();
+      }
+    };
+
+    // Container variants for staggered children
+    const containerVariants = {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.08,
+          delayChildren: 0.1,
+        },
+      },
+      exit: {
+        transition: {
+          staggerChildren: 0.05,
+          staggerDirection: -1, // Reverse order on exit
+        },
+      },
+    };
+
+    // Individual item variants
+    const itemVariants = {
+      hidden: (dir: 'up' | 'down') => ({
+        y: dir === 'up' ? 60 : -60,
+        opacity: 0,
+      }),
+      visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.4,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+      exit: (dir: 'up' | 'down') => ({
+        y: dir === 'up' ? -60 : 60,
+        opacity: 0,
+        transition: {
+          duration: 0.3,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      }),
+    };
+
+    // Text variants (animates after swatches)
+    const textVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+          duration: 0.4,
+          ease: [0.4, 0, 0.2, 1] as const,
+        },
+      },
+      exit: {
+        opacity: 0,
+        y: -20,
+        transition: {
+          duration: 0.25,
+        },
+      },
+    };
+
+    // Colors inner content
+    const ColorsInner = () => (
+      <motion.div
+        className="flex flex-col pb-10"
+        variants={containerVariants}
+        initial="hidden"
+        animate={isActive ? "visible" : "hidden"}
+        exit="exit"
+        custom={direction}
+      >
+        <div className="flex flex-col gap-3 mb-6 items-end">
+          {results.top_colors.slice(0, 5).map((c, i) => {
+            const light = isLightColor(c.top_shade_hex);
+            return (
+              <motion.div
+                key={i}
+                custom={direction}
+                variants={itemVariants}
+                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-6 ${
+                  light ? 'text-black' : 'text-white'
+                }`}
+                style={{ 
+                  backgroundColor: c.top_shade_hex,
+                  backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 100%)',
+                  boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.1)'
+                }}
+              >
+                <div className="flex flex-col items-start">
+                <span className="font-mono text-sm uppercase tracking-wide leading-tight font-semibold">
+                    {c.color}
+                  </span>
+                  <span className="font-mono text-sm font-bold tracking-wide opacity-60 uppercase leading-none mt-1">
+                    
+                    {c.top_shade_hex}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+        
+        <motion.div variants={textVariants} className="pl-24 pr-10 text-right">
+          <h3 className="font-display text-xl text-gray-900 leading-tight">
+            The colors you wore the most...
+          </h3>
+        </motion.div>
+      </motion.div>
+    );
+
+    // Shades inner content
+    const ShadesInner = () => (
+      <motion.div
+        className="flex flex-col pb-10"
+        variants={containerVariants}
+        initial="hidden"
+        animate={isActive ? "visible" : "hidden"}
+        exit="exit"
+        custom={direction}
+      >
+        <motion.div variants={textVariants} className="pl-24 pr-10 text-right mb-6">
+          <h3 className="font-display text-xl text-gray-900 leading-tight">
+            ... but one color in particular spoke to you:
+          </h3>
+          <p className="font-display text-5xl italic text-gray-900 mt-4 uppercase tracking-tighter">
+            {results.top_shades[0]?.color}.
+          </p>
+        </motion.div>
+
+        <div className="flex flex-col gap-3 items-end">
+          {results.top_shades.slice(0, 5).map((c, i) => {
+            const light = isLightColor(c.shade_hex);
+            return (
+              <motion.div
+                key={i}
+                custom={direction}
+                variants={itemVariants}
+                className={`h-[12vh] w-[50vw] max-w-[224px] rounded-l-3xl min-h-[60px] translate-x-4 shadow-sm flex items-center justify-start pl-6 ${
+                  light ? 'text-black' : 'text-white'
+                }`}
+                style={{ 
+                  backgroundColor: c.shade_hex,
+                  backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 100%)',
+                  boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.1)'
+                }}
+              >
+                <div className="flex flex-col items-start">
+                  <span className="font-mono text-sm font-bold tracking-wide opacity-60 uppercase leading-none">
+                    {c.shade_hex}
+                  </span>
+                  <span className="font-mono text-sm uppercase tracking-wide leading-tight font-semibold mt-1">
+                    {c.shade_name}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
+    );
+
+    return (
+      <div className="flex flex-col h-[100dvh] pt-12 pb-4 relative bg-[#FFFAF4]">
+        <ColorSidebar />
+        
+        {/* Animated content area */}
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 flex flex-col pt-4 relative z-30 overflow-y-auto overflow-x-hidden min-h-0 [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <AnimatePresence mode="wait" custom={direction}>
+            {view === 'colors' ? (
+              <ColorsInner key="colors" />
+            ) : (
+              <ShadesInner key="shades" />
+            )}
+          </AnimatePresence>
+        </div>
+        
+        {/* Fixed footer */}
+        <div className="px-10 shrink-0">
+          <NavigationFooter onNext={handleNext} onBack={handleBack} />
+        </div>
+      </div>
+    );
+  };
+
+  const DecadeContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
+    // Animation state: 'intro' -> 'reveal' -> 'final'
+    const [phase, setPhase] = useState<'intro' | 'reveal' | 'final'>('intro');
+
+    const decade = results.top_decade || '2020s';
+
+    // Trigger phase transitions after delays - only when active
+    useEffect(() => {
+      if (!isActive) return;
+
+      // Phase 1 -> Phase 2 (reveal decade)
+      const revealTimer = setTimeout(() => {
+        setPhase('reveal');
+      }, 1400);
+
+      // Phase 2 -> Phase 3 (move to top, show photo)
+      const finalTimer = setTimeout(() => {
+        setPhase('final');
+      }, 3000);
+
+      return () => {
+        clearTimeout(revealTimer);
+        clearTimeout(finalTimer);
+      };
+    }, [isActive]);
+
+    const isFinal = phase === 'final';
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5] relative overflow-hidden">
+        {/* Background image with low opacity */}
+        {results.decade_photo_url && (
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-20"
+            style={{
+              backgroundImage: `url(${results.decade_photo_url})`,
+              zIndex: 0
+            }}
+          />
+        )}
+
+        {/* Dark overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-black/50" style={{ zIndex: 1 }} />
+
+        <motion.div
+          className="flex-1 flex flex-col overflow-hidden relative"
+          style={{ zIndex: 2 }}
+          layout
+          transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+        >
+          {/* Header section - centered initially, top-aligned in final */}
+          <motion.div
+            layout
+            className={`flex flex-col ${isFinal ? 'items-start pt-8' : 'items-center justify-center flex-1'}`}
+            transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+          >
+            {/* "Your decade is..." text */}
+            <motion.p
+              layout
+              className={`uppercase tracking-widest mb-2 ${isFinal ? 'text-zinc-500 text-sm' : 'text-zinc-500 text-sm'}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: isActive ? 1 : 0, y: isActive ? 0 : 20 }}
+              transition={{
+                duration: 0.6,
+                ease: [0.4, 0, 0.2, 1] as const,
+                layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] }
+              }}
+            >
+              Your decade is...
+            </motion.p>
+
+            {/* Decade icon and text */}
+            <AnimatePresence>
+              {isActive && (phase === 'reveal' || phase === 'final') && (
+                <motion.div
+                  layout
+                  className={`${isFinal ? 'flex items-center gap-3' : 'text-center'}`}
+                  initial={{ opacity: 0, scale: 0.8, y: 30 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{
+                    duration: 0.7,
+                    ease: [0.4, 0, 0.2, 1] as const,
+                    layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] }
+                  }}
+                >
+                  {/* <motion.span
+                    layout
+                    className={`block ${isFinal ? 'text-4xl' : 'text-8xl mb-4'}`}
+                    transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+                  >
+                    {style.icon}
+                  </motion.span> */}
+                  <motion.h1
+                    layout
+                    className={`font-display leading-none tracking-tight ${isFinal ? 'text-6xl' : 'text-8xl'} italic`}
+                    transition={{ layout: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } }}
+                  >
+                    {decade}
+                  </motion.h1>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Photo section - only in final phase */}
+          <AnimatePresence>
+            {isFinal && (
+              <motion.div
+                className="flex-1 flex flex-col mt-6 min-h-[280px]"
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              >
+                <div className="aspect-[3/4] max-h-[55vh] rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
+                  {results.decade_photo_url ? (
+                    <img
+                      src={results.decade_photo_url}
+                      alt={`${decade} style`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+                      <span className="text-zinc-500 text-sm uppercase tracking-widest">
+                        {decade} Aesthetic
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Description */}
+                {/* <motion.p
+                  className="text-zinc-400 text-sm mt-4 leading-relaxed"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                >
+                  {results.decade_description || style.vibe}
+                </motion.p> */}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Navigation - show after reveal */}
+        <motion.div
+          className="relative"
+          style={{ zIndex: 2 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isActive && (phase === 'reveal' || phase === 'final') ? 1 : 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+        </motion.div>
+      </div>
+    );
+  };
+
+
+  const CelebrityContent = ({ 
+    onNext, 
+    onBack,
+    isActive = true 
+  }: { 
+    onNext?: () => void; 
+    onBack?: () => void;
+    isActive?: boolean;
+  }) => {
+    const [dotsComplete, setDotsComplete] = useState(false);
+    const [revealed, setRevealed] = useState(false);
+    
+    // Dots animation timing: each dot fades in, holds, fades out
+    const dotStagger = 0.2; // stagger between dots appearing
+    const singleLoopDuration = 1.0; // total time for one complete cycle (in/hold/out)
+    const loopPause = 0.4; // pause between loops
+    const numLoops = 1;
+    const repeatDelay = loopPause + (2 * dotStagger);
+    const totalDotsTime = (singleLoopDuration + (numLoops - 1) * (singleLoopDuration + repeatDelay) + (2 * dotStagger)) * 1000;
+    
+    useEffect(() => {
+      if (!isActive) return;
+      const dotsTimer = setTimeout(() => {
+        setDotsComplete(true);
+      }, totalDotsTime + 200); // add a small buffer
+      return () => clearTimeout(dotsTimer);
+    }, [isActive, totalDotsTime]);
+    
+    useEffect(() => {
+      if (!isActive || !dotsComplete) return;
+      const revealTimer = setTimeout(() => {
+        setRevealed(true);
+      }, 300);
+      return () => clearTimeout(revealTimer);
+    }, [isActive, dotsComplete]);
+
+    return (
+      <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          
+          {/* Title - animates from centered/large to top/small */}
+          <motion.div 
+            className="shrink-0"
+            initial={false}
+            animate={{
+              y: revealed ? 0 : '30vh',
+              opacity: revealed ? 0.5 : 1,
+            }}
+            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <motion.h1 
+              className="font-display leading-[0.9]"
+              initial={false}
+              animate={{
+                fontSize: revealed ? '1.25rem' : '3.75rem',
+              }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              Your<br />
+              Celebrity<br />
+              Lookalike
+            </motion.h1>
+            <motion.span 
+              className="font-display block"
+              initial={false}
+              animate={{
+                fontSize: revealed ? '0.5rem' : '2.25rem',
+                marginTop: revealed ? '-0.5rem' : '0.5rem',
+              }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0 }}
+                  animate={isActive ? { 
+                    opacity: [0, 1, 1, 0] 
+                  } : { opacity: 0 }}
+                  style={{ display: 'inline-block' }}
+                  transition={{
+                    opacity: {
+                      delay: i * dotStagger,
+                      duration: singleLoopDuration,
+                      times: [0, 0.2, 0.7, 1], // fade in quick, hold, fade out
+                      repeat: numLoops - 1, // repeat 2 more times (3 total)
+                      repeatDelay: repeatDelay, // constant delay to maintain stagger
+                      ease: "easeInOut",
+                    },
+                  }}
+                >
+                  .
+                </motion.span>
+              ))}
+            </motion.span>
+          </motion.div>
+          
+          {/* Celebrity Name Header - Above image */}
+          <motion.div
+            className="mt-2 mb-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ 
+              opacity: revealed ? 1 : 0, 
+              y: revealed ? 0 : 10 
+            }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <h2 className="font-display text-3xl leading-tight">
+              {results.top_celeb_match.celeb_name}
+            </h2>
+          </motion.div>
+
+          {/* Celebrity Image - fades in and slides up */}
+          <motion.div 
+            className="flex-1 flex flex-col min-h-[300px]"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ 
+              opacity: revealed ? 1 : 0, 
+              y: revealed ? 0 : 40 
+            }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div className="flex-1 aspect-[3/4] mx-auto max-w-full rounded-2xl overflow-hidden bg-zinc-800 border border-zinc-700 relative">
+              {results.top_celeb_match.celeb_photo_url ? (
+                <img
+                  src={results.top_celeb_match.celeb_photo_url}
+                  alt={results.top_celeb_match.celeb_name}
+                  className="absolute inset-0 w-full h-full object-cover object-top"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+                  <span className="text-zinc-500 text-sm uppercase tracking-widest">
+                    {results.top_celeb_match.celeb_name}
+                  </span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Celebrity details - centered against each other */}
+          <motion.div
+            className="mt-6 grid grid-cols-2 gap-0 shrink-0 pb-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: revealed ? 1 : 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+          >
+            <div className="text-right pr-4 border-r-2 border-zinc-600">
+              <p className="text-xs text-zinc-500 font-bold uppercase tracking-[0.1em] mb-1">Top Styles</p>
+              <div className="flex flex-col gap-1">
+                {[results.top_celeb_match.style_1, results.top_celeb_match.style_2, results.top_celeb_match.style_3]
+                  .filter(Boolean)
+                  .map((style, i) => (
+                    <p key={i} className="text-lg font-display text-[#F7EFE5] leading-tight capitalize">
+                      {style}
+                    </p>
+                  ))}
+              </div>
+            </div>
+
+            <div className="text-left pl-4">
+              <p className="text-xs text-zinc-500 font-bold uppercase tracking-[0.1em] mb-1">Color Palette</p>
+              <p className="text-lg font-display text-[#F7EFE5] leading-tight capitalize">
+                {results.top_celeb_match.color_aura_name}
+              </p>
+            </div>
+          </motion.div>
+        </div>
+        
+        {/* Footer - fades in after reveal */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: revealed ? 1 : 0 }}
+          transition={{ duration: 0.4, delay: 0.6 }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+        </motion.div>
+      </div>
+    );
+  };
+
+  const CityIntroContent = ({ onNext, onBack }: { onNext?: () => void; onBack?: () => void }) => (
+    <div className="flex flex-col h-[100dvh] px-10 pt-12 pb-4 bg-black text-[#F7EFE5]">
+      <div className="flex-1 flex flex-col justify-center items-center overflow-y-auto overflow-x-hidden [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <h1 className="font-display text-3xl leading-[1.1] text-center">
+        You&apos;re based in {results.userCity || 'your city'}—but what do your outfits say?
+      </h1>
+      </div>
+
+      <NavigationFooter onNext={onNext} onBack={onBack} light={false} />
+          </div>
+  );
+
+  const CityRevealContent = ({ onNext, onBack, isActive = true }: { onNext?: () => void; onBack?: () => void; isActive?: boolean }) => {
+    const BEBAS_CITY = `var(--font-bebas-neue), "Bebas Neue", sans-serif`;
+    const MONO_CITY  = `var(--font-jetbrains-mono), "IBM Plex Mono", monospace`;
+    const TAG_BG_CITY = '#e8e4c8';
+    const GRAIN_CITY = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E")`;
+
+    const cityName   = (results.city_vibe || 'New York').toUpperCase();
+    const rawScore   = results.city_vibe_similarity_score || 0;
+
+    const topStyles = [...results.top_styles]
+      .sort((a, b) => (b.points || 0) - (a.points || 0))
+      .slice(0, 3);
+
+    const stats = [
+      { label: 'MATCH',   value: `${rawScore.toFixed(1)}%`                   },
+      { label: 'PHOTOS',  value: `${results.total_outfits_analyzed}`          },
+      { label: 'CAPSULE', value: `${results.total_clothing_items} pieces`     },
+    ];
+
+    return (
+      <div
+        className="flex flex-col h-[100dvh]"
+        style={{ backgroundColor: '#0a0a0a', fontFamily: MONO_CITY }}
+      >
+        {/* ── Photo hero ── */}
+        <div className="relative shrink-0" style={{ height: '52vh' }}>
+          {results.city_photo_url ? (
+            <img
+              src={results.city_photo_url}
+              alt={cityName}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(160deg, #2d3748 0%, #1a202c 100%)' }}
+            />
+          )}
+
+          {/* Gradient scrim */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.02) 50%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.92) 100%)',
+            }}
+          />
+
+          {/* Top bar */}
+          <div
+            className="absolute top-0 inset-x-0 flex justify-between items-start"
+            style={{ padding: '20px 20px 0' }}
+          >
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.65)', lineHeight: 1.55 }}>
+              LOOKBOOK AIRWAYS //<br />SS26 COLLECTION
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.40)', lineHeight: 1.55 }}>
+                STYLE<br />DESTINATION
+              </div>
+            </div>
+          </div>
+
+          {/* Match score badge */}
+          <div className="absolute" style={{ top: 68, right: 20 }}>
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={isActive ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0 }}
+              transition={{ delay: 0.4, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+              style={{
+                width: 80, height: 80,
+                borderRadius: '50%',
+                backgroundColor: TAG_BG_CITY,
+                backgroundImage: GRAIN_CITY,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35)',
+              }}
+            >
+              <div style={{ fontFamily: BEBAS_CITY, fontSize: 24, color: '#1a1a1a', lineHeight: 1, letterSpacing: '0.02em' }}>
+                {rawScore.toFixed(1)}%
+              </div>
+              <div style={{ fontSize: 7, fontWeight: 700, color: '#1a1a1a', letterSpacing: '0.10em', opacity: 0.55, lineHeight: 1, marginTop: 3 }}>
+                MATCH
+              </div>
+            </motion.div>
+          </div>
+
+          {/* City name */}
+          <motion.div
+            className="absolute bottom-0 inset-x-0"
+            style={{ padding: '0 20px 16px' }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ delay: 0.15, duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div
+              style={{
+                fontFamily: BEBAS_CITY,
+                fontSize: 'clamp(44px, 16vw, 88px)',
+                lineHeight: 0.88,
+                color: 'white',
+                letterSpacing: '0.01em',
+                textShadow: '0 2px 30px rgba(0,0,0,0.50)',
+              }}
+            >
+              {cityName}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* ── Info zone ── */}
+        <motion.div
+          className="flex-1 min-h-0 flex flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{
+            backgroundColor: '#0f0f0f',
+            backgroundImage: GRAIN_CITY,
+          }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ delay: 0.3, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        >
+          {/* Cream accent rule */}
+          <div style={{ height: 2, backgroundColor: TAG_BG_CITY, opacity: 0.5, flexShrink: 0 }} />
+
+          {/* Description */}
+          <div style={{ padding: '14px 20px 12px', flexShrink: 0 }}>
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: '0.13em', color: 'rgba(255,255,255,0.28)', marginBottom: 7 }}>
+              DESTINATION PROFILE
+            </div>
+            <p
+              style={{
+                fontSize: 10,
+                color: 'rgba(255,255,255,0.82)',
+                lineHeight: 1.6,
+                fontStyle: 'italic',
+                margin: 0,
+                letterSpacing: '0.01em',
+                fontFamily: 'var(--font-display), Georgia, serif',
+              }}
+            >
+              {results.city_vibe_description}
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.10)', margin: '0 20px', flexShrink: 0 }} />
+
+          {/* Stats row */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              padding: '12px 20px',
+              flexShrink: 0,
+            }}
+          >
+            {stats.map((s, i) => {
+              const col = i % 3;
+              return (
+                <div
+                  key={s.label}
+                  style={{
+                    paddingLeft: col > 0 ? 14 : 0,
+                    borderLeft: col > 0 ? '1px solid rgba(255,255,255,0.09)' : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: 7, fontWeight: 400, letterSpacing: '0.10em', color: 'rgba(255,255,255,0.30)', marginBottom: 4, lineHeight: 1 }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.88)', letterSpacing: '0.01em', lineHeight: 1.2 }}>
+                    {s.value}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.10)', margin: '0 20px', flexShrink: 0 }} />
+
+          {/* Style DNA pills */}
+          <div
+            style={{
+              padding: '10px 20px 16px',
+              display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.27)', marginRight: 2, whiteSpace: 'nowrap' }}>
+              STYLE DNA:
+            </div>
+            {topStyles.map(s => (
+              <div
+                key={s.style_name}
+                style={{
+                  border: `1px solid rgba(232,228,200,0.35)`,
+                  borderRadius: 99,
+                  padding: '3px 11px',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: TAG_BG_CITY,
+                  letterSpacing: '0.09em',
+                }}
+              >
+                {s.style_name.toUpperCase()}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ── Navigation ── */}
+        <div
+          className="shrink-0 px-5 pb-4 pt-2"
+          style={{ backgroundColor: '#0a0a0a' }}
+        >
+          <NavigationFooter onNext={onNext} onBack={onBack} light={false} nextText="continue →" />
+        </div>
+      </div>
+    );
+  };
+
+  // Photo flipping sequence (multiple pages at once)
+  const renderPhotoFlipSequence = () => {
+    // Find the current active page (first one not yet flipped)
+    const firstUnflippedIndex = flippedPages.findIndex((flipped, i) => i > 0 && !flipped);
+    const activeIndex = firstUnflippedIndex === -1 ? TOTAL_FLIP_PAGES : firstUnflippedIndex;
+
+    return (
+      <FlipContainer>
+        {/* Base layer: Fav Item content (revealed as last photo flips) */}
+        <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+          <FavItemContent onNext={favItemFlip.flip} isActive={false} />
+        </div>
+
+        {/* Photo pages - Page 1 on top, Page 10 at bottom */}
+        {Array.from({ length: TOTAL_FLIP_PAGES }, (_, i) => {
+          const pageNum = i + 1;
+          
+          // Only render current, next, and previous pages for performance
+          const isVisible = pageNum >= activeIndex - 1 && pageNum <= activeIndex + 1;
+          if (!isVisible) return null;
+
+          const zIndex = (TOTAL_FLIP_PAGES - i) * 10;
+          const photo = results.all_uploaded_photos[i];
+
+          return (
+            <FlipPage
+              key={pageNum}
+              isFlipped={flippedPages[pageNum]}
+              zIndex={zIndex}
+              duration={getPageDuration(pageNum)}
+            >
+              <PhotoPageContent photo={photo} pageNum={pageNum} />
+            </FlipPage>
+          );
+        })}
+      </FlipContainer>
+    );
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col h-[100dvh] items-center justify-center bg-[#FFFAF4] relative overflow-hidden">
+        {/* Pulsing "wave" background with linear center mask */}
+        <div 
+          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none"
+          style={{
+            maskImage: 'linear-gradient(to bottom, black 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.1) 60%, black 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.5) 60%, black 100%)'
+          }}
+        >
+          {Array.from({ length: 14 }).map((_, i) => (
+            <motion.span
+              key={i}
+              className="font-display text-[86px] leading-[0.85] tracking-tight text-[#2D242F]"
+              initial={{ opacity: 0.03 }}
+              animate={{
+                opacity: [0.03, 0.25, 0.03],
+              }}
+              transition={{
+                duration: 2.5,
+                repeat: Infinity,
+                delay: i * 0.12,
+                ease: "easeInOut"
+              }}
+            >
+              Lookbook
+            </motion.span>
+          ))}
+        </div>
+
+        {/* Loading content on top */}
+        <div className="flex flex-col items-center gap-6 relative z-10">
+          <div className="w-14 h-14 border-4 border-gray-900/10 border-t-gray-900 rounded-full animate-spin"></div>
+          <p className="text-gray-900/60 text-sm font-medium tracking-wide">Loading your aesthetic...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex flex-col h-[100dvh] items-center justify-center px-10 bg-[#FFFAF4]">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="text-4xl">⚠️</div>
+          <h2 className="font-display text-xl text-gray-900">Oops!</h2>
+          <p className="text-gray-600 text-sm max-w-md">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-6 py-2 bg-gray-900 text-white rounded-lg text-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render step with flip transitions
+  const renderStep = () => {
+    switch (step) {
+      case 'welcome':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <IntroContent onNext={introFlip.flip} isActive={false} />
+            </div>
+            <FlipPage key="welcome" isFlipped={welcomeFlip.isFlipped} zIndex={10}>
+              <WelcomeContent onNext={welcomeFlip.flip} isActive={true} />
+            </FlipPage>
+          </FlipContainer>
+        );
+
+      case 'intro':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <PhotoPageContent photo={results.all_uploaded_photos[0]} pageNum={1} />
+            </div>
+            <FlipPage key="intro" isFlipped={introFlip.isFlipped} zIndex={10}>
+              <IntroContent onNext={introFlip.flip} isActive={true} />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'photo-flip':
+        return renderPhotoFlipSequence();
+      
+      case 'fav-item':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <FavPairingsContent 
+                isActive={false}
+                onNext={favPairingsFlip.flip} 
+                onBack={onBack['fav-pairings']} 
+              />
+            </div>
+            <FlipPage key="fav-item" isFlipped={favItemFlip.isFlipped} zIndex={10}>
+              <FavItemContent onNext={favItemFlip.flip} isActive={true} />
+            </FlipPage>
+          </FlipContainer>
+        );
+
+      case 'fav-pairings':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-black z-0">
+              <UnwornPairingsContent 
+                isActive={false}
+                onNext={unwornPairingsFlip.flip} 
+                onBack={onBack['unworn-pairings']} 
+              />
+            </div>
+            <FlipPage key="fav-pairings" isFlipped={favPairingsFlip.isFlipped} zIndex={10}>
+              <FavPairingsContent 
+                isActive={true}
+                onNext={favPairingsFlip.flip} 
+                onBack={onBack['fav-pairings']} 
+              />
+            </FlipPage>
+          </FlipContainer>
+        );
+
+      case 'unworn-pairings':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <TopStylesContent
+                isActive={false}
+                onNext={topStylesFlip.flip}
+                onBack={onBack['top-styles']}
+              />
+            </div>
+            <FlipPage key="unworn-pairings" isFlipped={unwornPairingsFlip.isFlipped} zIndex={10}>
+              <UnwornPairingsContent 
+                isActive={true}
+                onNext={unwornPairingsFlip.flip} 
+                onBack={onBack['unworn-pairings']} 
+              />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'top-styles':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <ColorsShadesContent 
+                view="colors" 
+                onNext={() => setStep('color-aura')} 
+                onBack={onBack['colors']} 
+                onViewChange={setColorsView}
+                isActive={false}
+              />
+            </div>
+            <FlipPage key="top-styles" isFlipped={topStylesFlip.isFlipped} zIndex={10}>
+              <TopStylesContent
+                isActive={true}
+                onNext={topStylesFlip.flip}
+                onBack={onBack['top-styles']}
+              />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'colors':
+        // Colors and shades now use push animation internally (no flip between them)
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <ColorAuraContent onNext={colorAuraFlip.flip} onBack={onBack['color-aura']} isActive={false} />
+            </div>
+            <FlipPage key="colors" isFlipped={colorsView === 'shades' && shadesFlip.isFlipped} zIndex={10}>
+              <ColorsShadesContent 
+                view={colorsView} 
+                onNext={() => { shadesFlip.flip(); }} 
+                onBack={onBack['colors']} 
+                onViewChange={setColorsView}
+                isActive={true}
+              />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'color-aura':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-black z-0">
+              <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} isActive={false} />
+            </div>
+            <FlipPage key="color-aura" isFlipped={colorAuraFlip.isFlipped} zIndex={10}>
+              <ColorAuraContent onNext={colorAuraFlip.flip} onBack={onBack['color-aura']} isActive={true} />
+            </FlipPage>
+          </FlipContainer>
+        );
+
+      case 'decade':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-black z-0">
+              <CelebrityContent onNext={celebrityFlip.flip} onBack={onBack['celebrity']} isActive={false} />
+            </div>
+            <FlipPage key="decade" isFlipped={decadeFlip.isFlipped} zIndex={10}>
+              <DecadeContent onNext={decadeFlip.flip} onBack={onBack['decade']} isActive={true} />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'celebrity':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-black z-0">
+              <CityIntroContent onNext={cityIntroFlip.flip} onBack={onBack['city-intro']} />
+            </div>
+            <FlipPage key="celebrity" isFlipped={celebrityFlip.isFlipped} zIndex={10}>
+              <CelebrityContent onNext={celebrityFlip.flip} onBack={onBack['celebrity']} isActive={true} />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'city-intro':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-black z-0">
+              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} isActive={false} />
+            </div>
+            <FlipPage key="city-intro" isFlipped={cityIntroFlip.isFlipped} zIndex={10}>
+              <CityIntroContent onNext={cityIntroFlip.flip} onBack={onBack['city-intro']} />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'city-reveal':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <TopOutfitsSelectionContent 
+                onNext={topOutfitsSelectionFlip.flip} 
+                onBack={onBack['top-outfits-selection']} 
+                isActive={false} 
+                results={results}
+                selectedOutfitIndex={selectedOutfitIndex}
+                setSelectedOutfitIndex={setSelectedOutfitIndex}
+              />
+            </div>
+            <FlipPage key="city-reveal" isFlipped={cityRevealFlip.isFlipped} zIndex={10}>
+              <CityRevealContent onNext={cityRevealFlip.flip} onBack={onBack['city-reveal']} isActive={true} />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'top-outfits-selection':
+        return (
+          <FlipContainer>
+            <div className="absolute inset-0 bg-[#FFFAF4] z-0">
+              <SummaryContent 
+                results={results} 
+                selectedOutfitIndex={selectedOutfitIndex} 
+                onBack={onBack['summary']} 
+                isActive={false}
+              />
+            </div>
+            <FlipPage key="top-outfits-selection" isFlipped={topOutfitsSelectionFlip.isFlipped} zIndex={10}>
+              <TopOutfitsSelectionContent 
+                onNext={topOutfitsSelectionFlip.flip} 
+                onBack={onBack['top-outfits-selection']} 
+                isActive={true} 
+                results={results}
+                selectedOutfitIndex={selectedOutfitIndex}
+                setSelectedOutfitIndex={setSelectedOutfitIndex}
+              />
+            </FlipPage>
+          </FlipContainer>
+        );
+      
+      case 'summary':
+        return (
+          <SummaryContent 
+            results={results} 
+            selectedOutfitIndex={selectedOutfitIndex} 
+            onBack={onBack['summary']} 
+            isActive={true}
+          />
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="h-[100dvh] overflow-hidden bg-[#FFFAF4]">
+      <div className="w-full max-w-md mx-auto h-[100dvh] relative bg-[#FFFAF4]">
+        <Suspense fallback={null}>
+          {renderStep()}
+        </Suspense>
+      </div>
+    </div>
+  );
+}

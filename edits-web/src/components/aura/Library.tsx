@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   FitPicCard, FitPicPage, FolderList, OutfitCard, OutfitPage,
   Recommendations, WardrobeCard, WardrobePage,
 } from "@/types/api";
-import { readApi, query } from "./client-api";
+import { INITIAL_WARDROBE_MAX_AGE_MS, readApi, query } from "./client-api";
 import { LibraryDetail, type DetailTarget } from "./LibraryDetail";
 
 type Tab = "wardrobe" | "fit-pics" | "outfits" | "edits";
@@ -48,11 +48,17 @@ export function Library({
   wardrobeCount,
   outfitCount,
   itemTypes,
+  initialWardrobe,
+  initialWardrobeCursor,
+  initialWardrobeFetchedAt,
   onUsePieces,
 }: {
   wardrobeCount: number;
   outfitCount: number;
   itemTypes: string[];
+  initialWardrobe: WardrobeCard[];
+  initialWardrobeCursor: string | null;
+  initialWardrobeFetchedAt: number;
   onUsePieces?: (ids: string[]) => void;
 }) {
   const [tab, setTab] = useState<Tab>("wardrobe");
@@ -83,7 +89,15 @@ export function Library({
         ))}
       </div>
 
-      {tab === "wardrobe" ? <WardrobeTab itemTypes={itemTypes} onOpen={setDetail} /> : null}
+      {tab === "wardrobe" ? (
+        <WardrobeTab
+          itemTypes={itemTypes}
+          initialWardrobe={initialWardrobe}
+          initialWardrobeCursor={initialWardrobeCursor}
+          initialWardrobeFetchedAt={initialWardrobeFetchedAt}
+          onOpen={setDetail}
+        />
+      ) : null}
       {tab === "fit-pics" ? <FitPicsTab onOpen={setDetail} /> : null}
       {tab === "outfits" ? <OutfitsTab onOpen={setDetail} /> : null}
       {tab === "edits" ? <EditsTab onOpen={setDetail} /> : null}
@@ -112,17 +126,26 @@ async function fetchPage<TPage>(
 function usePagedList<TPage extends { items: TItem[]; next_cursor: string | null }, TItem>(
   basePath: string,
   params: Record<string, string | number | undefined>,
+  initial?: { page: Pick<TPage, "items" | "next_cursor">; fetchedAt: number },
 ) {
   const paramsKey = JSON.stringify(params);
-  const [items, setItems] = useState<TItem[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const initialFetchedAt = initial?.fetchedAt;
+  const initialParamsKey = useRef(paramsKey);
+  const hasLeftInitialParams = useRef(false);
+  const [items, setItems] = useState<TItem[]>(() => initial?.page.items.slice(0, PAGE_SIZE) ?? []);
+  const [buffered, setBuffered] = useState<TItem[]>(() => initial?.page.items.slice(PAGE_SIZE) ?? []);
+  const [cursor, setCursor] = useState<string | null>(() => initial?.page.next_cursor ?? null);
+  const [loading, setLoading] = useState(!initial);
   const [error, setError] = useState<string | null>(null);
 
   const message = (err: unknown) =>
     err instanceof Error ? err.message : "We couldn’t load this.";
 
   useEffect(() => {
+    if (paramsKey !== initialParamsKey.current) hasLeftInitialParams.current = true;
+    if (initialFetchedAt !== undefined && !hasLeftInitialParams.current && Date.now() - initialFetchedAt < INITIAL_WARDROBE_MAX_AGE_MS) {
+      return;
+    }
     const controller = new AbortController();
     const run = async () => {
       setLoading(true);
@@ -131,6 +154,7 @@ function usePagedList<TPage extends { items: TItem[]; next_cursor: string | null
         const parsed = JSON.parse(paramsKey) as Record<string, string | number | undefined>;
         const page = await fetchPage<TPage>(basePath, parsed, null, controller.signal);
         setItems(page.items);
+        setBuffered([]);
         setCursor(page.next_cursor);
       } catch (err: unknown) {
         if (controller.signal.aborted) return;
@@ -141,9 +165,14 @@ function usePagedList<TPage extends { items: TItem[]; next_cursor: string | null
     };
     void run();
     return () => controller.abort();
-  }, [basePath, paramsKey]);
+  }, [basePath, paramsKey, initialFetchedAt]);
 
   const more = async () => {
+    if (buffered.length) {
+      setItems((current) => [...current, ...buffered.slice(0, PAGE_SIZE)]);
+      setBuffered(buffered.slice(PAGE_SIZE));
+      return;
+    }
     if (!cursor) return;
     setLoading(true);
     try {
@@ -158,17 +187,26 @@ function usePagedList<TPage extends { items: TItem[]; next_cursor: string | null
     }
   };
 
-  return { items, cursor, loading, error, more: () => void more() };
+  return { items, hasMore: buffered.length > 0 || cursor !== null, loading, error, more: () => void more() };
 }
 
-function WardrobeTab({ itemTypes, onOpen }: { itemTypes: string[]; onOpen: (t: DetailTarget) => void }) {
+function WardrobeTab({
+  itemTypes, initialWardrobe, initialWardrobeCursor, initialWardrobeFetchedAt, onOpen,
+}: {
+  itemTypes: string[];
+  initialWardrobe: WardrobeCard[];
+  initialWardrobeCursor: string | null;
+  initialWardrobeFetchedAt: number;
+  onOpen: (t: DetailTarget) => void;
+}) {
   const [search, setSearch] = useState("");
   const [applied, setApplied] = useState("");
   const [itemType, setItemType] = useState("");
 
-  const { items, cursor, loading, error, more } = usePagedList<WardrobePage, WardrobeCard>(
+  const { items, hasMore, loading, error, more } = usePagedList<WardrobePage, WardrobeCard>(
     "/wardrobe",
     { query: applied, item_type: itemType },
+    { page: { items: initialWardrobe, next_cursor: initialWardrobeCursor }, fetchedAt: initialWardrobeFetchedAt },
   );
 
   return (
@@ -215,13 +253,13 @@ function WardrobeTab({ itemTypes, onOpen }: { itemTypes: string[]; onOpen: (t: D
         ))}
       </div>
 
-      <More cursor={cursor} loading={loading} onMore={more} />
+      <More hasMore={hasMore} loading={loading} onMore={more} />
     </>
   );
 }
 
 function FitPicsTab({ onOpen }: { onOpen: (t: DetailTarget) => void }) {
-  const { items, cursor, loading, error, more } = usePagedList<FitPicPage, FitPicCard>("/fit-pics", {});
+  const { items, hasMore, loading, error, more } = usePagedList<FitPicPage, FitPicCard>("/fit-pics", {});
 
   return (
     <>
@@ -239,7 +277,7 @@ function FitPicsTab({ onOpen }: { onOpen: (t: DetailTarget) => void }) {
           </button>
         ))}
       </div>
-      <More cursor={cursor} loading={loading} onMore={more} />
+      <More hasMore={hasMore} loading={loading} onMore={more} />
     </>
   );
 }
@@ -258,7 +296,7 @@ function OutfitsTab({ onOpen }: { onOpen: (t: DetailTarget) => void }) {
     return () => controller.abort();
   }, []);
 
-  const { items, cursor, loading, error, more } = usePagedList<OutfitPage, OutfitCard>(
+  const { items, hasMore, loading, error, more } = usePagedList<OutfitPage, OutfitCard>(
     "/outfits",
     { folder_id: folderId },
   );
@@ -293,7 +331,7 @@ function OutfitsTab({ onOpen }: { onOpen: (t: DetailTarget) => void }) {
           </button>
         ))}
       </div>
-      <More cursor={cursor} loading={loading} onMore={more} />
+      <More hasMore={hasMore} loading={loading} onMore={more} />
     </>
   );
 }
@@ -362,8 +400,8 @@ function ListState({
   return null;
 }
 
-function More({ cursor, loading, onMore }: { cursor: string | null; loading: boolean; onMore: () => void }) {
-  if (!cursor) return null;
+function More({ hasMore, loading, onMore }: { hasMore: boolean; loading: boolean; onMore: () => void }) {
+  if (!hasMore) return null;
   return (
     <div className="lib-more">
       <button className="btn btn-ghost" type="button" disabled={loading} onClick={onMore}>

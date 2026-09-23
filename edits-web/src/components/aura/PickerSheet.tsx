@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { WardrobePage, WardrobeCard } from "@/types/api";
 import { PieceArt } from "./PieceArt";
-import { readApi, query } from "./client-api";
+import { INITIAL_WARDROBE_MAX_AGE_MS, readApi, query } from "./client-api";
 import { MAX_PIECES } from "./placeholders";
 
 const SEARCH_DEBOUNCE_MS = 260;
@@ -20,6 +20,7 @@ export function PickerSheet({
   picked,
   itemTypes,
   initialWardrobe,
+  initialWardrobeFetchedAt,
   onPick,
   onClose,
   onCommit,
@@ -29,6 +30,7 @@ export function PickerSheet({
   picked: string[];
   itemTypes: string[];
   initialWardrobe: WardrobeCard[];
+  initialWardrobeFetchedAt: number;
   onPick: (ids: string[]) => void;
   onClose: () => void;
   onCommit: (items: WardrobeCard[]) => void;
@@ -40,6 +42,7 @@ export function PickerSheet({
   const [items, setItems] = useState<WardrobeCard[]>(initialWardrobe);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const baseline = useRef({ items: initialWardrobe, fetchedAt: initialWardrobeFetchedAt });
 
   /**
    * Every item this sheet has shown. A piece stays resolvable after the filter
@@ -56,6 +59,12 @@ export function PickerSheet({
 
   useEffect(() => {
     if (!open) return;
+    if (!debounced && !itemType && Date.now() - baseline.current.fetchedAt < INITIAL_WARDROBE_MAX_AGE_MS) {
+      setItems(baseline.current.items);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     const controller = new AbortController();
 
     const run = async () => {
@@ -67,6 +76,7 @@ export function PickerSheet({
           controller.signal,
         );
         setItems(page.items);
+        if (!debounced && !itemType) baseline.current = { items: page.items, fetchedAt: Date.now() };
         setPool((current) => {
           const merged = { ...current };
           for (const item of page.items) merged[item.id] = item;

@@ -128,6 +128,8 @@ export function AuraApp({
   email,
   firstName,
   initialWardrobe,
+  initialWardrobeCursor,
+  initialWardrobeFetchedAt,
   itemTypes,
   lines,
   songs,
@@ -139,6 +141,8 @@ export function AuraApp({
   email: string | null;
   firstName: string | null;
   initialWardrobe: WardrobeCard[];
+  initialWardrobeCursor: string | null;
+  initialWardrobeFetchedAt: number;
   itemTypes: string[];
   lines: Line[];
   songs: Song[];
@@ -566,6 +570,9 @@ export function AuraApp({
               wardrobeCount={wardrobeCount}
               outfitCount={outfitCount}
               itemTypes={itemTypes}
+              initialWardrobe={initialWardrobe}
+              initialWardrobeCursor={initialWardrobeCursor}
+              initialWardrobeFetchedAt={initialWardrobeFetchedAt}
               onUsePieces={usePieceIds}
             />
           ) : null}
@@ -578,6 +585,7 @@ export function AuraApp({
         picked={picked}
         itemTypes={itemTypes}
         initialWardrobe={initialWardrobe}
+        initialWardrobeFetchedAt={initialWardrobeFetchedAt}
         onPick={setPicked}
         onClose={() => setSheetOpen(false)}
         onCommit={setPieces}

@@ -58,6 +58,30 @@ test("Escape closes the picker", async ({ page }) => {
   await expect(sheet).toBeHidden();
 });
 
+test("Library and picker reuse the wardrobe loaded with the editor", async ({ page }) => {
+  const wardrobeRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === "/api/wardrobe") wardrobeRequests.push(url.search);
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Your Lookbook" }).click();
+  await expect(page.locator(".lib-card")).toHaveCount(10);
+
+  await page.getByPlaceholder("Search name or brand").fill("shirt");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".lib-card")).toHaveCount(1);
+  expect(wardrobeRequests.length).toBeGreaterThan(0);
+  expect(wardrobeRequests.every((search) => search.includes("query=shirt"))).toBe(true);
+  const requestCountAfterSearch = wardrobeRequests.length;
+
+  await page.getByRole("button", { name: "Edit card" }).click();
+  await page.getByRole("button", { name: "Add clothing items" }).click();
+  await expect(page.getByRole("dialog", { name: "Add clothing items" })).toBeVisible();
+  expect(wardrobeRequests).toHaveLength(requestCountAfterSearch);
+});
+
 test("the palette names come off the pieces on the card", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Palette", exact: true }).click();

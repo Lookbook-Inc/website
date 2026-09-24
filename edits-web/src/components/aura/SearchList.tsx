@@ -6,15 +6,15 @@ import { CoverArt } from "./CoverArt";
 export type SearchOption = {
   id: string;
   primary: string;
-  secondary: string;
+  secondary?: string;
   colors: string[];
   /** Real artwork, e.g. a song cover. The gradient is the fallback. */
   imageUrl?: string | null;
 };
 
 /**
- * The song and place pickers. Songs come from the backend bank, loaded once
- * with the page; places are ./placeholders.ts. Either way the whole list is
+ * The song and place pickers. Both lists come from the backend banks, loaded
+ * once with the page, so the whole list is
  * already in memory, so search is a local filter rather than a fetch.
  */
 export function SearchList({
@@ -37,7 +37,7 @@ export function SearchList({
   const [search, setSearch] = useState("");
   const needle = search.toLowerCase().trim();
   const list = options.filter(
-    (option) => !needle || `${option.primary} ${option.secondary}`.toLowerCase().includes(needle),
+    (option) => !needle || `${option.primary} ${option.secondary ?? ""}`.toLowerCase().includes(needle),
   );
 
   return (
@@ -68,7 +68,7 @@ export function SearchList({
               </span>
               <span style={{ minWidth: 0 }}>
                 <b>{option.primary}</b>
-                <em>{option.secondary}</em>
+                {option.secondary ? <em>{option.secondary}</em> : null}
               </span>
               <span className="tick">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M5 13l4.5 4.5L19 7" /></svg>

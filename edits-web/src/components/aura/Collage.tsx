@@ -23,9 +23,10 @@ const SLOT_Z: Record<Slot, number> = {
 
 const DRAG_LIMIT = 0.42;
 
-/** Bounds on a piece's size multiplier, shared with the sliders in the Outfit tab. */
-export const SIZE_MIN = 0.5;
-export const SIZE_MAX = 1.8;
+/** Bounds on a piece's size multiplier, and the size a piece starts at. */
+const SIZE_MIN = 0.5;
+const SIZE_MAX = 1.8;
+export const SIZE_DEFAULT = 1.2;
 const clampSize = (value: number) => Math.max(SIZE_MIN, Math.min(SIZE_MAX, value));
 
 /**
@@ -63,6 +64,7 @@ export function Collage({
   items,
   layout,
   blob,
+  blobSeed = "",
   blobSize = 1,
   onLayoutChange,
   interactive = false,
@@ -70,6 +72,8 @@ export function Collage({
   items: WardrobeCard[];
   layout: Record<string, Placement>;
   blob?: string;
+  /** Seeds the backdrop's shape, so it stays put while pieces come and go. */
+  blobSeed?: string;
   /** Scale of the backdrop blob about its centre (Day tab slider). */
   blobSize?: number;
   onLayoutChange?: (id: string, changes: Partial<Placement>) => void;
@@ -80,9 +84,7 @@ export function Collage({
   const [selected, setSelected] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
 
-  // Seeded from the pieces, so the backdrop re-forms whenever the fit changes.
-  const signature = items.map((item) => item.id).join(",");
-  const blobShape = useMemo(() => blobPath(signature), [signature]);
+  const blobShape = useMemo(() => blobPath(blobSeed), [blobSeed]);
 
   /** Pieces back to front: a stored layer wins, otherwise the slot's default. */
   const stack = useMemo(() => {
@@ -219,7 +221,7 @@ export function Collage({
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
       const from = Math.max(8, Math.hypot(event.clientX - cx, event.clientY - cy));
-      const start = layout[id]?.s ?? 1;
+      const start = layout[id]?.s ?? SIZE_DEFAULT;
 
       piece.classList.add("dragging");
       try {
@@ -283,7 +285,7 @@ export function Collage({
       {stack.map(({ item, slot }, layer) => {
         const spot = SLOTS[slot];
         const placement = layout[item.id];
-        const size = placement?.s ?? 1;
+        const size = placement?.s ?? SIZE_DEFAULT;
         const isSelected = interactive && liveSelected === item.id;
         const transforms: string[] = [];
         if (placement && box.width) {

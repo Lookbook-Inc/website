@@ -1,14 +1,20 @@
 "use client";
 
 import type { WardrobeCard } from "@/types/api";
-import { songColors } from "./banks";
+import { placeColors, placePhotoUrl, songColors } from "./banks";
 import { Collage } from "./Collage";
 import { CoverArt } from "./CoverArt";
-import { GradientArt } from "./GradientArt";
-import { hash, swatchColors } from "./palette";
+import { swatchColors } from "./palette";
 import type { CardKind, CardState, Placement } from "./types";
 
 const strip = (value: string) => value.replace(/^["“]|["”]$/g, "");
+
+/** "A, B & C feat. D" → one name per line. Keeps "Tyler, The Creator" whole. */
+const splitArtists = (value: string) =>
+  value
+    .split(/\s*(?:,(?!\s*The\s)|&|\bfeat\.?|\bft\.?|\bfeaturing\b)\s*/i)
+    .map((name) => name.trim())
+    .filter(Boolean);
 
 /**
  * The iOS status bar around the Dynamic Island: the time centred in the left
@@ -121,6 +127,7 @@ export function CardPreview({
                 items={items}
                 layout={card.layout}
                 blob={card.blob}
+                blobSeed={card.kind}
                 blobSize={card.blobSize}
                 onLayoutChange={onLayoutChange}
                 interactive={Boolean(onLayoutChange)}
@@ -152,7 +159,9 @@ export function CardPreview({
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span className="t1">{card.song?.song_title ?? "No song yet"}</span>
-                      <span className="t2">{card.song?.artist_display ?? ""}</span>
+                      {splitArtists(card.song?.artist_display ?? "").map((artist) => (
+                        <span key={artist} className="t2">{artist}</span>
+                      ))}
                     </span>
                   </div>
                 </div>
@@ -160,11 +169,12 @@ export function CardPreview({
                 <div className="col">
                   <div className="row">
                     <span className="art sq">
-                      <GradientArt colors={card.place.colors} seed={hash(card.place.id)} />
+                      {card.place ? (
+                        <CoverArt id={card.place.id} imageUrl={placePhotoUrl(card.place)} colors={placeColors(card.place)} />
+                      ) : null}
                     </span>
                     <span style={{ minWidth: 0 }}>
-                      <span className="t1">{card.place.name}</span>
-                      <span className="t2">{card.place.city}</span>
+                      <span className="t1">{card.place?.place_name ?? "No place yet"}</span>
                     </span>
                   </div>
                 </div>

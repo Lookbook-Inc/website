@@ -6,6 +6,7 @@ import type {
   OutfitDetail,
   OutfitPage,
   Recommendations,
+  PlaceList,
   SongList,
   WardrobeDetail,
   WardrobePage,
@@ -90,7 +91,7 @@ export const fixtures = {
   } satisfies Recommendations,
 };
 
-/** Shaped like the real banks: lines ordered by text, songs by sort_order. */
+/** Shaped like the real banks: lines ordered by text, songs and places by sort_order. */
 const editLines = [
   "dressed for the weather i wanted.",
   "left the house. that's the win.",
@@ -113,9 +114,36 @@ const songs = [
   sort_order: index + 1,
 }));
 
+const places = [
+  { place_name: "Four Barrel Coffee", category: "Cafe" },
+  { place_name: "Tartine Bakery", category: "Bakery" },
+  { place_name: "Dolores Park", category: "Park" },
+  { place_name: "Zuni Café", category: "Restaurant" },
+  { place_name: "Ocean Beach", category: "Beach" },
+].map((place, index) => ({
+  ...place,
+  id: `80000000-0000-0000-0000-00000000000${index + 1}`,
+  geography_display: "San Francisco, CA",
+  city: "San Francisco",
+  region: "California",
+  country_code: "US",
+  sort_order: index + 1,
+  photos: index === 0
+    ? [{
+      id: "81000000-0000-0000-0000-000000000001",
+      photo_order: 1,
+      image_url: image("FOUR BARREL", "#c9a06a"),
+      width: 800,
+      height: 1000,
+      review_status: "validated",
+    }]
+    : [],
+}));
+
 export const bankFixtures = {
   editLines: { items: editLines } satisfies EditLineList,
   songs: { items: songs } satisfies SongList,
+  places: { items: places } satisfies PlaceList,
 };
 
 export function fixtureForPath<T>(path: string): T {
@@ -158,5 +186,6 @@ export function fixtureForPath<T>(path: string): T {
   if (pathname === "/web/v1/recommendations/latest") return fixtures.recommendations as T;
   if (pathname === "/web/v1/banks/edits-lines") return bankFixtures.editLines as T;
   if (pathname === "/web/v1/banks/songs") return bankFixtures.songs as T;
+  if (pathname === "/web/v1/banks/places") return bankFixtures.places as T;
   throw new Error(`No fixture for ${pathname}`);
 }

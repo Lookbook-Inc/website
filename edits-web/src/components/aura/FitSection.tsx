@@ -1,23 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { FitPicCard, FitPicDetail, FitPicPage, WardrobeCard } from "@/types/api";
-import { PieceArt } from "./PieceArt";
-import { SIZE_MAX, SIZE_MIN } from "./Collage";
 import { readApi, query } from "./client-api";
 import { MAX_PIECES } from "./placeholders";
-import type { CardPhoto, Placement } from "./types";
+import type { CardPhoto } from "./types";
+import { WardrobePicker } from "./WardrobePicker";
 
 type Mode = "combo" | "collection";
 
-const PIECE_W = 104;
-const PIECE_H = 124;
-
 export function FitSection({
   items,
-  layout,
-  onOpenPicker,
-  onResize,
+  itemTypes,
+  initialWardrobe,
   onSetPieces,
   photo,
   onSetPhoto,
@@ -25,9 +20,8 @@ export function FitSection({
   onToast,
 }: {
   items: WardrobeCard[];
-  layout: Record<string, Placement>;
-  onOpenPicker: () => void;
-  onResize: (id: string, size: number) => void;
+  itemTypes: string[];
+  initialWardrobe: WardrobeCard[];
   onSetPieces: (items: WardrobeCard[]) => void;
   photo: CardPhoto | null;
   onSetPhoto: (photo: CardPhoto | null) => void;
@@ -35,88 +29,6 @@ export function FitSection({
   onToast: (message: string) => void;
 }) {
   const [mode, setMode] = useState<Mode>("combo");
-  const paneRef = useRef<HTMLDivElement | null>(null);
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
-
-  const tidy = useCallback(() => {
-    const pane = paneRef.current;
-    if (!pane || !items.length) return;
-    const w = pane.clientWidth;
-    const h = pane.clientHeight;
-    if (!w) return;
-    const n = items.length;
-    const perRow = Math.min(n, 4);
-    const rows = Math.ceil(n / perRow);
-    const next: Record<string, { x: number; y: number }> = {};
-    items.forEach((item, index) => {
-      const row = Math.floor(index / perRow);
-      const col = index % perRow;
-      const inRow = Math.min(perRow, n - row * perRow);
-      next[item.id] = {
-        x: ((col + 0.5) / inRow) * w - PIECE_W / 2,
-        y: (rows === 1 ? 0.5 : (row + 0.5) / rows) * h - PIECE_H / 2,
-      };
-    });
-    setPositions(next);
-  }, [items]);
-
-  // Lay out on mount, whenever the set of pieces changes, and on resize.
-  const signature = items.map((item) => item.id).join(",");
-  useEffect(() => {
-    const frame = requestAnimationFrame(tidy);
-    return () => cancelAnimationFrame(frame);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, mode]);
-
-  useEffect(() => {
-    const pane = paneRef.current;
-    if (!pane) return;
-    let timer: ReturnType<typeof setTimeout>;
-    const observer = new ResizeObserver(() => {
-      clearTimeout(timer);
-      timer = setTimeout(tidy, 180);
-    });
-    observer.observe(pane);
-    return () => {
-      clearTimeout(timer);
-      observer.disconnect();
-    };
-  }, [tidy]);
-
-  const startDrag = useCallback((event: React.PointerEvent<HTMLDivElement>, id: string) => {
-    const pane = paneRef.current;
-    if (!pane) return;
-    if ((event.target as HTMLElement).closest(".rm")) return;
-    event.preventDefault();
-    const node = event.currentTarget;
-    const rect = pane.getBoundingClientRect();
-    const startX = node.offsetLeft;
-    const startY = node.offsetTop;
-    const offsetX = event.clientX - rect.left - startX;
-    const offsetY = event.clientY - rect.top - startY;
-
-    node.classList.add("drag");
-    try {
-      node.setPointerCapture(event.pointerId);
-    } catch {
-      // best-effort
-    }
-
-    const move = (ev: PointerEvent) => {
-      const x = Math.max(-8, Math.min(rect.width - PIECE_W + 8, ev.clientX - rect.left - offsetX));
-      const y = Math.max(-8, Math.min(rect.height - PIECE_H + 8, ev.clientY - rect.top - offsetY));
-      setPositions((current) => ({ ...current, [id]: { x, y } }));
-    };
-    const stop = () => {
-      node.classList.remove("drag");
-      node.removeEventListener("pointermove", move);
-      node.removeEventListener("pointerup", stop);
-      node.removeEventListener("pointercancel", stop);
-    };
-    node.addEventListener("pointermove", move);
-    node.addEventListener("pointerup", stop);
-    node.addEventListener("pointercancel", stop);
-  }, []);
 
   return (
     <>
@@ -139,46 +51,13 @@ export function FitSection({
       ) : null}
 
       {mode === "combo" ? (
-        <div>
-          <div className="pane-mini" ref={paneRef}>
-            {!items.length ? <div className="pane-empty">No pieces yet</div> : null}
-            {items.map((item) => {
-              const spot = positions[item.id];
-              return (
-                <div
-                  className="piece"
-                  key={item.id}
-                  style={{ left: spot?.x ?? 0, top: spot?.y ?? 0, visibility: spot ? "visible" : "hidden" }}
-                  onPointerDown={(event) => startDrag(event, item.id)}
-                >
-                  <div className="pcard">
-                    <PieceArt item={item} />
-                    <div className="lbl">{item.item_type ?? "Piece"}</div>
-                  </div>
-                  <button
-                    className="rm"
-                    type="button"
-                    aria-label={`Remove ${item.name}`}
-                    onClick={() => onSetPieces(items.filter((other) => other.id !== item.id))}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mini-acts">
-            <button className="btn btn-brass" type="button" aria-label="Add clothing items" onClick={onOpenPicker}>
-              Add or change pieces
-            </button>
-            <button className="btn btn-ghost" type="button" onClick={tidy}>
-              Tidy
-            </button>
-            <span className="hint-inline">
-              {items.length ? `${items.length} of ${MAX_PIECES} pieces` : `Add up to ${MAX_PIECES} pieces`}
-            </span>
-          </div>
-        </div>
+        <WardrobePicker
+          items={items}
+          itemTypes={itemTypes}
+          initialWardrobe={initialWardrobe}
+          onSetPieces={onSetPieces}
+          onToast={onToast}
+        />
       ) : (
         <CollectionGrid
           photoId={photo?.id ?? null}
@@ -187,36 +66,6 @@ export function FitSection({
           onToast={onToast}
         />
       )}
-
-      {items.length && !photo ? (
-        <div className="sizes">
-          <div className="sizes-head">
-            <span className="field-label">Size on the card</span>
-            <span>You can also drag pieces on the card itself.</span>
-          </div>
-          <div className="size-grid">
-            {items.map((item) => {
-              const percent = Math.round((layout[item.id]?.s ?? 1) * 100);
-              return (
-                <div className="size-row" key={item.id}>
-                  <span className="size-thumb"><PieceArt item={item} /></span>
-                  <span className="size-name" title={item.name}>{item.name}</span>
-                  <input
-                    type="range"
-                    min={Math.round(SIZE_MIN * 100)}
-                    max={Math.round(SIZE_MAX * 100)}
-                    step={5}
-                    value={percent}
-                    aria-label={`Size of ${item.name}`}
-                    onChange={(event) => onResize(item.id, Number(event.target.value) / 100)}
-                  />
-                  <output className="size-val">{percent}%</output>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
 
       {photo ? null : (
         <div className="chosen">

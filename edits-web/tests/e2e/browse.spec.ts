@@ -18,7 +18,8 @@ test("existing-user login lands on today's editable card", async ({ page }) => {
 
 test("changing the line updates the card", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("tab", { name: "Line", exact: true }).click();
+  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
+  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Line" }).click();
 
   // Every line in the bank is offered, nothing else.
   await expect(page.locator(".lineopt")).toHaveCount(6);
@@ -32,35 +33,24 @@ test("changing the line updates the card", async ({ page }) => {
   await expect(page.locator(".phone .quote")).toHaveText("Dressed for the group chat");
 });
 
-test("the picker adds and removes pieces, capped at six", async ({ page }) => {
+test("the wardrobe in Outfit adds and removes pieces straight away", async ({ page }) => {
   await page.goto("/");
   const chosen = page.locator(".collage .pc");
+  const wardrobe = page.locator(".wardrobe");
+  await expect(wardrobe.getByText(/of 6 pieces on the card/)).toBeVisible();
   const before = await chosen.count();
 
-  await page.getByRole("button", { name: "Add clothing items" }).click();
-  const sheet = page.getByRole("dialog", { name: "Add clothing items" });
-  await expect(sheet).toBeVisible();
-  await expect(sheet.getByText(/of 6 pieces selected/)).toBeVisible();
-
-  // Deselect the first selected piece, then commit.
-  await sheet.locator(".item.sel").first().click();
-  await sheet.getByRole("button", { name: "Put on the card" }).click();
-  await expect(sheet).toBeHidden();
-  await expect(chosen).toHaveCount(before - 1);
-});
-
-test("Escape closes the picker", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Add clothing items" }).click();
-  const sheet = page.getByRole("dialog", { name: "Add clothing items" });
-  await expect(sheet).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(sheet).toBeHidden();
+  // Retried: a click that lands before hydration does nothing.
+  await expect(async () => {
+    await wardrobe.locator(".item.sel").first().click();
+    await expect(chosen).toHaveCount(before - 1, { timeout: 1_000 });
+  }).toPass();
 });
 
 test("the palette names come off the pieces on the card", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("tab", { name: "Palette", exact: true }).click();
+  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
+  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Palette" }).click();
   await expect(page.locator(".swrow i")).toHaveCount(5);
 
   const name = page.locator(".nameopt").first();
@@ -72,7 +62,8 @@ test("the palette names come off the pieces on the card", async ({ page }) => {
 test("song bank and place search filter and apply to the card", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByRole("tab", { name: "Song", exact: true }).click();
+  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
+  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Song" }).click();
   // The whole song bank is listed, in curated order.
   await expect(page.locator(".ritem")).toHaveCount(5);
   await expect(page.locator(".ritem").first()).toContainText("Wildflower");
@@ -82,7 +73,8 @@ test("song bank and place search filter and apply to the card", async ({ page })
   await expect(page.locator(".duo .col").first().locator(".t1")).toHaveText("Cranes in the Sky");
   await expect(page.locator(".duo .col").first().locator(".t2")).toHaveText("Solange");
 
-  await page.getByRole("tab", { name: "Place", exact: true }).click();
+  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
+  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Place" }).click();
   await page.getByLabel("Search a place").fill("Dolores");
   await expect(page.locator(".ritem")).toHaveCount(1);
   await page.locator(".ritem").click();
@@ -143,31 +135,52 @@ test("each card's backdrop has its own size, night starting larger", async ({ pa
   await expect(blob).toHaveAttribute("style", /scale\(0\.8\)/);
 });
 
-test("the backdrop blob re-forms when the pieces change", async ({ page }) => {
+test("changing pieces keeps the blob and re-picks the palette name", async ({ page }) => {
   await page.goto("/");
-  const blob = page.locator(".collage .blob path");
+  const blob = page.locator(".collage .blob path").first();
   const before = (await blob.getAttribute("d")) ?? "";
+  const chosen = page.locator(".phone").first().locator(".collage .pc");
+  const count = await chosen.count();
 
-  await page.getByRole("button", { name: "Add clothing items" }).click();
-  const sheet = page.getByRole("dialog", { name: "Add clothing items" });
-  await sheet.locator(".item.sel").first().click();
-  await sheet.getByRole("button", { name: "Put on the card" }).click();
+  // Rename the palette, then change the pieces: the name goes back to the top suggestion.
+  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
+  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Palette" }).click();
+  await page.locator(".namegrid").first().locator(".nameopt").last().click();
+  const renamed = (await page.locator(".palette-name").first().textContent()) ?? "";
 
-  await expect(blob).not.toHaveAttribute("d", before);
+  await page.getByRole("tab", { name: "Outfit", exact: true }).click();
+  await page.locator(".wardrobe .item.sel").first().click();
+  await expect(chosen).toHaveCount(count - 1);
+  await expect(blob).toHaveAttribute("d", before);
+
+  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
+  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Palette" }).click();
+  const top = (await page.locator(".namegrid .nameopt").first().textContent()) ?? "";
+  await expect(page.locator(".palette-name").first()).toHaveText(`“${top}”`);
+  expect(renamed).not.toBe(`“${top}”`);
 });
 
-test("pieces resize from Outfit and reset with the layout", async ({ page }) => {
+test("pieces start at 120% and reset back to it", async ({ page }) => {
   await page.goto("/");
-  const slider = page.getByRole("slider").first();
-  const scaled = page.locator('.collage .pc[style*="scale(1.5)"]');
-  // Retried: a fill that lands before hydration is reset by React.
+  const card = page.locator(".phone").first();
+  const pieces = card.locator(".collage .pc");
+  const atDefault = card.locator('.collage .pc[style*="scale(1.2)"]');
+  await expect(atDefault).toHaveCount(await pieces.count());
+
+  const piece = pieces.last();
   await expect(async () => {
-    await slider.fill("150");
-    await expect(scaled).toHaveCount(1, { timeout: 1_000 });
+    await piece.click();
+    await expect(piece.locator(".sel-box")).toBeVisible({ timeout: 1_000 });
   }).toPass();
+  const box = (await piece.locator(".rz-se").boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 40, box.y + 40, { steps: 5 });
+  await page.mouse.up();
+  await expect(atDefault).toHaveCount((await pieces.count()) - 1);
 
   await page.getByRole("button", { name: "Reset card layout" }).click();
-  await expect(page.locator('.collage .pc[style*="scale"]')).toHaveCount(0);
+  await expect(atDefault).toHaveCount(await pieces.count());
 });
 
 test("clicking a piece selects it, and a corner handle resizes it", async ({ page }) => {

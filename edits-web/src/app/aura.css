@@ -324,13 +324,13 @@
 .duo .art .play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; opacity: 0.92; }
 .duo .t1 {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.02em;
   text-transform: uppercase; color: var(--card-ink); line-height: 1.25;
   overflow: hidden; overflow-wrap: break-word;
 }
 .duo .t2 {
-  display: block; font-size: 9px; font-weight: 500; letter-spacing: 0.05em;
-  text-transform: uppercase; color: var(--card-grey); margin-top: 3px;
+  display: block; font-size: 8px; font-weight: 500; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--card-grey); margin-top: 2px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -421,34 +421,6 @@
   font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 20px;
 }
 
-.pane-mini {
-  position: relative; border: 1px solid var(--line); border-radius: 8px; min-height: 250px;
-  background: var(--bone); overflow: hidden;
-}
-.pane-empty {
-  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center;
-  gap: 8px; color: var(--ink-3); text-align: center; pointer-events: none; font-size: 13.5px;
-}
-.piece { position: absolute; width: 104px; user-select: none; cursor: grab; touch-action: none; }
-.piece.drag { cursor: grabbing; z-index: 20; }
-.piece .pcard {
-  background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 7px;
-  box-shadow: var(--shadow);
-}
-.piece .pcard svg, .piece .pcard img {
-  width: 100%; height: 92px; display: block; object-fit: contain;
-}
-.piece .lbl {
-  font-size: 11px; color: var(--ink-3); text-align: center; margin-top: 3px; font-weight: 500;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.piece .rm {
-  position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%;
-  background: var(--plum); color: var(--on-plum); border: none; cursor: pointer;
-  display: grid; place-items: center; opacity: 0; transition: opacity 0.15s;
-}
-.piece:hover .rm, .piece .rm:focus-visible { opacity: 1; }
-.mini-acts { display: flex; gap: 9px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
 .chosen { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 
 /* bank picker + chips */
@@ -578,53 +550,7 @@
 .blob-size input[type="range"] { width: 100%; accent-color: var(--ink); }
 
 /* piece sizes */
-.sizes { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
-.sizes-head {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  flex-wrap: wrap; margin-bottom: 12px;
-}
-.sizes-head > span:last-child { font-size: 13px; color: var(--ink-3); }
-.sizes-head .field-label { margin: 0; }
-.size-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 22px; }
-.size-row {
-  display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(90px, 1.1fr) 38px;
-  align-items: center; gap: 10px;
-}
-.size-thumb {
-  width: 30px; height: 36px; border-radius: 7px; background: var(--tile);
-  border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden;
-}
-.size-thumb svg, .size-thumb img { width: 80%; height: 80%; object-fit: contain; }
-.size-name { font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.size-row input[type="range"] { width: 100%; accent-color: var(--ink); }
-.size-val { font-size: 11.5px; color: var(--ink-3); text-align: right; font-variant-numeric: tabular-nums; }
-@media (max-width: 640px) { .size-grid { grid-template-columns: 1fr; } }
-
-/* picker sheet */
-.sheet-bg {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
-  z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.26s;
-}
-.sheet-bg.open { opacity: 1; pointer-events: auto; }
-.sheet {
-  position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 100%);
-  width: min(720px, 100%); max-height: 86vh;
-  background: var(--paper); border: 1px solid var(--line); border-bottom: none;
-  border-radius: 14px 14px 0 0; z-index: 51;
-  /* visibility keeps the closed sheet out of the tab order; the delay lets the
-     slide-out finish before it disappears. */
-  visibility: hidden;
-  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.25, 1), visibility 0s linear 0.32s;
-  display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
-}
-.sheet.open {
-  transform: translate(-50%, 0); visibility: visible;
-  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.25, 1), visibility 0s;
-}
-.sheet-top { padding: 14px 20px 0; flex: 0 0 auto; }
-.sheet-grab { width: 38px; height: 4px; border-radius: 4px; background: var(--line-2); margin: 0 auto 12px; }
-.sheet-bar { display: flex; align-items: center; justify-content: space-between; }
-.sheet-bar button { font-size: 14px; font-weight: 600; color: var(--ink); border: none; background: none; cursor: pointer; font-family: inherit; }
+/* wardrobe picker */
 .tabs { display: flex; gap: 8px; padding: 12px 0 13px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .tab {
   padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--ink-2);
@@ -632,7 +558,10 @@
 }
 .tab:hover { background: var(--bone); }
 .tab.on { background: var(--brass); border-color: var(--brass); color: var(--on-brass); }
-.sheet-body { overflow-y: auto; padding: 16px 20px 22px; flex: 1 1 auto; }
+.wardrobe-body {
+  max-height: 460px; overflow-y: auto; padding: 16px 2px 4px;
+  overscroll-behavior: contain;
+}
 .cat { margin-bottom: 20px; }
 .cat-head {
   display: flex; align-items: baseline; justify-content: space-between;
@@ -657,9 +586,8 @@
 .item.sel .thumb .check { display: grid; }
 .item .nm { font-size: 12px; line-height: 1.3; margin-top: 6px; color: var(--ink-2); min-height: 29px; }
 .item .br { font-size: 12px; color: var(--ink-3); }
-.sheet-foot {
-  padding: 12px 20px; border-top: 1px solid var(--line); display: flex; align-items: center;
-  justify-content: space-between; gap: 12px; flex: 0 0 auto;
+.wardrobe-foot {
+  padding-top: 10px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3);
 }
 
 /* help page */

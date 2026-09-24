@@ -9,20 +9,20 @@ export function HowToUse() {
           <li>
             <b>Outfit</b>
             <p>
-              Click <span className="ui">Add or change pieces</span> to choose up to six pieces, or switch to{" "}
+              Click pieces in your wardrobe to put up to six on the card, or switch to{" "}
               <span className="ui">Use a fit pic</span> to pull the pieces from a photo.
             </p>
           </li>
           <li>
-            <b>Line</b>
+            <b>Vibe: Line</b>
             <p>Pick a bank, then click a line. You can also type your own.</p>
           </li>
           <li>
-            <b>Palette</b>
+            <b>Vibe: Palette</b>
             <p>The colours come from your pieces. Just pick a name.</p>
           </li>
           <li>
-            <b>Song and Place</b>
+            <b>Vibe: Song and Place</b>
             <p>Search to narrow the list, then click one.</p>
           </li>
           <li>
@@ -48,7 +48,7 @@ export function HowToUse() {
           </div>
           <div>
             <strong>Move and resize</strong>
-            <span>Drag pieces on the card. Drag a piece&rsquo;s corner to resize it, or use the sliders in Outfit.</span>
+            <span>Drag pieces on the card. Drag a piece&rsquo;s corner to resize it.</span>
           </div>
           <div>
             <strong>Shuffle</strong>

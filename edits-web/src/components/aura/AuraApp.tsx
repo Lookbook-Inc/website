@@ -10,14 +10,13 @@ import { HowToUse } from "./HowToUse";
 import { Library } from "./Library";
 import { LineSection } from "./LineSection";
 import { PaletteSection } from "./PaletteSection";
-import { PickerSheet } from "./PickerSheet";
-import { SearchList } from "./SearchList";
 import { SongSection } from "./SongSection";
-import { pickRandom, type Line, type Song } from "./banks";
+import { pickRandom, type Line, type Place, type Song } from "./banks";
+import { PlaceSection } from "./PlaceSection";
 import { downloadCard } from "./download";
 import { classify } from "./garments";
 import { paletteNamesFor } from "./palette";
-import { BLOB_COLORS, BLOB_SIZE, MAX_PIECES, PLACES, WEATHER } from "./placeholders";
+import { BLOB_COLORS, BLOB_SIZE, MAX_PIECES, WEATHER } from "./placeholders";
 import type { CardKind, CardState, Catalogue, Placement, Screen } from "./types";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -49,7 +48,13 @@ function seedPieces(wardrobe: WardrobeCard[]) {
   return chosen.slice(0, MAX_PIECES);
 }
 
-function seedCard(kind: CardKind, wardrobe: WardrobeCard[], lines: Line[], songs: Song[]): CardState {
+function seedCard(
+  kind: CardKind,
+  wardrobe: WardrobeCard[],
+  lines: Line[],
+  songs: Song[],
+  places: Place[],
+): CardState {
   const pieces = seedPieces(kind === "day" ? wardrobe : [...wardrobe].reverse());
   const names = paletteNamesFor(pieces);
   return {
@@ -63,7 +68,7 @@ function seedCard(kind: CardKind, wardrobe: WardrobeCard[], lines: Line[], songs
     blob: kind === "day" ? BLOB_COLORS[0].hex : BLOB_COLORS[1].hex,
     blobSize: BLOB_SIZE[kind],
     song: (kind === "day" ? songs[0] : (songs[1] ?? songs[0])) ?? null,
-    place: kind === "day" ? PLACES[0] : PLACES[6],
+    place: (kind === "day" ? places[0] : (places[1] ?? places[0])) ?? null,
     layout: {},
     photo: null,
   };
@@ -98,15 +103,22 @@ function initials(email: string | null) {
   return letters.toUpperCase();
 }
 
-type Tab = "fit" | "line" | "palette" | "song" | "place" | "day";
+type Tab = "fit" | "vibe" | "day";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "fit", label: "Outfit" },
+  { id: "vibe", label: "Vibe" },
+  { id: "day", label: "Day" },
+];
+
+/** The Vibe tab's sub-categories. */
+type VibeTab = "line" | "palette" | "song" | "place";
+
+const VIBE_TABS: { id: VibeTab; label: string }[] = [
   { id: "line", label: "Line" },
   { id: "palette", label: "Palette" },
   { id: "song", label: "Song" },
   { id: "place", label: "Place" },
-  { id: "day", label: "Day" },
 ];
 
 const RAIL: { id: Screen; label: string; icon: React.ReactNode }[] = [
@@ -131,6 +143,7 @@ export function AuraApp({
   itemTypes,
   lines,
   songs,
+  places,
   wardrobeCount,
   outfitCount,
   serverDateISO,
@@ -141,6 +154,7 @@ export function AuraApp({
   itemTypes: string[];
   lines: Line[];
   songs: Song[];
+  places: Place[];
   wardrobeCount: number;
   outfitCount: number;
   serverDateISO: string;
@@ -149,14 +163,13 @@ export function AuraApp({
     Object.fromEntries(initialWardrobe.map((item) => [item.id, item])),
   );
   const [cards, setCards] = useState<Record<CardKind, CardState>>(() => ({
-    day: seedCard("day", initialWardrobe, lines, songs),
-    night: seedCard("night", initialWardrobe, lines, songs),
+    day: seedCard("day", initialWardrobe, lines, songs, places),
+    night: seedCard("night", initialWardrobe, lines, songs, places),
   }));
   const [active, setActive] = useState<CardKind>("day");
   const [screen, setScreen] = useState<Screen>("today");
   const [tab, setTab] = useState<Tab>("fit");
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [picked, setPicked] = useState<string[]>([]);
+  const [vibeTab, setVibeTab] = useState<VibeTab>("line");
   const [fullOpen, setFullOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -215,7 +228,7 @@ export function AuraApp({
           [active]: {
             ...target,
             pieces: capped.map((item) => item.id),
-            palName: names.includes(target.palName) ? target.palName : names[0],
+            palName: names[0],
             photo: null,
           },
         };
@@ -252,11 +265,6 @@ export function AuraApp({
     [active],
   );
 
-  function openPicker() {
-    setPicked(card.pieces);
-    setSheetOpen(true);
-  }
-
   function shuffle() {
     const pool = Object.values(catalogue);
     if (!pool.length) {
@@ -283,7 +291,7 @@ export function AuraApp({
         line: pickRandom<Line | null>(lines, null)?.aura_text ?? current[active].line,
         palName: names[0],
         song: pickRandom(songs, current[active].song),
-        place: PLACES[Math.floor(Math.random() * PLACES.length)],
+        place: pickRandom(places, current[active].place),
         blob: BLOB_COLORS[Math.floor(Math.random() * BLOB_COLORS.length)].hex,
       },
     }));
@@ -313,12 +321,11 @@ export function AuraApp({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (sheetOpen) setSheetOpen(false);
-      else if (fullOpen) setFullOpen(false);
+      if (fullOpen) setFullOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [sheetOpen, fullOpen]);
+  }, [fullOpen]);
 
   useEffect(() => {
     document.body.style.overflow = fullOpen ? "hidden" : "";
@@ -491,49 +498,52 @@ export function AuraApp({
               {tab === "fit" ? (
                 <FitSection
                   items={items}
-                  layout={card.layout}
-                  onOpenPicker={openPicker}
-                  onResize={(id, size) => onLayoutChange(id, { s: size })}
+                  itemTypes={itemTypes}
+                  initialWardrobe={initialWardrobe}
                   onSetPieces={setPieces}
                   photo={card.photo}
                   onSetPhoto={(photo) => {
                     const names = paletteNamesFor(photo?.garments.length ? photo.garments : items);
-                    patch({ photo, palName: names.includes(card.palName) ? card.palName : names[0] });
+                    patch({ photo, palName: names[0] });
                   }}
                   onResetLayout={() => { patch({ layout: {} }); say("Layout reset"); }}
                   onToast={say}
                 />
               ) : null}
 
-              {tab === "line" ? (
+              {tab === "vibe" ? (
+                <div className="seg seg-wide" role="group" aria-label="Vibe">
+                  {VIBE_TABS.map((entry) => (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      className={vibeTab === entry.id ? "on" : ""}
+                      aria-pressed={vibeTab === entry.id}
+                      onClick={() => setVibeTab(entry.id)}
+                    >
+                      {entry.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {tab === "vibe" && vibeTab === "line" ? (
                 <LineSection lines={lines} line={card.line} onChange={(line) => patch({ line })} onToast={say} />
               ) : null}
 
-              {tab === "palette" ? (
+              {tab === "vibe" && vibeTab === "palette" ? (
                 <PaletteSection
                   items={paletteItems} palName={card.palName}
                   onChange={(palName) => patch({ palName })} onToast={say}
                 />
               ) : null}
 
-              {tab === "song" ? (
+              {tab === "vibe" && vibeTab === "song" ? (
                 <SongSection songs={songs} song={card.song} onChange={(song) => patch({ song })} />
               ) : null}
 
-              {tab === "place" ? (
-                <SearchList
-                  options={PLACES.map((place) => ({
-                    id: place.id, primary: place.name, secondary: place.city, colors: place.colors,
-                  }))}
-                  selectedId={card.place.id}
-                  placeholder="Search places"
-                  label="Search a place"
-                  emptyNote={(q) => `No place matches “${q}”.`}
-                  onSelect={(id) => {
-                    const place = PLACES.find((entry) => entry.id === id);
-                    if (place) patch({ place });
-                  }}
-                />
+              {tab === "vibe" && vibeTab === "place" ? (
+                <PlaceSection places={places} place={card.place} onChange={(place) => patch({ place })} />
               ) : null}
 
               {tab === "day" ? (
@@ -566,17 +576,6 @@ export function AuraApp({
           {screen === "help" ? <HowToUse /> : null}
         </div>
       </div>
-
-      <PickerSheet
-        open={sheetOpen}
-        picked={picked}
-        itemTypes={itemTypes}
-        initialWardrobe={initialWardrobe}
-        onPick={setPicked}
-        onClose={() => setSheetOpen(false)}
-        onCommit={setPieces}
-        onToast={say}
-      />
 
       <div className={`fv${fullOpen ? " open" : ""}`} role="dialog" aria-label="Full screen card" aria-hidden={!fullOpen}>
         <span className="fv-mark">{which} card</span>

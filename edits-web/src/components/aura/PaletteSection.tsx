@@ -10,28 +10,15 @@ export function PaletteSection({
   items,
   palName,
   onChange,
-  onToast,
 }: {
   items: WardrobeCard[];
   palName: string;
   onChange: (name: string) => void;
-  onToast: (message: string) => void;
 }) {
   const [own, setOwn] = useState("");
   const swatches = swatchColors(items);
   const suggested = paletteNamesFor(items);
   const names = suggested.includes(palName) ? suggested : [palName, ...suggested];
-
-  function applyOwn() {
-    const value = own.trim().toUpperCase();
-    if (!value) {
-      onToast("Name it first");
-      return;
-    }
-    onChange(value);
-    setOwn("");
-    onToast("Palette renamed");
-  }
 
   return (
     <>
@@ -71,17 +58,11 @@ export function PaletteSection({
           id="own-palette"
           placeholder="Type a name…"
           aria-label="Name the palette"
-          onChange={(event) => setOwn(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              applyOwn();
-            }
+          onChange={(event) => {
+            setOwn(event.target.value);
+            if (event.target.value.trim()) onChange(event.target.value.trim().toUpperCase());
           }}
         />
-        <button className="btn btn-brass" type="button" onClick={applyOwn}>
-          Use it
-        </button>
       </div>
     </>
   );

@@ -1,4 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+
+/** Open a Vibe section, leaving it open if it already is (one is open by default). */
+async function openVibe(page: Page, title: string) {
+  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
+  const header = page.locator(".sec-h").filter({ hasText: title });
+  if ((await header.getAttribute("aria-expanded")) !== "true") await header.click();
+}
 
 test("existing-user login lands on today's editable card", async ({ page }) => {
   await page.goto("/login");
@@ -18,8 +26,7 @@ test("existing-user login lands on today's editable card", async ({ page }) => {
 
 test("changing the line updates the card", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
-  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Line" }).click();
+  await openVibe(page, "The line");
 
   // Every line in the bank is offered, nothing else.
   await expect(page.locator(".lineopt")).toHaveCount(6);
@@ -29,7 +36,6 @@ test("changing the line updates the card", async ({ page }) => {
   await expect(page.locator(".phone .quote")).toHaveText("overdressed for a tuesday.");
 
   await page.getByLabel("Write your own line").fill("Dressed for the group chat");
-  await page.getByRole("button", { name: "Use it" }).first().click();
   await expect(page.locator(".phone .quote")).toHaveText("Dressed for the group chat");
 });
 
@@ -72,8 +78,7 @@ test("Library and the Outfit wardrobe reuse the wardrobe loaded with the editor"
 
 test("the palette names come off the pieces on the card", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
-  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Palette" }).click();
+  await openVibe(page, "The palette");
   await expect(page.locator(".swrow i")).toHaveCount(5);
 
   const name = page.locator(".nameopt").first();
@@ -85,8 +90,7 @@ test("the palette names come off the pieces on the card", async ({ page }) => {
 test("song bank and place search filter and apply to the card", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
-  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Song" }).click();
+  await openVibe(page, "Your soundtrack");
   // The whole song bank is listed, in curated order.
   await expect(page.locator(".ritem")).toHaveCount(5);
   await expect(page.locator(".ritem").first()).toContainText("Wildflower");
@@ -96,8 +100,7 @@ test("song bank and place search filter and apply to the card", async ({ page })
   await expect(page.locator(".duo .col").first().locator(".t1")).toHaveText("Cranes in the Sky");
   await expect(page.locator(".duo .col").first().locator(".t2")).toHaveText("Solange");
 
-  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
-  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Place" }).click();
+  await openVibe(page, "Your place");
   await expect(page.locator(".ritem")).toHaveCount(9);
   await expect(page.locator(".ritem").first()).toContainText("Four Barrel Coffee");
   await page.getByLabel("Search a place").fill("Dolores");
@@ -177,8 +180,7 @@ test("changing pieces keeps the blob and re-picks the palette name", async ({ pa
   const count = await chosen.count();
 
   // Rename the palette, then change the pieces: the name goes back to the top suggestion.
-  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
-  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Palette" }).click();
+  await openVibe(page, "The palette");
   await page.locator(".namegrid").first().locator(".nameopt").last().click();
   const renamed = (await page.locator(".palette-name").first().textContent()) ?? "";
 
@@ -187,8 +189,7 @@ test("changing pieces keeps the blob and re-picks the palette name", async ({ pa
   await expect(chosen).toHaveCount(count - 1);
   await expect(blob).toHaveAttribute("d", before);
 
-  await page.getByRole("tab", { name: "Vibe", exact: true }).click();
-  await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Palette" }).click();
+  await openVibe(page, "The palette");
   const top = (await page.locator(".namegrid .nameopt").first().textContent()) ?? "";
   await expect(page.locator(".palette-name").first()).toHaveText(`“${top}”`);
   expect(renamed).not.toBe(`“${top}”`);
@@ -298,7 +299,6 @@ test("a fit pic's pieces can be pulled onto the card", async ({ page }) => {
   // "Outfit" is the tab that starts open, so it needs no click.
   await page.getByRole("button", { name: "Use a fit pic" }).click();
   const tile = page.locator(".pg").first();
-  await tile.click({ position: { x: 4, y: 4 } });
   await tile.getByRole("button", { name: /^Use pieces from/ }).click();
   // The fixture fit pic detail carries three garments.
   await expect(page.locator(".collage .pc")).toHaveCount(3);
@@ -308,7 +308,6 @@ test("a fit pic itself can go on the card, and pieces switch it back", async ({ 
   await page.goto("/");
   await page.getByRole("button", { name: "Use a fit pic" }).click();
   const tile = page.locator(".pg").first();
-  await tile.click({ position: { x: 4, y: 4 } });
   await tile.getByRole("button", { name: /on the card$/ }).click();
 
   // The photo replaces the collage and the palette.
@@ -323,10 +322,8 @@ test("a fit pic itself can go on the card, and pieces switch it back", async ({ 
   await expect(card.locator(".collage .pc")).not.toHaveCount(0);
 
   // Pulling pieces from a fit pic also takes the photo off.
-  await tile.click({ position: { x: 4, y: 4 } });
   await tile.getByRole("button", { name: /on the card$/ }).click();
   await expect(card.locator(".fitphoto img")).toBeVisible();
-  await tile.click({ position: { x: 4, y: 4 } });
   await tile.getByRole("button", { name: /^Use pieces from/ }).click();
   await expect(card.locator(".fitphoto")).toHaveCount(0);
   await expect(card.locator(".collage .pc")).toHaveCount(3);

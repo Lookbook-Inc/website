@@ -33,7 +33,6 @@ export function DaySection({
   onSkyChange,
   onBlobChange,
   onBlobSizeChange,
-  onToast,
 }: {
   dateISO: string;
   temp: string;
@@ -45,24 +44,12 @@ export function DaySection({
   onSkyChange: (sky: string) => void;
   onBlobChange: (hex: string) => void;
   onBlobSizeChange: (size: number) => void;
-  onToast: (message: string) => void;
 }) {
   const { degrees, unit } = parseTemp(temp);
   const [own, setOwn] = useState("");
 
   function setTemp(nextDegrees: number, nextUnit: "C" | "F") {
     onTempChange(`${Math.round(nextDegrees)}°${nextUnit}`);
-  }
-
-  function applyOwn() {
-    const value = own.trim().toUpperCase();
-    if (!value) {
-      onToast("Write a condition first");
-      return;
-    }
-    onSkyChange(value);
-    setOwn("");
-    onToast("Weather updated");
   }
 
   return (
@@ -134,17 +121,11 @@ export function DaySection({
           maxLength={14}
           placeholder="e.g. Breezy"
           aria-label="Write your own condition"
-          onChange={(event) => setOwn(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              applyOwn();
-            }
+          onChange={(event) => {
+            setOwn(event.target.value);
+            if (event.target.value.trim()) onSkyChange(event.target.value.trim().toUpperCase());
           }}
         />
-        <button className="btn btn-brass" type="button" onClick={applyOwn}>
-          Use it
-        </button>
       </div>
 
       <p className="field-label">Background colour</p>

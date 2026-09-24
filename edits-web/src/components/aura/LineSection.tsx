@@ -9,25 +9,12 @@ export function LineSection({
   lines,
   line,
   onChange,
-  onToast,
 }: {
   lines: Line[];
   line: string;
   onChange: (line: string) => void;
-  onToast: (message: string) => void;
 }) {
   const [own, setOwn] = useState("");
-
-  function applyOwn() {
-    const value = own.trim();
-    if (!value) {
-      onToast("Write a line first");
-      return;
-    }
-    onChange(value);
-    setOwn("");
-    onToast("Line updated");
-  }
 
   return (
     <>
@@ -57,19 +44,14 @@ export function LineSection({
           id="own-line"
           value={own}
           maxLength={MAX_LINE}
-          placeholder="Type a line…"
+          placeholder="Type a line — it goes straight on the card"
           aria-label="Write your own line"
-          onChange={(event) => setOwn(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              applyOwn();
-            }
+          onChange={(event) => {
+            // Applies as you type; clearing the box keeps the last line on the card.
+            setOwn(event.target.value);
+            if (event.target.value.trim()) onChange(event.target.value.trim());
           }}
         />
-        <button className="btn btn-brass" type="button" onClick={applyOwn}>
-          Use it
-        </button>
       </div>
       <div className="counter">{own.length}/{MAX_LINE}</div>
     </>

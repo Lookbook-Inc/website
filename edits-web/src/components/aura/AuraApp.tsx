@@ -105,15 +105,49 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "day", label: "Day" },
 ];
 
-/** The Vibe tab's sub-categories. */
+/** The Vibe tab's sections, stacked as an accordion. */
 type VibeTab = "line" | "palette" | "song" | "place";
 
-const VIBE_TABS: { id: VibeTab; label: string }[] = [
-  { id: "line", label: "Line" },
-  { id: "palette", label: "Palette" },
-  { id: "song", label: "Song" },
-  { id: "place", label: "Place" },
-];
+const CHEVRON = (
+  <svg className="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M6 9.5l6 6 6-6" />
+  </svg>
+);
+
+/**
+ * One row of the Vibe accordion: a numbered header showing the current choice,
+ * which opens to the picker. Opening one closes the others.
+ */
+function VibeSection({
+  id, num, title, value, open, onToggle, children,
+}: {
+  id: VibeTab;
+  num: number;
+  title: string;
+  value: string;
+  open: VibeTab | null;
+  onToggle: (id: VibeTab | null) => void;
+  children: React.ReactNode;
+}) {
+  const isOpen = open === id;
+  return (
+    <section className={`sec${isOpen ? " open" : ""}`}>
+      <button
+        type="button"
+        className="sec-h"
+        aria-expanded={isOpen}
+        aria-controls={`sec-${id}`}
+        onClick={() => onToggle(isOpen ? null : id)}
+      >
+        <span className="num">{num}</span>
+        <h3>{title}</h3>
+        <span className="val">{value}</span>
+        {CHEVRON}
+      </button>
+      {isOpen ? <div className="sec-b" id={`sec-${id}`}>{children}</div> : null}
+    </section>
+  );
+}
 
 const RAIL: { id: Screen; label: string; icon: React.ReactNode }[] = [
   {
@@ -167,7 +201,7 @@ export function AuraApp({
   const [active, setActive] = useState<CardKind>("day");
   const [screen, setScreen] = useState<Screen>("today");
   const [tab, setTab] = useState<Tab>("fit");
-  const [vibeTab, setVibeTab] = useState<VibeTab>("line");
+  const [openVibe, setOpenVibe] = useState<VibeTab | null>("line");
   const [fullOpen, setFullOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -511,54 +545,43 @@ export function AuraApp({
               ) : null}
 
               {tab === "vibe" ? (
-                <div className="seg seg-wide" role="group" aria-label="Vibe">
-                  {VIBE_TABS.map((entry) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      className={vibeTab === entry.id ? "on" : ""}
-                      aria-pressed={vibeTab === entry.id}
-                      onClick={() => setVibeTab(entry.id)}
-                    >
-                      {entry.label}
-                    </button>
-                  ))}
+                <div className="secs">
+                  <VibeSection id="line" num={1} title="The line" value={card.line ? `“${card.line}”` : "—"} open={openVibe} onToggle={setOpenVibe}>
+                    <LineSection lines={lines} line={card.line} onChange={(line) => patch({ line })} />
+                  </VibeSection>
+                  <VibeSection id="palette" num={2} title="The palette" value={card.palName} open={openVibe} onToggle={setOpenVibe}>
+                    <PaletteSection
+                      items={paletteItems} palName={card.palName}
+                      onChange={(palName) => patch({ palName })}
+                    />
+                  </VibeSection>
+                  <VibeSection
+                    id="song" num={3} title="Your soundtrack"
+                    value={card.song ? `${card.song.song_title} · ${card.song.artist_display}` : "—"}
+                    open={openVibe} onToggle={setOpenVibe}
+                  >
+                    <SongSection songs={songs} song={card.song} onChange={(song) => patch({ song })} />
+                  </VibeSection>
+                  <VibeSection id="place" num={4} title="Your place" value={card.place?.place_name ?? "—"} open={openVibe} onToggle={setOpenVibe}>
+                    <SearchList
+                      options={places.map((place) => ({
+                        id: place.id,
+                        primary: place.place_name,
+                        secondary: `${place.category} · ${place.geography_display}`,
+                        colors: placeColors(place),
+                        imageUrl: placeImageUrl(place),
+                      }))}
+                      selectedId={card.place?.id ?? ""}
+                      placeholder="Search places"
+                      label="Search a place"
+                      emptyNote={(q) => q ? `No place matches “${q}”.` : "No places are available yet."}
+                      onSelect={(id) => {
+                        const place = places.find((entry) => entry.id === id);
+                        if (place) patch({ place });
+                      }}
+                    />
+                  </VibeSection>
                 </div>
-              ) : null}
-
-              {tab === "vibe" && vibeTab === "line" ? (
-                <LineSection lines={lines} line={card.line} onChange={(line) => patch({ line })} onToast={say} />
-              ) : null}
-
-              {tab === "vibe" && vibeTab === "palette" ? (
-                <PaletteSection
-                  items={paletteItems} palName={card.palName}
-                  onChange={(palName) => patch({ palName })} onToast={say}
-                />
-              ) : null}
-
-              {tab === "vibe" && vibeTab === "song" ? (
-                <SongSection songs={songs} song={card.song} onChange={(song) => patch({ song })} />
-              ) : null}
-
-              {tab === "vibe" && vibeTab === "place" ? (
-                <SearchList
-                  options={places.map((place) => ({
-                    id: place.id,
-                    primary: place.place_name,
-                    secondary: `${place.category} · ${place.geography_display}`,
-                    colors: placeColors(place),
-                    imageUrl: placeImageUrl(place),
-                  }))}
-                  selectedId={card.place?.id ?? ""}
-                  placeholder="Search places"
-                  label="Search a place"
-                  emptyNote={(q) => q ? `No place matches “${q}”.` : "No places are available yet."}
-                  onSelect={(id) => {
-                    const place = places.find((entry) => entry.id === id);
-                    if (place) patch({ place });
-                  }}
-                />
               ) : null}
 
               {tab === "day" ? (
@@ -573,7 +596,6 @@ export function AuraApp({
                   onBlobChange={(blob) => patch({ blob })}
                   blobSize={card.blobSize}
                   onBlobSizeChange={(blobSize) => patch({ blobSize })}
-                  onToast={say}
                 />
               ) : null}
               </div>

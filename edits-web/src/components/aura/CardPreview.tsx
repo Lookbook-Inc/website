@@ -9,13 +9,6 @@ import type { CardKind, CardState, Placement } from "./types";
 
 const strip = (value: string) => value.replace(/^["“]|["”]$/g, "");
 
-/** "A, B & C feat. D" → one name per line. Keeps "Tyler, The Creator" whole. */
-const splitArtists = (value: string) =>
-  value
-    .split(/\s*(?:,(?!\s*The\s)|&|\bfeat\.?|\bft\.?|\bfeaturing\b)\s*/i)
-    .map((name) => name.trim())
-    .filter(Boolean);
-
 /**
  * The iOS status bar around the Dynamic Island: the time centred in the left
  * ear, and cellular, Wi-Fi and battery centred in the right — as on an iPhone
@@ -159,9 +152,7 @@ export function CardPreview({
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span className="t1">{card.song?.song_title ?? "No song yet"}</span>
-                      {splitArtists(card.song?.artist_display ?? "").map((artist) => (
-                        <span key={artist} className="t2">{artist}</span>
-                      ))}
+                      <span className="t2 wrap">{card.song?.artist_display ?? ""}</span>
                     </span>
                   </div>
                 </div>
@@ -175,7 +166,6 @@ export function CardPreview({
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span className="t1">{card.place?.place_name ?? "No place yet"}</span>
-                      <span className="t2">{card.place?.geography_display ?? ""}</span>
                     </span>
                   </div>
                 </div>

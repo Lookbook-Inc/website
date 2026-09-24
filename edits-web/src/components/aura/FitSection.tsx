@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FitPicCard, FitPicDetail, FitPicPage, WardrobeCard } from "@/types/api";
+import { PieceArt } from "./PieceArt";
 import { readApi, query } from "./client-api";
 import { MAX_PIECES } from "./placeholders";
 import type { CardPhoto } from "./types";
@@ -52,6 +53,35 @@ export function FitSection({
         </div>
       ) : null}
 
+      {mode === "combo" && !photo ? (
+        <div className="onboard">
+          <div className="onboard-head">
+            <span className="field-label">On the card</span>
+            <span className="hint-inline">{items.length} of {MAX_PIECES}</span>
+          </div>
+          {items.length ? (
+            <div className="onboard-row">
+              {items.map((item) => (
+                <div className="onpiece" key={item.id} title={item.name}>
+                  <div className="onpiece-art"><PieceArt item={item} /></div>
+                  <span className="onpiece-lbl">{item.item_type ?? "Piece"}</span>
+                  <button
+                    className="rm"
+                    type="button"
+                    aria-label={`Remove ${item.name}`}
+                    onClick={() => onSetPieces(items.filter((other) => other.id !== item.id))}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="onboard-empty">Nothing yet. Tap pieces below to add them.</div>
+          )}
+        </div>
+      ) : null}
+
       {mode === "combo" ? (
         <WardrobePicker
           items={items}
@@ -82,8 +112,8 @@ export function FitSection({
 }
 
 /**
- * Your fit pics. Hovering (or tapping, on touch) one offers two things: pull its
- * tagged garments onto the card as pieces, or put the photo itself on the card.
+ * Your fit pics. Each tile has two one-tap actions: pull its tagged garments
+ * onto the card as pieces, or put the photo itself on the card.
  */
 function CollectionGrid({
   photoId,
@@ -100,7 +130,6 @@ function CollectionGrid({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(photoId);
-  const [open, setOpen] = useState<string | null>(null);
   const [pulling, setPulling] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,7 +148,6 @@ function CollectionGrid({
 
   async function pull(photo: FitPicCard) {
     setSelected(photo.id);
-    setOpen(null);
     setPulling(photo.id);
     try {
       const detail = await readApi<FitPicDetail>(`/fit-pics/${photo.id}`);
@@ -144,7 +172,6 @@ function CollectionGrid({
       return;
     }
     setSelected(photo.id);
-    setOpen(null);
     setPulling(photo.id);
     // The tagged garments drive the palette. If they can't be read, the photo
     // still goes on the card and the palette keeps the pieces' colours.
@@ -167,11 +194,7 @@ function CollectionGrid({
   return (
     <div className="pgrid">
       {photos.map((photo) => (
-        <div
-          className={`pg${selected === photo.id ? " sel" : ""}${open === photo.id ? " open" : ""}`}
-          key={photo.id}
-          onClick={() => setOpen(photo.id)}
-        >
+        <div className={`pg${selected === photo.id ? " sel" : ""}`} key={photo.id}>
           {photo.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photo.image_url} alt={photo.title} loading="lazy" referrerPolicy="no-referrer" />
@@ -184,16 +207,16 @@ function CollectionGrid({
             <button
               type="button"
               aria-label={`Use pieces from ${photo.title}`}
-              onClick={(event) => { event.stopPropagation(); pull(photo); }}
+              onClick={() => pull(photo)}
             >
-              Use pieces from picture
+              Pieces
             </button>
             <button
               type="button"
               aria-label={`Use ${photo.title} on the card`}
-              onClick={(event) => { event.stopPropagation(); putPicture(photo); }}
+              onClick={() => putPicture(photo)}
             >
-              Use this picture
+              Photo
             </button>
           </div>
         </div>

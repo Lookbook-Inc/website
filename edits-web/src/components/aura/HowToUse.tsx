@@ -9,13 +9,14 @@ export function HowToUse() {
           <li>
             <b>Outfit</b>
             <p>
-              Click pieces in your wardrobe to put up to six on the card, or switch to{" "}
-              <span className="ui">Use a fit pic</span> to pull the pieces from a photo.
+              Click pieces in your wardrobe to put up to six on the card; click the × on one to take it off. Or
+              switch to <span className="ui">Use a fit pic</span> and tap <span className="ui">Pieces</span> or{" "}
+              <span className="ui">Photo</span> on any fit pic.
             </p>
           </li>
           <li>
             <b>Vibe: Line</b>
-            <p>Pick a bank, then click a line. You can also type your own.</p>
+            <p>Click a line, or type your own and it goes straight on the card.</p>
           </li>
           <li>
             <b>Vibe: Palette</b>

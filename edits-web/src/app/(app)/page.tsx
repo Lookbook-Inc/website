@@ -10,6 +10,10 @@ function serverDateISO() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+function serverFetchedAt() {
+  return Date.now();
+}
+
 export default async function EditorPage() {
   const viewer = await requireViewer();
   const [home, wardrobe, lines, songs, places] = await Promise.all([
@@ -29,6 +33,8 @@ export default async function EditorPage() {
       email={viewer.email}
       firstName={home.first_name}
       initialWardrobe={wardrobe.items}
+      initialWardrobeCursor={wardrobe.next_cursor}
+      initialWardrobeFetchedAt={serverFetchedAt()}
       itemTypes={wardrobe.available_item_types ?? []}
       lines={lines.items}
       songs={songs.items}

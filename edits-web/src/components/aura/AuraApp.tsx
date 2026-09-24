@@ -11,8 +11,8 @@ import { Library } from "./Library";
 import { LineSection } from "./LineSection";
 import { PaletteSection } from "./PaletteSection";
 import { SongSection } from "./SongSection";
-import { pickRandom, type Line, type Place, type Song } from "./banks";
-import { PlaceSection } from "./PlaceSection";
+import { pickRandom, placeColors, placeImageUrl, type Line, type Place, type Song } from "./banks";
+import { SearchList } from "./SearchList";
 import { downloadCard } from "./download";
 import { classify } from "./garments";
 import { paletteNamesFor } from "./palette";
@@ -48,13 +48,7 @@ function seedPieces(wardrobe: WardrobeCard[]) {
   return chosen.slice(0, MAX_PIECES);
 }
 
-function seedCard(
-  kind: CardKind,
-  wardrobe: WardrobeCard[],
-  lines: Line[],
-  songs: Song[],
-  places: Place[],
-): CardState {
+function seedCard(kind: CardKind, wardrobe: WardrobeCard[], lines: Line[], songs: Song[], places: Place[]): CardState {
   const pieces = seedPieces(kind === "day" ? wardrobe : [...wardrobe].reverse());
   const names = paletteNamesFor(pieces);
   return {
@@ -68,7 +62,7 @@ function seedCard(
     blob: kind === "day" ? BLOB_COLORS[0].hex : BLOB_COLORS[1].hex,
     blobSize: BLOB_SIZE[kind],
     song: (kind === "day" ? songs[0] : (songs[1] ?? songs[0])) ?? null,
-    place: (kind === "day" ? places[0] : (places[1] ?? places[0])) ?? null,
+    place: kind === "day" ? (places[0] ?? null) : (places[6] ?? places[0] ?? null),
     layout: {},
     photo: null,
   };
@@ -140,6 +134,8 @@ export function AuraApp({
   email,
   firstName,
   initialWardrobe,
+  initialWardrobeCursor,
+  initialWardrobeFetchedAt,
   itemTypes,
   lines,
   songs,
@@ -151,6 +147,8 @@ export function AuraApp({
   email: string | null;
   firstName: string | null;
   initialWardrobe: WardrobeCard[];
+  initialWardrobeCursor: string | null;
+  initialWardrobeFetchedAt: number;
   itemTypes: string[];
   lines: Line[];
   songs: Song[];
@@ -291,7 +289,7 @@ export function AuraApp({
         line: pickRandom<Line | null>(lines, null)?.aura_text ?? current[active].line,
         palName: names[0],
         song: pickRandom(songs, current[active].song),
-        place: pickRandom(places, current[active].place),
+        place: pickRandom<Place | null>(places, current[active].place),
         blob: BLOB_COLORS[Math.floor(Math.random() * BLOB_COLORS.length)].hex,
       },
     }));
@@ -500,6 +498,7 @@ export function AuraApp({
                   items={items}
                   itemTypes={itemTypes}
                   initialWardrobe={initialWardrobe}
+                  initialWardrobeFetchedAt={initialWardrobeFetchedAt}
                   onSetPieces={setPieces}
                   photo={card.photo}
                   onSetPhoto={(photo) => {
@@ -543,7 +542,23 @@ export function AuraApp({
               ) : null}
 
               {tab === "vibe" && vibeTab === "place" ? (
-                <PlaceSection places={places} place={card.place} onChange={(place) => patch({ place })} />
+                <SearchList
+                  options={places.map((place) => ({
+                    id: place.id,
+                    primary: place.place_name,
+                    secondary: `${place.category} · ${place.geography_display}`,
+                    colors: placeColors(place),
+                    imageUrl: placeImageUrl(place),
+                  }))}
+                  selectedId={card.place?.id ?? ""}
+                  placeholder="Search places"
+                  label="Search a place"
+                  emptyNote={(q) => q ? `No place matches “${q}”.` : "No places are available yet."}
+                  onSelect={(id) => {
+                    const place = places.find((entry) => entry.id === id);
+                    if (place) patch({ place });
+                  }}
+                />
               ) : null}
 
               {tab === "day" ? (
@@ -570,6 +585,9 @@ export function AuraApp({
               wardrobeCount={wardrobeCount}
               outfitCount={outfitCount}
               itemTypes={itemTypes}
+              initialWardrobe={initialWardrobe}
+              initialWardrobeCursor={initialWardrobeCursor}
+              initialWardrobeFetchedAt={initialWardrobeFetchedAt}
               onUsePieces={usePieceIds}
             />
           ) : null}

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { WardrobePage, WardrobeCard } from "@/types/api";
 import { PieceArt } from "./PieceArt";
-import { readApi, query } from "./client-api";
+import { INITIAL_WARDROBE_MAX_AGE_MS, readApi, query } from "./client-api";
 import { MAX_PIECES } from "./placeholders";
 
 const SEARCH_DEBOUNCE_MS = 260;
@@ -17,12 +17,14 @@ export function WardrobePicker({
   items,
   itemTypes,
   initialWardrobe,
+  initialWardrobeFetchedAt,
   onSetPieces,
   onToast,
 }: {
   items: WardrobeCard[];
   itemTypes: string[];
   initialWardrobe: WardrobeCard[];
+  initialWardrobeFetchedAt: number;
   onSetPieces: (items: WardrobeCard[]) => void;
   onToast: (message: string) => void;
 }) {
@@ -32,6 +34,7 @@ export function WardrobePicker({
   const [results, setResults] = useState<WardrobeCard[]>(initialWardrobe);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const baseline = useRef({ items: initialWardrobe, fetchedAt: initialWardrobeFetchedAt });
 
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(search.trim()), SEARCH_DEBOUNCE_MS);
@@ -39,6 +42,13 @@ export function WardrobePicker({
   }, [search]);
 
   useEffect(() => {
+    // The unfiltered wardrobe arrived with the page; reuse it while its signed URLs are fresh.
+    if (!debounced && !itemType && Date.now() - baseline.current.fetchedAt < INITIAL_WARDROBE_MAX_AGE_MS) {
+      setResults(baseline.current.items);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     const controller = new AbortController();
 
     const run = async () => {
@@ -50,6 +60,7 @@ export function WardrobePicker({
           controller.signal,
         );
         setResults(page.items);
+        if (!debounced && !itemType) baseline.current = { items: page.items, fetchedAt: Date.now() };
       } catch (err: unknown) {
         if (controller.signal.aborted) return;
         setError(err instanceof Error ? err.message : "We couldn’t load your wardrobe.");

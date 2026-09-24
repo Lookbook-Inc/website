@@ -1,7 +1,7 @@
 "use client";
 
 import type { WardrobeCard } from "@/types/api";
-import { placeColors, placePhotoUrl, songColors } from "./banks";
+import { placeColors, placeImageUrl, songColors } from "./banks";
 import { Collage } from "./Collage";
 import { CoverArt } from "./CoverArt";
 import { swatchColors } from "./palette";
@@ -170,11 +170,12 @@ export function CardPreview({
                   <div className="row">
                     <span className="art sq">
                       {card.place ? (
-                        <CoverArt id={card.place.id} imageUrl={placePhotoUrl(card.place)} colors={placeColors(card.place)} />
+                        <CoverArt id={card.place.id} imageUrl={placeImageUrl(card.place)} colors={placeColors(card.place)} />
                       ) : null}
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span className="t1">{card.place?.place_name ?? "No place yet"}</span>
+                      <span className="t2">{card.place?.geography_display ?? ""}</span>
                     </span>
                   </div>
                 </div>

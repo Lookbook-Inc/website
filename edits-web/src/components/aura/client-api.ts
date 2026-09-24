@@ -8,6 +8,9 @@
 
 export class ClientApiError extends Error {}
 
+// The backend signs private media for one hour. Refresh before those URLs expire.
+export const INITIAL_WARDROBE_MAX_AGE_MS = 50 * 60 * 1000;
+
 export async function readApi<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`/api${path}`, {
     signal,

@@ -1,10 +1,10 @@
 /**
  * ============================================================================
- * LINE, SONG + PLACE BANKS
+ * EDIT BANKS
  * ============================================================================
  *
- * All three banks come from the Lookbook backend (`banks_edits_lines`,
- * `banks_songs` and `banks_places`, served by `GET /web/v1/banks/*`). They are loaded once on the
+ * Lines, songs, and places come from the Lookbook backend (`GET /web/v1/banks/*`).
+ * They are loaded once on the
  * server in `app/(app)/page.tsx` and passed down, so the editor only ever offers
  * what is in the banks. Nothing is hard-coded here.
  */
@@ -33,23 +33,13 @@ export function songColors(song: Song) {
   return COVER_FALLBACKS[hash(song.id) % COVER_FALLBACKS.length];
 }
 
-/** Fallback art for a place with no usable photo, picked from its id. */
-const PLACE_FALLBACKS = [
-  ["#8A6A4C", "#2A1B12"],
-  ["#B0553F", "#2C120C"],
-  ["#6E9A5A", "#1B2A16"],
-  ["#6E7A88", "#191E24"],
-  ["#A33F3A", "#28100E"],
-  ["#7FA0B8", "#16232E"],
-];
-
-export function placeColors(place: Place) {
-  return PLACE_FALLBACKS[hash(place.id) % PLACE_FALLBACKS.length];
+/** Use the first available signed photo; the bank's photo order is curated. */
+export function placeImageUrl(place: Place): string | null {
+  return place.photos.find((photo) => photo.image_url)?.image_url ?? null;
 }
 
-/** The first validated photo with a signed URL; unreviewed photos never go on a card. */
-export function placePhotoUrl(place: Place) {
-  return place.photos.find((photo) => photo.review_status === "validated" && photo.image_url)?.image_url ?? null;
+export function placeColors(place: Place) {
+  return COVER_FALLBACKS[(hash(place.id) + 2) % COVER_FALLBACKS.length];
 }
 
 /** A random entry, or `fallback` when the bank came back empty. */

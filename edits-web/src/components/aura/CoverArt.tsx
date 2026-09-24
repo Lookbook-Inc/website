@@ -5,7 +5,7 @@ import { GradientArt } from "./GradientArt";
 import { hash } from "./palette";
 
 /**
- * Song cover art. Shows the signed cover image when there is one and falls
+ * Song or place cover art. Shows the signed image when there is one and falls
  * back to the gradient painter when it is missing or fails to load.
  *
  * Plain `img` for the same reason as PieceArt: signed private media must stay

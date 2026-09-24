@@ -5,8 +5,8 @@ import type {
   Home,
   OutfitDetail,
   OutfitPage,
-  Recommendations,
   PlaceList,
+  Recommendations,
   SongList,
   WardrobeDetail,
   WardrobePage,
@@ -114,30 +114,45 @@ const songs = [
   sort_order: index + 1,
 }));
 
-const places = [
-  { place_name: "Four Barrel Coffee", category: "Cafe" },
-  { place_name: "Tartine Bakery", category: "Bakery" },
-  { place_name: "Dolores Park", category: "Park" },
-  { place_name: "Zuni Café", category: "Restaurant" },
-  { place_name: "Ocean Beach", category: "Beach" },
-].map((place, index) => ({
-  ...place,
+const placeExamples = [
+  { place_name: "Four Barrel Coffee", category: "Cafe", hue: "#8A6A4C" },
+  { place_name: "Ritual Coffee Roasters", category: "Cafe", hue: "#B0553F" },
+  { place_name: "Tartine Bakery", category: "Bakery", hue: "#C9A06A" },
+  { place_name: "Dolores Park", category: "Park", hue: "#6E9A5A" },
+  { place_name: "Sightglass", category: "Cafe", hue: "#6E7A88" },
+  { place_name: "The Mill", category: "Cafe", hue: "#BE8F63" },
+  { place_name: "Zuni Café", category: "Restaurant", hue: "#A33F3A" },
+  { place_name: "Ocean Beach", category: "Beach", hue: "#7FA0B8" },
+  { place_name: "Ferry Building", category: "Market", hue: "#9A8C6E" },
+];
+
+const places = placeExamples.map((place, index) => ({
   id: `80000000-0000-0000-0000-00000000000${index + 1}`,
+  place_name: place.place_name,
+  category: place.category,
   geography_display: "San Francisco, CA",
   city: "San Francisco",
   region: "California",
   country_code: "US",
   sort_order: index + 1,
-  photos: index === 0
-    ? [{
-      id: "81000000-0000-0000-0000-000000000001",
+  photos: index === 1 ? [] : [
+    {
+      id: `90000000-0000-0000-0000-00000000000${index + 1}`,
       photo_order: 1,
-      image_url: image("FOUR BARREL", "#c9a06a"),
+      image_url: image(place.place_name, place.hue),
       width: 800,
       height: 1000,
       review_status: "validated",
-    }]
-    : [],
+    },
+    ...(index === 0 ? [{
+      id: "90000000-0000-0000-0000-000000000010",
+      photo_order: 2,
+      image_url: null,
+      width: 800,
+      height: 1000,
+      review_status: "needs_review",
+    }] : []),
+  ],
 }));
 
 export const bankFixtures = {

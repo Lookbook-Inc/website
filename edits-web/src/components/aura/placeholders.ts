@@ -3,10 +3,9 @@
  * PLACEHOLDER DATA — nothing in this file is wired to a real source yet.
  * ============================================================================
  *
- * The weather readout and the day/night edit split are invented in the
- * websitev3 mockup. Neither exists in the Lookbook backend today, so they ship
- * as typed constants. Lines, songs and places are real: they come from the
- * backend banks (see ./banks.ts).
+ * Weather and the day/night edit split are invented in the websitev3 mockup.
+ * They have no backend source yet, so they ship as typed constants. Lines,
+ * songs, and places come from the backend banks (see ./banks.ts).
  *
  * The palette section is the exception and is NOT here: it derives from real
  * `shades[].hex_code` in ./palette.ts.

@@ -47,6 +47,29 @@ test("the wardrobe in Outfit adds and removes pieces straight away", async ({ pa
   }).toPass();
 });
 
+test("Library and the Outfit wardrobe reuse the wardrobe loaded with the editor", async ({ page }) => {
+  const wardrobeRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === "/api/wardrobe") wardrobeRequests.push(url.search);
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Your Lookbook" }).click();
+  await expect(page.locator(".lib-card")).toHaveCount(10);
+
+  await page.getByPlaceholder("Search name or brand").fill("shirt");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".lib-card")).toHaveCount(1);
+  expect(wardrobeRequests.length).toBeGreaterThan(0);
+  expect(wardrobeRequests.every((search) => search.includes("query=shirt"))).toBe(true);
+  const requestCountAfterSearch = wardrobeRequests.length;
+
+  await page.getByRole("button", { name: "Edit card" }).click();
+  await expect(page.locator(".wardrobe .item").first()).toBeVisible();
+  expect(wardrobeRequests).toHaveLength(requestCountAfterSearch);
+});
+
 test("the palette names come off the pieces on the card", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Vibe", exact: true }).click();
@@ -75,10 +98,21 @@ test("song bank and place search filter and apply to the card", async ({ page })
 
   await page.getByRole("tab", { name: "Vibe", exact: true }).click();
   await page.getByRole("group", { name: "Vibe" }).getByRole("button", { name: "Place" }).click();
+  await expect(page.locator(".ritem")).toHaveCount(9);
+  await expect(page.locator(".ritem").first()).toContainText("Four Barrel Coffee");
   await page.getByLabel("Search a place").fill("Dolores");
   await expect(page.locator(".ritem")).toHaveCount(1);
   await page.locator(".ritem").click();
   await expect(page.locator(".duo .col").last().locator(".t1")).toHaveText("Dolores Park");
+  await expect(page.locator(".duo .col").last().locator(".art img")).toHaveAttribute("src", /^data:image\/svg\+xml/);
+
+  await page.getByLabel("Search a place").fill("Ritual");
+  await page.locator(".ritem").click();
+  await expect(page.locator(".duo .col").last().locator(".t1")).toHaveText("Ritual Coffee Roasters");
+  await expect(page.locator(".duo .col").last().locator(".art canvas")).toBeVisible();
+
+  await page.getByLabel("Search a place").fill("not a place");
+  await expect(page.getByText("No place matches “not a place”.")).toBeVisible();
 });
 
 const NIGHT_SHEET = "rgb(23, 23, 26)";

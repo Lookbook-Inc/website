@@ -13,6 +13,7 @@ export function FitSection({
   items,
   itemTypes,
   initialWardrobe,
+  initialWardrobeFetchedAt,
   onSetPieces,
   photo,
   onSetPhoto,
@@ -22,6 +23,7 @@ export function FitSection({
   items: WardrobeCard[];
   itemTypes: string[];
   initialWardrobe: WardrobeCard[];
+  initialWardrobeFetchedAt: number;
   onSetPieces: (items: WardrobeCard[]) => void;
   photo: CardPhoto | null;
   onSetPhoto: (photo: CardPhoto | null) => void;
@@ -55,6 +57,7 @@ export function FitSection({
           items={items}
           itemTypes={itemTypes}
           initialWardrobe={initialWardrobe}
+          initialWardrobeFetchedAt={initialWardrobeFetchedAt}
           onSetPieces={onSetPieces}
           onToast={onToast}
         />

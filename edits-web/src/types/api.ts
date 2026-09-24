@@ -131,11 +131,8 @@ export type BankSong = {
 };
 export type SongList = { items: BankSong[] };
 
-/**
- * `GET /web/v1/banks/places` — active places in curated order, each with every
- * photo in `photo_order`. `image_url` is a one-hour signed URL, or null.
- */
-export type PlacePhoto = {
+/** `GET /web/v1/banks/places` — active places with ordered, nested photos. */
+export type BankPlacePhoto = {
   id: string;
   photo_order: number;
   image_url: string | null;
@@ -152,6 +149,6 @@ export type BankPlace = {
   region: string;
   country_code: string;
   sort_order: number;
-  photos: PlacePhoto[];
+  photos: BankPlacePhoto[];
 };
 export type PlaceList = { items: BankPlace[] };

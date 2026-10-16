@@ -16,18 +16,36 @@ export default async function HalloweenPage({
   const debugMode = debug === '1' && (process.env.NODE_ENV !== 'production' || process.env.HALLOWEEN_DEMO_ENABLED === 'true')
 
   if (debugMode) {
-    return <HalloweenFeed scanSpot={scanSpot} initialLocations={debugLocations} initialPage={getDebugPhotos()} debugMode />
+    const known = debugLocations.some((l) => l.slug === scanSpot) ? scanSpot : null
+    return (
+      <HalloweenFeed
+        scanSpot={scanSpot}
+        initialFilter={known}
+        initialLocations={debugLocations}
+        initialPage={getDebugPhotos(known)}
+        debugMode
+      />
+    )
   }
 
-  // Render the first photos on the server so a QR scan opens straight onto the feed.
-  // If the backend can't be reached from here, the client retries on its own.
-  const [locations, firstPage] = await Promise.allSettled([getLocations(), getPhotos()])
+  // A QR scan opens on that spot's lookbook, rendered on the server so photos show at once.
+  // The spot's photos are fetched alongside the locations; if the spot turns out to be
+  // unknown, fall back to every spot. If the backend can't be reached, the client retries.
+  const [locations, spotPage] = await Promise.allSettled([
+    getLocations(),
+    getPhotos({ location: scanSpot }),
+  ])
+  const known =
+    locations.status === 'fulfilled' && scanSpot && locations.value.some((l) => l.slug === scanSpot) ? scanSpot : null
+  let firstPage = spotPage.status === 'fulfilled' ? spotPage.value : null
+  if (scanSpot && !known) firstPage = await getPhotos().catch(() => null)
 
   return (
     <HalloweenFeed
       scanSpot={scanSpot}
+      initialFilter={known}
       initialLocations={locations.status === 'fulfilled' ? locations.value : null}
-      initialPage={firstPage.status === 'fulfilled' ? firstPage.value : null}
+      initialPage={firstPage}
     />
   )
 }

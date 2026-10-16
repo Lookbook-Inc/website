@@ -11,7 +11,7 @@ import {
   HalloweenPhotoPage,
   HalloweenUploadResponse,
 } from '@/types/halloween-api'
-import { AllIcon, CameraIcon, CheckIcon, ChevronDownIcon, FilterIcon, GlassIcon } from './icons'
+import { AllIcon, CameraIcon, CheckIcon, ChevronDownIcon, GlassIcon, GlobeIcon, LibraryIcon } from './icons'
 import { Lightbox } from './Lightbox'
 import { PhotoCard, toneOf } from './PhotoCard'
 import { UploadSheet } from './UploadSheet'
@@ -34,6 +34,8 @@ interface HalloweenFeedProps {
   initialLocations: HalloweenLocation[] | null
   initialPage: HalloweenPhotoPage | null
   scanSpot: string | null
+  /** The spot the first page was loaded for (the scanned spot, if it's a known location). */
+  initialFilter: string | null
   debugMode?: boolean
 }
 
@@ -45,11 +47,17 @@ function mergeUnique(first: HalloweenPhoto[], second: HalloweenPhoto[]) {
   return [...first, ...second].filter((p) => !seen.has(p.id) && !!seen.add(p.id))
 }
 
-export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMode = false }: HalloweenFeedProps) {
+export function HalloweenFeed({
+  initialLocations,
+  initialPage,
+  scanSpot,
+  initialFilter,
+  debugMode = false,
+}: HalloweenFeedProps) {
   const posthog = usePostHog()
 
   const [locations, setLocations] = useState<HalloweenLocation[]>(initialLocations ?? [])
-  const [filter, setFilter] = useState(ALL)
+  const [filter, setFilter] = useState(initialFilter ?? ALL)
   const [photos, setPhotos] = useState<HalloweenPhoto[]>(initialPage?.photos ?? [])
   const [nextCursor, setNextCursor] = useState<string | null>(initialPage?.next_cursor ?? null)
   const [status, setStatus] = useState<LoadStatus>(initialPage ? 'idle' : 'loading')
@@ -64,6 +72,9 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
   const [ready, setReady] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  /** A photo already picked from the header buttons; the sheet opens straight on its details. */
+  const [sheetFile, setSheetFile] = useState<File | null>(null)
+  const [showFab, setShowFab] = useState(false)
   const [lightboxPhoto, setLightboxPhoto] = useState<HalloweenPhoto | null>(null)
   const [toast, setToast] = useState<{ key: number; node: React.ReactNode } | null>(null)
 
@@ -79,11 +90,14 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
   const filterBtnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLUListElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const uploadRowRef = useRef<HTMLDivElement>(null)
   const debugUploads = useRef<HalloweenPhoto[]>([])
   const debugObjectUrls = useRef<string[]>([])
 
   const locationBySlug = useMemo(() => new Map(locations.map((l) => [l.slug, l])), [locations])
   const scannedLocation = scanSpot && locationBySlug.has(scanSpot) ? scanSpot : null
+  // Posts go to the spot being viewed; on "every spot" they default to the scanned one.
+  const uploadTarget = filter !== ALL && locationBySlug.has(filter) ? filter : scannedLocation
 
   /* ───────────── Toast ───────────── */
   const showToast = useCallback((node: React.ReactNode) => setToast({ key: Date.now(), node }), [])
@@ -181,8 +195,17 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
   // The server render may not have reached the backend; try again from the browser.
   useEffect(() => {
     if (!initialLocations) getLocations().then(setLocations).catch(() => {})
-    if (!initialPage) loadFirstPage(ALL)
-  }, [initialLocations, initialPage, loadFirstPage])
+    if (!initialPage) loadFirstPage(initialFilter ?? ALL)
+  }, [initialLocations, initialPage, initialFilter, loadFirstPage])
+
+  // Once the header's upload buttons scroll away, a floating one takes over.
+  useEffect(() => {
+    const el = uploadRowRef.current
+    if (!el) return
+    const observer = new IntersectionObserver((entries) => setShowFab(!entries[0]?.isIntersecting))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // Infinite scroll. Re-observing after each page means a tall screen keeps
   // loading until the sentinel is pushed out of view.
@@ -289,6 +312,18 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
   }
 
   /* ───────────── Upload / delete ───────────── */
+  const openSheet = (file: File | null) => {
+    setMenuOpen(false)
+    setSheetFile(file)
+    setSheetOpen(true)
+  }
+
+  const onPicked = (input: HTMLInputElement) => {
+    const file = input.files?.[0]
+    input.value = ''
+    if (file) openSheet(file)
+  }
+
   const onUploaded = ({ delete_token, ...photo }: HalloweenUploadResponse) => {
     if (debugMode) {
       debugUploads.current.unshift(photo)
@@ -349,18 +384,15 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
     for (const p of photos) {
       const target = out.reduce((a, b) => (b.h < a.h ? b : a))
       target.photos.push(p)
-      target.h += (p.height || 1) / (p.width || 1) + 0.55
+      target.h += (p.height || 1) / (p.width || 1) + 0.2
     }
     return out
   }, [photos, cols])
 
   const activeLocation = filter === ALL ? undefined : locationBySlug.get(filter)
-  const filterLabel = activeLocation?.name ?? 'All spots'
-  const meta = activeLocation
-    ? `Photos at ${activeLocation.name}`
-    : locations.length
-      ? `${locations.length} spot${locations.length === 1 ? '' : 's'}`
-      : ' '
+  const venueLabel = activeLocation?.name ?? 'every spot'
+  const targetName = uploadTarget ? locationBySlug.get(uploadTarget)?.name : null
+  const canPost = locations.length > 0
 
   const firstLoad = !photos.length && status === 'loading'
   const firstLoadFailed = !photos.length && status === 'error'
@@ -370,38 +402,29 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
     <div className={styles.root}>
       {debugMode && <div className={styles.debugBanner}>Preview mode · sample photos · uploads stay in this tab</div>}
       <header className={styles.top}>
-        <div>
-          <h1 className={styles.topTitle}>Tonight</h1>
-          <p className={styles.topMeta}>{meta}</p>
-        </div>
+        <p className={styles.live}>
+          <span className={styles.liveDot} aria-hidden="true" />
+          Live · Halloween night
+        </p>
 
         <div className={styles.filter}>
-          <button
-            ref={filterBtnRef}
-            className={`${styles.pill} ${styles.pillDark}`}
-            aria-haspopup="listbox"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((o) => !o)}
-            disabled={!locations.length}
-          >
-            <FilterIcon className={styles.pillIcon} />
-            <span>{filterLabel}</span>
-            <ChevronDownIcon className={styles.pillChev} />
-          </button>
+          <h1 className={styles.title}>
+            <span className={styles.titlePre}>Lookbook at</span>{' '}
+            <button
+              ref={filterBtnRef}
+              className={styles.venueBtn}
+              aria-haspopup="listbox"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((o) => !o)}
+              disabled={!locations.length}
+            >
+              <span>{venueLabel}</span>
+              <span className="sr-only">, change spot</span>
+              <ChevronDownIcon className={styles.venueChev} />
+            </button>
+          </h1>
           {menuOpen && (
-            <ul ref={menuRef} className={styles.menu} role="listbox" aria-label="Filter by spot" onKeyDown={onMenuKey}>
-              <li
-                className={styles.menuItem}
-                role="option"
-                tabIndex={-1}
-                aria-selected={filter === ALL}
-                onClick={() => chooseFilter(ALL)}
-              >
-                <span className={styles.menuDot} style={{ background: '#1e1e1e' }}><AllIcon /></span>
-                <span className={styles.menuName}>See all spots</span>
-                <CheckIcon className={styles.menuCheck} />
-              </li>
-              <li className={styles.menuSep} role="separator" />
+            <ul ref={menuRef} className={styles.menu} role="listbox" aria-label="Choose a spot" onKeyDown={onMenuKey}>
               {locations.map((l) => (
                 <li
                   key={l.slug}
@@ -413,15 +436,61 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
                 >
                   <span className={styles.menuDot} style={{ background: toneOf(l) }}><GlassIcon /></span>
                   <span className={styles.menuName}>{l.name}</span>
+                  {l.slug === scannedLocation && <span className={styles.menuHere}>You’re here</span>}
                   <CheckIcon className={styles.menuCheck} />
                 </li>
               ))}
+              <li className={styles.menuSep} role="separator" />
+              <li
+                className={styles.menuItem}
+                role="option"
+                tabIndex={-1}
+                aria-selected={filter === ALL}
+                onClick={() => chooseFilter(ALL)}
+              >
+                <span className={styles.menuDot} style={{ background: '#3a332e' }}><AllIcon /></span>
+                <span className={styles.menuName}>Every spot</span>
+                <CheckIcon className={styles.menuCheck} />
+              </li>
             </ul>
           )}
         </div>
+
+        <div ref={uploadRowRef} className={styles.upRow}>
+          <label className={`${styles.addBtn} ${canPost ? '' : styles.isDisabled}`}>
+            <input
+              className={styles.fileInput}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={!canPost}
+              onChange={(e) => onPicked(e.currentTarget)}
+            />
+            <CameraIcon />
+            <span>Add your look</span>
+          </label>
+          <label className={`${styles.libBtn} ${canPost ? '' : styles.isDisabled}`}>
+            <input
+              className={styles.fileInput}
+              type="file"
+              accept="image/*,.heic,.heif"
+              aria-label="Choose a photo from your library"
+              disabled={!canPost}
+              onChange={(e) => onPicked(e.currentTarget)}
+            />
+            <LibraryIcon />
+          </label>
+        </div>
+        <p className={styles.fine}>
+          <GlobeIcon />
+          <span>
+            Public, no account.{' '}
+            {targetName ? <>Posts to <b>{targetName}</b>.</> : 'You’ll pick the spot next.'}
+          </span>
+        </p>
       </header>
 
-      <main className={styles.sheetBg}>
+      <main className={styles.feedWrap}>
         <div className={`${styles.feed} ${ready ? styles.feedReady : ''}`} aria-live="polite" aria-busy={status === 'loading'}>
           {columns.map((col, i) => (
             <div key={i} className={styles.feedCol}>
@@ -430,6 +499,7 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
                   key={p.id}
                   photo={p}
                   location={locationBySlug.get(p.location_slug)}
+                  showSpot={filter === ALL}
                   now={now}
                   isNew={p.id === newId}
                   canDelete={!!myTokens[p.id]}
@@ -473,7 +543,6 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
           )
         )}
 
-        <div className={styles.homeIndicator} aria-hidden="true" />
       </main>
 
       {pending && (
@@ -489,23 +558,26 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMo
       )}
 
       <button
-        className={styles.fab}
-        onClick={() => {
-          setMenuOpen(false)
-          setSheetOpen(true)
-        }}
-        disabled={!locations.length}
+        className={`${styles.fab} ${showFab && !sheetOpen ? styles.fabShow : ''}`}
+        onClick={() => openSheet(null)}
+        disabled={!canPost}
+        aria-hidden={!showFab}
+        tabIndex={showFab ? 0 : -1}
       >
         <CameraIcon />
-        <span>Add your photo</span>
+        <span>Add your look</span>
       </button>
 
       {sheetOpen && (
         <UploadSheet
           locations={locations}
-          defaultLocation={scannedLocation}
+          defaultLocation={uploadTarget}
           scanSpot={scannedLocation}
-          onClose={() => setSheetOpen(false)}
+          initialFile={sheetFile}
+          onClose={() => {
+            setSheetOpen(false)
+            setSheetFile(null)
+          }}
           onUploaded={onUploaded}
           onToast={showToast}
           debugMode={debugMode}

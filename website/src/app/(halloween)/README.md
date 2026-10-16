@@ -14,12 +14,20 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
 
 ## What a visitor can do
 
-- **Browse the feed.** A masonry grid of photo cards, newest first, with the poster's name,
-  time and venue. More photos load as you scroll.
-- **Filter by venue.** A dropdown in the header switches between all venues and one venue.
-- **Post a photo.** "Add your photo" opens a sheet: take a photo or pick one from the
-  library, choose a venue, optionally add a name, then post. An upload progress
-  bar is shown, and a failed upload keeps the draft so they can tap again.
+- **Land on their spot's lookbook.** The header reads "Lookbook at Westwood" for
+  `?spot=westwood`, and the feed shows that spot's photos. Without a known spot it reads
+  "Lookbook at every spot" and shows everything.
+- **Switch spots.** The spot name in the header is the switcher: tap it for a menu of the
+  spots plus "Every spot". The scanned spot is marked "You're here".
+- **Browse the feed.** A dark, two-column (up to four on wide screens) masonry grid, newest
+  first. The photo is the card, with the poster's name and time under it. On "Every spot" each
+  photo carries a small label with its venue. More photos load as you scroll.
+- **Post a photo.** "Add your look" sits right under the title and opens the camera; the round
+  button next to it opens the photo library. Either one goes straight to the details sheet:
+  the spot being viewed is preselected (on "Every spot", the scanned spot), and the name is
+  optional. A line under the buttons says posts are public and where they'll go. An upload
+  progress bar is shown, and a failed upload keeps the draft so they can tap again. Once the
+  header scrolls away, a floating "Add your look" button opens the same sheet.
 - **See new photos arrive.** The feed checks for new photos every 20 seconds. If the visitor
   is at the top they appear straight away; otherwise a "N new photos" pill appears.
 - **Open a photo.** Tapping a card opens the full-size image in a lightbox.
@@ -29,7 +37,8 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
 
 A QR code links to `/halloween?spot=<slug>`, initially `/halloween?spot=westwood`.
 
-- If the spot matches a known location, that location is preselected in the upload sheet.
+- If the spot matches a known location, the page opens on that spot's lookbook (the server
+  renders its photos first) and the upload sheet preselects it.
 - The visitor can change it. The QR spot is for attribution only; it does not prove where
   someone is.
 - Both values are sent on upload: `scan_spot` (the recognized QR code they scanned) and
@@ -75,8 +84,8 @@ we add a thumbnail rendition. Errors are read from FastAPI's `detail`.
 | Path | What it holds |
 |---|---|
 | `src/app/(halloween)/layout.tsx` | Page metadata and PostHog provider |
-| `src/app/(halloween)/halloween/page.tsx` | Server component: reads `?spot=`, fetches locations and the first page |
-| `.../_components/HalloweenFeed.tsx` | Feed, filter, infinite scroll, polling, delete |
+| `src/app/(halloween)/halloween/page.tsx` | Server component: reads `?spot=`, fetches locations and that spot's first page |
+| `.../_components/HalloweenFeed.tsx` | "Lookbook at" header and spot switcher, upload buttons, feed, infinite scroll, polling, delete |
 | `.../_components/UploadSheet.tsx` | The photo, venue and details flow |
 | `.../_components/PhotoCard.tsx`, `Lightbox.tsx`, `icons.tsx` | Card, full-size view, icons |
 | `.../_components/halloween.module.css` | All styling for the page |

@@ -17,15 +17,26 @@ interface UploadSheetProps {
   /** Location matching the scanned QR code, if any. */
   defaultLocation: string | null
   scanSpot: string | null
+  /** A photo already picked outside the sheet; skips the take-or-upload step. */
+  initialFile?: File | null
   onClose: () => void
   onUploaded: (photo: HalloweenUploadResponse) => void
   onToast: (message: React.ReactNode) => void
   debugMode?: boolean
 }
 
-export function UploadSheet({ locations, defaultLocation, scanSpot, onClose, onUploaded, onToast, debugMode = false }: UploadSheetProps) {
+export function UploadSheet({
+  locations,
+  defaultLocation,
+  scanSpot,
+  initialFile = null,
+  onClose,
+  onUploaded,
+  onToast,
+  debugMode = false,
+}: UploadSheetProps) {
   const posthog = usePostHog()
-  const [step, setStep] = useState<Step>('choose')
+  const [step, setStep] = useState<Step>(initialFile ? 'preparing' : 'choose')
   const [closing, setClosing] = useState(false)
   const [draft, setDraft] = useState<PreparedPhoto | null>(null)
   const [location, setLocation] = useState<string | null>(defaultLocation)
@@ -68,11 +79,7 @@ export function UploadSheet({ locations, defaultLocation, scanSpot, onClose, onU
     sheetRef.current?.scrollTo({ top: 0 })
   }, [step])
 
-  const onFile = async (input: HTMLInputElement) => {
-    const file = input.files?.[0]
-    input.value = ''
-    if (!file) return
-
+  const prepare = async (file: File) => {
     setStep('preparing')
     setError(null)
     try {
@@ -83,6 +90,21 @@ export function UploadSheet({ locations, defaultLocation, scanSpot, onClose, onU
       onToast("Couldn't read that photo — try another.")
     }
   }
+
+  const onFile = (input: HTMLInputElement) => {
+    const file = input.files?.[0]
+    input.value = ''
+    if (file) prepare(file)
+  }
+
+  // Runs once per picked file, even when development mode mounts effects twice.
+  const preparedInitial = useRef<File | null>(null)
+  useEffect(() => {
+    if (!initialFile || preparedInitial.current === initialFile) return
+    preparedInitial.current = initialFile
+    prepare(initialFile)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFile])
 
   const post = async () => {
     if (!draft || !chosen || uploading) return

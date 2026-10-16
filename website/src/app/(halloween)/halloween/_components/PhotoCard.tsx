@@ -22,6 +22,8 @@ export function timeAgo(createdAt: string, now: number) {
 interface PhotoCardProps {
   photo: HalloweenPhoto
   location: HalloweenLocation | undefined
+  /** Label the photo with its spot; only useful when the feed mixes spots. */
+  showSpot: boolean
   now: number
   isNew: boolean
   canDelete: boolean
@@ -30,44 +32,13 @@ interface PhotoCardProps {
   onDelete: (photo: HalloweenPhoto) => void
 }
 
-export function PhotoCard({ photo, location, now, isNew, canDelete, deleting, onOpen, onDelete }: PhotoCardProps) {
+export function PhotoCard({ photo, location, showSpot, now, isNew, canDelete, deleting, onOpen, onDelete }: PhotoCardProps) {
   const name = photo.display_name || 'Someone'
   const spotName = location?.name ?? 'somewhere'
 
   return (
     <article className={`${styles.card} ${isNew ? styles.cardNew : ''}`}>
-      <div className={styles.cardHead}>
-        <span className={styles.avatar} style={{ background: toneOf(location) }} />
-        <div style={{ minWidth: 0 }}>
-          <h2 className={styles.cardName}>{name}</h2>
-          <div className={styles.cardTime} suppressHydrationWarning>
-            {timeAgo(photo.created_at, now)}
-          </div>
-        </div>
-        {canDelete && (
-          <button
-            className={styles.cardDelete}
-            onClick={() => onDelete(photo)}
-            disabled={deleting}
-            aria-label="Delete your photo"
-          >
-            <TrashIcon />
-          </button>
-        )}
-      </div>
-
-      <div className={styles.cardAt}>
-        <span className={styles.chipIcon} style={{ background: toneOf(location) }}>
-          <GlassIcon />
-        </span>
-        <div className={styles.cardAtText}>
-          <div className={styles.cardSpot}>
-            at <b>{spotName}</b>
-          </div>
-        </div>
-      </div>
-
-      <button className={styles.cardPhoto} onClick={() => onOpen(photo)} aria-label={`View photo by ${name}`}>
+      <button className={styles.cardPhoto} onClick={() => onOpen(photo)} aria-label={`View photo by ${name} at ${spotName}`}>
         {/* Backend-hosted thumbnails; next/image would re-optimize already-sized images. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -79,8 +50,31 @@ export function PhotoCard({ photo, location, now, isNew, canDelete, deleting, on
           height={photo.height}
           style={{ aspectRatio: `${photo.width} / ${photo.height}` }}
         />
+        {showSpot && (
+          <span className={styles.cardSpot}>
+            <span className={styles.cardSpotIcon} style={{ background: toneOf(location) }}><GlassIcon /></span>
+            {spotName}
+          </span>
+        )}
       </button>
 
+      {canDelete && (
+        <button
+          className={styles.cardDelete}
+          onClick={() => onDelete(photo)}
+          disabled={deleting}
+          aria-label="Delete your photo"
+        >
+          <TrashIcon />
+        </button>
+      )}
+
+      <div className={styles.cardMeta}>
+        <h2 className={styles.cardName}>{name}</h2>
+        <span className={styles.cardTime} suppressHydrationWarning>
+          {timeAgo(photo.created_at, now)}
+        </span>
+      </div>
     </article>
   )
 }

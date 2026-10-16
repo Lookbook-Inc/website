@@ -83,6 +83,18 @@ export function ArrowRightIcon({ className }: { className?: string }) {
   )
 }
 
+export function GlobeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M3.5 12h17M12 3.5c2.8 3 2.8 14 0 17M12 3.5c-2.8 3-2.8 14 0 17"
+        fill="none" stroke="currentColor" strokeWidth="1.7"
+      />
+    </svg>
+  )
+}
+
 export function CloseIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">

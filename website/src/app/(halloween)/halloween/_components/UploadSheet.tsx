@@ -20,16 +20,16 @@ interface UploadSheetProps {
   onClose: () => void
   onUploaded: (photo: HalloweenUploadResponse) => void
   onToast: (message: React.ReactNode) => void
+  debugMode?: boolean
 }
 
-export function UploadSheet({ locations, defaultLocation, scanSpot, onClose, onUploaded, onToast }: UploadSheetProps) {
+export function UploadSheet({ locations, defaultLocation, scanSpot, onClose, onUploaded, onToast, debugMode = false }: UploadSheetProps) {
   const posthog = usePostHog()
   const [step, setStep] = useState<Step>('choose')
   const [closing, setClosing] = useState(false)
   const [draft, setDraft] = useState<PreparedPhoto | null>(null)
   const [location, setLocation] = useState<string | null>(defaultLocation)
   const [name, setName] = useState('')
-  const [caption, setCaption] = useState('')
   const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const sheetRef = useRef<HTMLElement>(null)
@@ -95,29 +95,36 @@ export function UploadSheet({ locations, defaultLocation, scanSpot, onClose, onU
       scan_spot: scanSpot,
       changed_from_scan: !!defaultLocation && defaultLocation !== chosen.slug,
     }
-    posthog?.capture('halloween_upload_started', analytics)
+    if (!debugMode) posthog?.capture('halloween_upload_started', analytics)
 
     try {
-      const photo = await uploadPhoto(
+      const photo = debugMode ? await new Promise<HalloweenUploadResponse>((resolve) => {
+        setTimeout(() => resolve({
+          id: `debug-upload-${crypto.randomUUID()}`,
+          image_url: URL.createObjectURL(draft.blob),
+          width: draft.width,
+          height: draft.height,
+          location_slug: chosen.slug,
+          display_name: name.trim() || null,
+          created_at: new Date().toISOString(),
+        }), 350)
+      }) : await uploadPhoto(
         {
           photo: draft.blob,
           locationSlug: chosen.slug,
           scanSpot,
           displayName: name.trim(),
-          caption: caption.trim(),
-          swatches: draft.swatches,
         },
         setProgress
       )
-      posthog?.capture('halloween_uploaded', { ...analytics, photo_id: photo.id })
+      if (!debugMode) posthog?.capture('halloween_uploaded', { ...analytics, photo_id: photo.id })
       onUploaded(photo)
       onToast(<>Posted to <em>{chosen.name}</em></>)
       setProgress(null)
-      setCaption('')
       dismiss()
     } catch (err) {
       const status = err instanceof HalloweenApiError ? err.status : -1
-      posthog?.capture('halloween_upload_failed', { ...analytics, status })
+      if (!debugMode) posthog?.capture('halloween_upload_failed', { ...analytics, status })
       // Keep the draft so they can just tap Post again.
       setError(err instanceof Error ? err.message : 'Upload failed — try again.')
       setProgress(null)
@@ -200,11 +207,6 @@ export function UploadSheet({ locations, defaultLocation, scanSpot, onClose, onU
                 Retake
               </button>
             </div>
-            <div className={`${styles.swatches} ${styles.swatchesPreview}`}>
-              {draft.swatches.map((c, i) => (
-                <span key={i} className={styles.swatch} style={{ background: c }} />
-              ))}
-            </div>
 
             <h3 className={styles.fieldTitle}>Where are you tonight?</h3>
             <div className={styles.spots} role="radiogroup" aria-label="Choose your spot">
@@ -237,18 +239,9 @@ export function UploadSheet({ locations, defaultLocation, scanSpot, onClose, onU
                   disabled={uploading}
                 />
               </label>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Caption</span>
-                <input
-                  type="text"
-                  maxLength={60}
-                  placeholder="trick or treat."
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  disabled={uploading}
-                />
-              </label>
             </div>
+
+            <p className={styles.publicNote}>Your photo and name, if provided, will be visible to everyone on this page.</p>
 
             {error && <p className={styles.uploadError} role="alert">{error}</p>}
 

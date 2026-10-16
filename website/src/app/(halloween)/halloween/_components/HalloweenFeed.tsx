@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePostHog } from 'posthog-js/react'
 import { deletePhoto, getLocations, getPhotos } from '@/lib/api/halloween'
+import { getDebugPhotos } from '@/lib/halloween/debug'
 import { loadDeleteTokens, saveDeleteTokens } from '@/lib/halloween/storage'
 import {
   HalloweenLocation,
@@ -33,6 +34,7 @@ interface HalloweenFeedProps {
   initialLocations: HalloweenLocation[] | null
   initialPage: HalloweenPhotoPage | null
   scanSpot: string | null
+  debugMode?: boolean
 }
 
 const colCountFor = (width: number) => (width >= 1080 ? 4 : width >= 760 ? 3 : 2)
@@ -43,7 +45,7 @@ function mergeUnique(first: HalloweenPhoto[], second: HalloweenPhoto[]) {
   return [...first, ...second].filter((p) => !seen.has(p.id) && !!seen.add(p.id))
 }
 
-export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: HalloweenFeedProps) {
+export function HalloweenFeed({ initialLocations, initialPage, scanSpot, debugMode = false }: HalloweenFeedProps) {
   const posthog = usePostHog()
 
   const [locations, setLocations] = useState<HalloweenLocation[]>(initialLocations ?? [])
@@ -77,6 +79,8 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
   const filterBtnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLUListElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const debugUploads = useRef<HalloweenPhoto[]>([])
+  const debugObjectUrls = useRef<string[]>([])
 
   const locationBySlug = useMemo(() => new Map(locations.map((l) => [l.slug, l])), [locations])
   const scannedLocation = scanSpot && locationBySlug.has(scanSpot) ? scanSpot : null
@@ -97,12 +101,14 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
     return () => clearTimeout(t)
   }, [])
 
+  useEffect(() => () => debugObjectUrls.current.forEach((url) => URL.revokeObjectURL(url)), [])
+
   const viewTracked = useRef(false)
   useEffect(() => {
-    if (!posthog || viewTracked.current) return
+    if (debugMode || !posthog || viewTracked.current) return
     viewTracked.current = true
     posthog.capture('halloween_viewed', { scan_spot: scanSpot })
-  }, [posthog, scanSpot])
+  }, [posthog, scanSpot, debugMode])
 
   // Keep "3m ago" honest without refetching.
   useEffect(() => {
@@ -142,7 +148,9 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
     setStatus('loading')
     setPending(null)
     try {
-      const page = await getPhotos({ location: location === ALL ? null : location })
+      const page = debugMode
+        ? getDebugPhotos(location === ALL ? null : location, debugUploads.current)
+        : await getPhotos({ location: location === ALL ? null : location })
       if (req !== requestId.current) return
       setPhotos(page.photos)
       setNextCursor(page.next_cursor)
@@ -150,7 +158,7 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
     } catch {
       if (req === requestId.current) setStatus('error')
     }
-  }, [])
+  }, [debugMode])
 
   const loadMore = async () => {
     if (!nextCursor || status === 'loading') return
@@ -203,6 +211,7 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
   }, [])
 
   useEffect(() => {
+    if (debugMode) return
     const check = async () => {
       if (document.hidden) return
       const location = filterRef.current
@@ -235,7 +244,7 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
       clearInterval(t)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [applyPending])
+  }, [applyPending, debugMode])
 
   /* ───────────── Filter ───────────── */
   const chooseFilter = (slug: string) => {
@@ -281,7 +290,11 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
 
   /* ───────────── Upload / delete ───────────── */
   const onUploaded = ({ delete_token, ...photo }: HalloweenUploadResponse) => {
-    if (delete_token) {
+    if (debugMode) {
+      debugUploads.current.unshift(photo)
+      if (photo.image_url.startsWith('blob:')) debugObjectUrls.current.push(photo.image_url)
+      setMyTokens((prev) => ({ ...prev, [photo.id]: 'debug' }))
+    } else if (delete_token) {
       const tokens = { ...loadDeleteTokens(), [photo.id]: delete_token }
       saveDeleteTokens(tokens)
       setMyTokens(tokens)
@@ -302,6 +315,17 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
   const onDelete = async (photo: HalloweenPhoto) => {
     const token = myTokens[photo.id]
     if (!token || !window.confirm("Delete your photo from the feed? This can't be undone.")) return
+    if (debugMode) {
+      debugUploads.current = debugUploads.current.filter((item) => item.id !== photo.id)
+      setMyTokens((prev) => {
+        const next = { ...prev }
+        delete next[photo.id]
+        return next
+      })
+      setPhotos((prev) => prev.filter((item) => item.id !== photo.id))
+      showToast('Preview photo removed')
+      return
+    }
     setDeletingId(photo.id)
     try {
       await deletePhoto(photo.id, token)
@@ -325,7 +349,7 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
     for (const p of photos) {
       const target = out.reduce((a, b) => (b.h < a.h ? b : a))
       target.photos.push(p)
-      target.h += (p.height || 1) / (p.width || 1) + 0.55 + (p.caption ? 0.12 : 0)
+      target.h += (p.height || 1) / (p.width || 1) + 0.55
     }
     return out
   }, [photos, cols])
@@ -344,6 +368,7 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
 
   return (
     <div className={styles.root}>
+      {debugMode && <div className={styles.debugBanner}>Preview mode · sample photos · uploads stay in this tab</div>}
       <header className={styles.top}>
         <div>
           <h1 className={styles.topTitle}>Tonight</h1>
@@ -479,10 +504,11 @@ export function HalloweenFeed({ initialLocations, initialPage, scanSpot }: Hallo
         <UploadSheet
           locations={locations}
           defaultLocation={scannedLocation}
-          scanSpot={scanSpot}
+          scanSpot={scannedLocation}
           onClose={() => setSheetOpen(false)}
           onUploaded={onUploaded}
           onToast={showToast}
+          debugMode={debugMode}
         />
       )}
 

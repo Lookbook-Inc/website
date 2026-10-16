@@ -20,8 +20,6 @@ export interface HalloweenPhoto {
   height: number
   location_slug: string
   display_name: string | null
-  caption: string | null
-  swatches: string[]
   created_at: string
 }
 
@@ -40,6 +38,4 @@ export interface HalloweenUploadInput {
   locationSlug: string
   scanSpot: string | null
   displayName: string
-  caption: string
-  swatches: string[]
 }

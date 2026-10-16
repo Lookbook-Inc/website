@@ -38,7 +38,6 @@ export function Lightbox({ photo, spotName, onClose }: LightboxProps) {
         <img src={photo.image_url} alt={`Photo by ${name} at ${spotName}`} width={photo.width} height={photo.height} />
         <figcaption>
           <b>{name}</b> &nbsp;at {spotName}
-          {photo.caption && <> — <i>{photo.caption}</i></>}
         </figcaption>
       </figure>
     </div>

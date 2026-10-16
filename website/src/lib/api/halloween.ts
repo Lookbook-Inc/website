@@ -102,8 +102,6 @@ export function uploadPhoto(
   formData.append('location_slug', input.locationSlug)
   if (input.scanSpot) formData.append('scan_spot', input.scanSpot)
   if (input.displayName) formData.append('display_name', input.displayName)
-  if (input.caption) formData.append('caption', input.caption)
-  formData.append('swatches', JSON.stringify(input.swatches))
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()

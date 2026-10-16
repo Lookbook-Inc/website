@@ -5,7 +5,6 @@ import { GlassIcon, TrashIcon } from './icons'
 import styles from './halloween.module.css'
 
 const DEFAULT_TONE = '#3e2a20'
-const FALLBACK_SWATCH = '#d9cfc3'
 const isHex = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)
 
 export const toneOf = (location: HalloweenLocation | undefined) =>
@@ -34,14 +33,11 @@ interface PhotoCardProps {
 export function PhotoCard({ photo, location, now, isNew, canDelete, deleting, onOpen, onDelete }: PhotoCardProps) {
   const name = photo.display_name || 'Someone'
   const spotName = location?.name ?? 'somewhere'
-  // Swatches come from visitors' browsers; only ever paint plain hex colors.
-  const swatches = (photo.swatches ?? []).filter(isHex).slice(0, 5)
-  while (swatches.length < 5) swatches.push(FALLBACK_SWATCH)
 
   return (
     <article className={`${styles.card} ${isNew ? styles.cardNew : ''}`}>
       <div className={styles.cardHead}>
-        <span className={styles.avatar} style={{ background: swatches[2] }} />
+        <span className={styles.avatar} style={{ background: toneOf(location) }} />
         <div style={{ minWidth: 0 }}>
           <h2 className={styles.cardName}>{name}</h2>
           <div className={styles.cardTime} suppressHydrationWarning>
@@ -68,7 +64,6 @@ export function PhotoCard({ photo, location, now, isNew, canDelete, deleting, on
           <div className={styles.cardSpot}>
             at <b>{spotName}</b>
           </div>
-          {photo.caption && <div className={styles.cardCaption}>{photo.caption}</div>}
         </div>
       </div>
 
@@ -86,11 +81,6 @@ export function PhotoCard({ photo, location, now, isNew, canDelete, deleting, on
         />
       </button>
 
-      <div className={styles.swatches}>
-        {swatches.map((c, i) => (
-          <span key={i} className={styles.swatch} style={{ background: c }} />
-        ))}
-      </div>
     </article>
   )
 }

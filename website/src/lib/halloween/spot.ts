@@ -1,5 +1,5 @@
 /**
- * QR scan spot (`?spot=venue-a`)
+ * QR scan spot (`?spot=westwood`)
  *
  * The spot only says which QR code was scanned — it's for attribution and
  * preselecting a location, not proof of where someone is.

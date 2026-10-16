@@ -5,20 +5,20 @@ A shared photo feed for Halloween night. People scan a QR code at a venue, land 
 else is wearing across all the venues.
 
 This is frontend only. Photos and metadata are stored by the Wrapped FastAPI backend in the
-Lookbook Wrapped Supabase project; this page just calls its `/halloween` endpoints.
+Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoints.
 
-> **Status:** the frontend is built and has been tested end to end against a local stand-in
-> backend. The real `/halloween` endpoints do not exist in the backend yet, so the field names
-> below are this frontend's assumptions and need to be confirmed with whoever builds them.
+> **Status:** the frontend and Wrapped FastAPI endpoints are implemented in local branches.
+> The Halloween schema and bucket have been applied to the Fashion Wrapped Supabase project.
+> Backend source: `mvp-backend-halloween/python-backend/src/apis/halloween.py`;
+> deployment notes: `mvp-backend-halloween/python-backend/HALLOWEEN.md`.
 
 ## What a visitor can do
 
 - **Browse the feed.** A masonry grid of photo cards, newest first, with the poster's name,
-  time, venue, optional caption and five colour swatches pulled from the photo. More photos
-  load as you scroll.
+  time and venue. More photos load as you scroll.
 - **Filter by venue.** A dropdown in the header switches between all venues and one venue.
 - **Post a photo.** "Add your photo" opens a sheet: take a photo or pick one from the
-  library, choose a venue, optionally add a name and caption, then post. An upload progress
+  library, choose a venue, optionally add a name, then post. An upload progress
   bar is shown, and a failed upload keeps the draft so they can tap again.
 - **See new photos arrive.** The feed checks for new photos every 20 seconds. If the visitor
   is at the top they appear straight away; otherwise a "N new photos" pill appears.
@@ -27,13 +27,13 @@ Lookbook Wrapped Supabase project; this page just calls its `/halloween` endpoin
 
 ## QR codes and locations
 
-A QR code links to `/halloween?spot=<slug>`, for example `/halloween?spot=venue-a`.
+A QR code links to `/halloween?spot=<slug>`, initially `/halloween?spot=westwood`.
 
 - If the spot matches a known location, that location is preselected in the upload sheet.
 - The visitor can change it. The QR spot is for attribution only; it does not prove where
   someone is.
-- Both values are sent on upload: `scan_spot` (the QR code they scanned) and `location_slug`
-  (the venue they picked). `scan_spot` is sent even when it matches no location.
+- Both values are sent on upload: `scan_spot` (the recognized QR code they scanned) and
+  `location_slug` (the venue they picked). Unknown scan spots are omitted.
 - Spots are lowercased and must match `[a-z0-9-]{1,40}`; anything else is ignored.
 
 ## Backend calls
@@ -56,8 +56,6 @@ no login; visitors are anonymous.
 | `location_slug` | The venue the visitor chose |
 | `scan_spot` | The `?spot=` value, omitted if there was none |
 | `display_name` | Optional, up to 24 characters |
-| `caption` | Optional, up to 60 characters |
-| `swatches` | JSON string holding an array of 5 hex colours |
 
 The frontend does not send the image's width and height; the backend is expected to read
 them from the file.
@@ -66,17 +64,11 @@ them from the file.
 
 - Location: `slug`, `name`, `sort_order`, optional `tone` (hex colour for the venue icon).
 - Photo: `id`, `image_url`, `width`, `height`, `location_slug`, `created_at`, and optionally
-  `thumb_url`, `display_name`, `caption`, `swatches`.
+  `thumb_url`, `display_name`.
 
-**Open points for the backend**
-
-- The proposed schema lists three endpoints. `DELETE` is an addition this frontend makes.
-  If the upload response has no `delete_token`, the delete button simply never appears.
-- `display_name`, `caption`, `swatches` and `thumb_url` are not in the proposed
-  `halloween_photos` table. Without them cards show "Someone", no caption, neutral swatches,
-  and the full image in place of a thumbnail.
-- The schema calls the location label "display name"; the frontend reads it as `name`.
-- Errors are read from FastAPI's `detail`. 413, 429 and 5xx get their own friendly messages.
+The backend returns `delete_token` once to the poster. Photos have an optional
+`display_name`; there is no caption or color swatch data. The feed uses the full image until
+we add a thumbnail rendition. Errors are read from FastAPI's `detail`.
 
 ## Where the code is
 
@@ -89,7 +81,7 @@ them from the file.
 | `.../_components/PhotoCard.tsx`, `Lightbox.tsx`, `icons.tsx` | Card, full-size view, icons |
 | `.../_components/halloween.module.css` | All styling for the page |
 | `src/lib/api/halloween.ts` | The four backend calls and error messages |
-| `src/lib/halloween/image.ts` | Resizes to JPEG in the browser, extracts swatches, converts HEIC |
+| `src/lib/halloween/image.ts` | Resizes to JPEG in the browser and converts HEIC |
 | `src/lib/halloween/spot.ts` | Validates the `?spot=` value |
 | `src/lib/halloween/storage.ts` | Remembers the visitor's name and delete tokens in `localStorage` |
 | `src/types/halloween-api.ts` | Request and response types |
@@ -101,6 +93,13 @@ PostHog events: `halloween_viewed`, `halloween_upload_started`, `halloween_uploa
 `scan_spot` and `changed_from_scan` (whether the visitor switched away from the QR venue).
 
 ## Running it locally
+
+To preview the page with sample photos at Westwood, Butter, and Jaxson, run the
+website locally and open `http://localhost:3000/halloween?debug=1&spot=westwood`. Preview
+uploads appear in the feed for that browser tab only; they never reach the backend. Preview
+mode is available automatically in development. For a deployed preview build, set the
+server-side `HALLOWEEN_DEMO_ENABLED=true` environment variable. Without that setting,
+`?debug=1` has no effect in production.
 
 ```bash
 NEXT_PUBLIC_WRAPPED_BACKEND_URL=http://localhost:8002 npm run dev

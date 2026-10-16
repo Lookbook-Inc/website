@@ -35,6 +35,16 @@
 .root :where(button) { font: inherit; color: inherit; cursor: pointer; }
 .root :where(img) { display: block; max-width: 100%; }
 
+.debugBanner {
+  padding: 8px 16px;
+  background: #efd39d;
+  color: #312414;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
 /* ───────────── Header ───────────── */
 .top {
   position: sticky;
@@ -219,14 +229,6 @@
 .cardAtText { min-width: 0; }
 .cardSpot { font-size: 15px; color: var(--ink-soft); line-height: 1.4; }
 .cardSpot b { font-weight: 500; color: var(--ink); }
-.cardCaption {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 16px;
-  line-height: 1.3;
-  color: var(--ink-soft);
-  overflow-wrap: anywhere;
-}
 
 .cardPhoto {
   display: block;
@@ -241,12 +243,6 @@
 .cardPhoto img { width: 100%; height: auto; display: block; transition: transform .5s var(--ease); }
 .cardPhoto:hover img { transform: scale(1.02); }
 
-.swatches { display: flex; justify-content: center; gap: 9px; margin-top: 14px; }
-.swatch {
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08);
-}
 
 /* Small screens: tighten cards so two columns breathe */
 @media (max-width: 420px) {
@@ -258,10 +254,7 @@
   .chipIcon { width: 18px; height: 18px; border-radius: 4px; }
   .chipIcon svg { width: 11px; height: 11px; }
   .cardSpot { font-size: 13px; }
-  .cardCaption { font-size: 14px; }
   .cardPhoto { border-radius: 13px; }
-  .swatches { gap: 6px; margin-top: 11px; }
-  .swatch { width: 20px; height: 20px; }
 }
 
 /* Empty / error state */
@@ -462,7 +455,6 @@
   font-weight: 600;
 }
 .previewRetake:disabled { opacity: .5; }
-.swatchesPreview { margin: 14px 0 4px; }
 
 .fieldTitle {
   margin: 22px 0 12px;
@@ -471,6 +463,7 @@
   font-size: 24px;
   color: var(--ink);
 }
+.publicNote { margin: 14px 0; color: var(--ink-soft); font-size: 13px; line-height: 1.5; }
 .spots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .spotOpt {
   position: relative;
@@ -582,7 +575,6 @@
 }
 .lightboxFig figcaption { margin-top: 14px; color: #d9d2c8; font-size: 15px; text-align: center; }
 .lightboxFig figcaption b { font-family: var(--serif); font-weight: 400; font-size: 20px; color: #fff; }
-.lightboxFig figcaption i { font-family: var(--serif); }
 .lightboxClose {
   position: absolute;
   top: calc(14px + env(safe-area-inset-top)); right: 14px;

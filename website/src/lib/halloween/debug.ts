@@ -5,6 +5,7 @@ export const debugLocations: HalloweenLocation[] = [
   { slug: 'westwood', name: 'Westwood', sort_order: 1, tone: '#9b5d45' },
   { slug: 'butter', name: 'Butter', sort_order: 2, tone: '#a37c3f' },
   { slug: 'jaxson', name: 'Jaxson', sort_order: 3, tone: '#5f688d' },
+  { slug: 'polkcha', name: 'Polkcha', sort_order: 4 },
 ]
 
 const samples = [

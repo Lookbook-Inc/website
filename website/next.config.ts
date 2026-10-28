@@ -16,6 +16,13 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // Keep existing Bar Darling QR codes working for Franko & Friends.
+        source: '/halloween',
+        has: [{ type: 'query', key: 'spot', value: 'bardarling' }],
+        destination: '/halloween?spot=franko',
+        permanent: false,
+      },
+      {
         source: '/wrapped',
         destination: '/snapshot',
         permanent: true,

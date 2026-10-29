@@ -16,6 +16,13 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // Keep existing Balboa QR codes working for O’Reilly’s.
+        source: '/halloween',
+        has: [{ type: 'query', key: 'spot', value: 'balboa' }],
+        destination: '/halloween?spot=oreillys',
+        permanent: false,
+      },
+      {
         // Keep existing Bar Darling QR codes working for Franko & Friends.
         source: '/halloween',
         has: [{ type: 'query', key: 'spot', value: 'bardarling' }],

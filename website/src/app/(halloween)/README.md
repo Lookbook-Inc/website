@@ -30,7 +30,13 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
   header scrolls away, a floating "Add your look" button opens the same sheet.
 - **See new photos arrive.** The feed checks for new photos every 20 seconds. If the visitor
   is at the top they appear straight away; otherwise a "N new photos" pill appears.
-- **Open a photo.** Tapping a card opens the full-size image in a lightbox.
+- **Open a photo.** Photos with a materialized venue edit open in a cream focus card:
+  the poster and venue above it, the upload date and CSV headline at the top, and a named
+  four-color drink palette below the image. An older photo at a supported bar gets its
+  edit saved on first open. Other photos keep the original full-size lightbox. The feed
+  cards and layout are unchanged.
+  The weather badge is fixed at **56°F / Cloudy** for photos dated October 30 through
+  November 1, 2026 (America/Los_Angeles), and is omitted outside that window.
 - **Delete their own photo.** A trash button appears only on photos posted from this device.
 
 ## QR codes and locations
@@ -54,6 +60,7 @@ no login; visitors are anonymous.
 |---|---|---|
 | `GET /halloween/locations` | nothing | Array of locations, already in display order |
 | `GET /halloween/photos` | `limit` (24), optional `location` (slug), optional `cursor` | `{ photos, next_cursor }`, newest first |
+| `GET /halloween/photos/{id}` | Photo ID | Photo; saves a missing venue edit when eligible |
 | `POST /halloween/photos` | multipart form, see below | The created photo, plus `delete_token` |
 | `DELETE /halloween/photos/{id}` | header `X-Delete-Token` | Any 2xx; a 404 is treated as already deleted |
 
@@ -73,11 +80,14 @@ them from the file.
 
 - Location: `slug`, `name`, `sort_order`, optional `tone` (hex colour for the venue icon).
 - Photo: `id`, `image_url`, `width`, `height`, `location_slug`, `created_at`, and optionally
-  `thumb_url`, `display_name`.
+  `thumb_url`, `display_name`, `focus_edit`.
 
 The backend returns `delete_token` once to the poster. Photos have an optional
-`display_name`; there is no caption or color swatch data. The feed uses the full image until
-we add a thumbnail rendition. Errors are read from FastAPI's `detail`.
+`display_name`. `focus_edit` is null or `{ line, palette: { name, colors } }`, with four
+hex colors. The backend selects the line and venue drink palette from the supplied
+Halloween CSVs and stores them together. The frontend does not select or regenerate
+these details. A failed details request leaves the original image open. The feed uses
+the full image until we add a thumbnail rendition. Errors are read from FastAPI's `detail`.
 
 ## Where the code is
 
@@ -103,12 +113,15 @@ PostHog events: `halloween_viewed`, `halloween_upload_started`, `halloween_uploa
 
 ## Running it locally
 
-To preview the page with sample photos at Westwood, Butter, and Jaxson, run the
+To preview the page with sample photos at Westwood, Polkcha, and Jaxson, run the
 website locally and open `http://localhost:3000/halloween?debug=1&spot=westwood`. Preview
 uploads appear in the feed for that browser tab only; they never reach the backend. Preview
 mode is available automatically in development. For a deployed preview build, set the
 server-side `HALLOWEEN_DEMO_ENABLED=true` environment variable. Without that setting,
 `?debug=1` has no effect in production.
+
+The first Westwood sample includes a complete focus edit; the other samples demonstrate
+the ordinary lightbox. Debug mode does not request or persist legacy-photo edits.
 
 ```bash
 NEXT_PUBLIC_WRAPPED_BACKEND_URL=http://localhost:8002 npm run dev

@@ -10,6 +10,7 @@
 
 import {
   HalloweenLocation,
+  HalloweenPhoto,
   HalloweenPhotoPage,
   HalloweenUploadInput,
   HalloweenUploadResponse,
@@ -83,6 +84,11 @@ export async function getPhotos(
   if (cursor) params.append('cursor', cursor)
 
   return getJson(`/halloween/photos?${params.toString()}`, "Couldn't load photos")
+}
+
+/** Opening an older eligible photo also materializes its venue edit on the backend. */
+export async function getPhotoDetails(id: string): Promise<HalloweenPhoto> {
+  return getJson(`/halloween/photos/${encodeURIComponent(id)}`, "Couldn't load photo")
 }
 
 /**

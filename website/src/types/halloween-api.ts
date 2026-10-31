@@ -11,6 +11,15 @@ export interface HalloweenLocation {
   sort_order: number
 }
 
+/** Materialized together by the backend; absent on photos without a venue edit. */
+export interface HalloweenFocusEdit {
+  line: string
+  palette: {
+    name: string
+    colors: string[]
+  }
+}
+
 export interface HalloweenPhoto {
   id: string
   image_url: string
@@ -21,6 +30,7 @@ export interface HalloweenPhoto {
   location_slug: string
   display_name: string | null
   created_at: string
+  focus_edit?: HalloweenFocusEdit | null
 }
 
 export interface HalloweenPhotoPage {

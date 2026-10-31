@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePostHog } from 'posthog-js/react'
-import { deletePhoto, getLocations, getPhotos } from '@/lib/api/halloween'
+import { deletePhoto, getLocations, getPhotoDetails, getPhotos } from '@/lib/api/halloween'
 import { getDebugPhotos } from '@/lib/halloween/debug'
 import { loadDeleteTokens, saveDeleteTokens } from '@/lib/halloween/storage'
 import {
@@ -80,6 +80,7 @@ export function HalloweenFeed({
 
   // Bumped on every list request so a slow response for an old filter can't overwrite a newer one.
   const requestId = useRef(0)
+  const lightboxRequestId = useRef(0)
   const photosRef = useRef(photos)
   photosRef.current = photos
   const filterRef = useRef(filter)
@@ -389,6 +390,25 @@ export function HalloweenFeed({
     return out
   }, [photos, cols])
 
+  const openPhoto = async (photo: HalloweenPhoto) => {
+    const request = ++lightboxRequestId.current
+    setLightboxPhoto(photo)
+    if (debugMode || photo.focus_edit) return
+    try {
+      const detailed = await getPhotoDetails(photo.id)
+      if (request !== lightboxRequestId.current) return
+      setPhotos((current) => current.map((item) => item.id === detailed.id ? detailed : item))
+      setLightboxPhoto((current) => current?.id === detailed.id ? detailed : current)
+    } catch {
+      // The original image stays open if details are unavailable or this is an older backend.
+    }
+  }
+
+  const closePhoto = () => {
+    ++lightboxRequestId.current
+    setLightboxPhoto(null)
+  }
+
   const activeLocation = filter === ALL ? undefined : locationBySlug.get(filter)
   const venueLabel = activeLocation?.name ?? 'every spot'
   const targetName = uploadTarget ? locationBySlug.get(uploadTarget)?.name : null
@@ -504,7 +524,7 @@ export function HalloweenFeed({
                   isNew={p.id === newId}
                   canDelete={!!myTokens[p.id]}
                   deleting={deletingId === p.id}
-                  onOpen={setLightboxPhoto}
+                  onOpen={openPhoto}
                   onDelete={onDelete}
                 />
               ))}
@@ -588,7 +608,7 @@ export function HalloweenFeed({
         <Lightbox
           photo={lightboxPhoto}
           spotName={locationBySlug.get(lightboxPhoto.location_slug)?.name ?? 'somewhere'}
-          onClose={() => setLightboxPhoto(null)}
+          onClose={closePhoto}
         />
       )}
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePostHog } from 'posthog-js/react'
 import { deletePhoto, getLocations, getPhotos } from '@/lib/api/halloween'
 import { getDebugPhotos } from '@/lib/halloween/debug'
+import type { Weather } from '@/lib/halloween/weather'
 import { loadDeleteTokens, saveDeleteTokens } from '@/lib/halloween/storage'
 import {
   HalloweenLocation,
@@ -19,6 +20,9 @@ import { UploadSheet } from './UploadSheet'
 import styles from './halloween.module.css'
 
 const ALL = 'all'
+/** What the header, board and menu call the feed of every spot. */
+const ALL_LABEL = 'San Francisco'
+const todayFormat = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })
 const NEW_PHOTO_POLL_MS = 20_000
 /** Only drop new photos straight in when the visitor is looking at the top of the feed. */
 const NEAR_TOP_PX = 120
@@ -37,6 +41,8 @@ interface HalloweenFeedProps {
   scanSpot: string | null
   /** The spot the first page was loaded for (the scanned spot, if it's a known location). */
   initialFilter: string | null
+  /** San Francisco's current weather; the header shows the date alone without it. */
+  weather: Weather | null
   debugMode?: boolean
 }
 
@@ -53,6 +59,7 @@ export function HalloweenFeed({
   initialPage,
   scanSpot,
   initialFilter,
+  weather,
   debugMode = false,
 }: HalloweenFeedProps) {
   const posthog = usePostHog()
@@ -99,11 +106,11 @@ export function HalloweenFeed({
 
   const locationBySlug = useMemo(() => new Map(locations.map((l) => [l.slug, l])), [locations])
   const scannedLocation = scanSpot && locationBySlug.has(scanSpot) ? scanSpot : null
-  // Posts go to the spot being viewed; on "every spot" they default to the scanned one.
+  // Posts go to the spot being viewed; on San Francisco they default to the scanned one.
   const uploadTarget = filter !== ALL && locationBySlug.has(filter) ? filter : scannedLocation
 
   /* ───────────── Opener ───────────── */
-  const initialVenue = initialLocations?.find((l) => l.slug === initialFilter)?.name ?? 'every spot'
+  const initialVenue = initialLocations?.find((l) => l.slug === initialFilter)?.name ?? ALL_LABEL
   const revealPage = useCallback(() => setOpening('reveal'), [])
   const skipOpener = useCallback(() => setOpening('done'), [])
   useEffect(() => {
@@ -403,7 +410,7 @@ export function HalloweenFeed({
   }, [photos, cols])
 
   const activeLocation = filter === ALL ? undefined : locationBySlug.get(filter)
-  const venueLabel = activeLocation?.name ?? 'every spot'
+  const venueLabel = activeLocation?.name ?? ALL_LABEL
   const canPost = locations.length > 0
 
   const firstLoad = !photos.length && status === 'loading'
@@ -425,6 +432,10 @@ export function HalloweenFeed({
       {debugMode && <div className={styles.debugBanner}>Preview mode · sample photos · uploads stay in this tab</div>}
       <header className={styles.top}>
         <div className={styles.filter}>
+          <p className={styles.today}>
+            <b suppressHydrationWarning>{todayFormat.format(now)}</b>
+            {weather && <span>{weather.tempF}° {weather.summary}</span>}
+          </p>
           <h1 className={styles.title}>
             <span className={styles.titlePre}>Lookbook at</span>{' '}
             <button
@@ -466,7 +477,7 @@ export function HalloweenFeed({
                 onClick={() => chooseFilter(ALL)}
               >
                 <span className={styles.menuDot} style={{ background: '#3a332e' }}><AllIcon /></span>
-                <span className={styles.menuName}>Every spot</span>
+                <span className={styles.menuName}>{ALL_LABEL}</span>
                 <CheckIcon className={styles.menuCheck} />
               </li>
             </ul>

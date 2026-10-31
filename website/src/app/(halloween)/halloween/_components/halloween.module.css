@@ -55,6 +55,18 @@
 }
 .filter { position: relative; }
 .title { margin: 0; font-family: var(--serif); font-weight: 400; line-height: 1; }
+.today {
+  position: absolute;
+  top: 0; right: 0;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.25;
+  color: var(--muted);
+}
+.today b { font-weight: 600; color: var(--ink-soft); }
 .titlePre { display: block; font-size: 30px; color: var(--muted); }
 .venueBtn {
   display: inline-flex;
@@ -630,22 +642,26 @@
 .openerPre { font-family: var(--serif); font-size: 30px; line-height: 1; color: var(--muted); opacity: 0; }
 .openerBoard {
   /* 25px tiles, narrower if a long venue name needs more of them than the screen fits. */
-  --tile: min(25px, (100vw - 32px - (var(--tiles) - 1) * 3px) / var(--tiles));
+  --tile: min(25px, (100vw - 32px - var(--tiles) * 3px) / var(--tiles));
   display: flex;
-  gap: 3px;
+  justify-content: center;
   perspective: 300px;
 }
 .openerTile {
   position: relative;
+  flex: none;
   display: grid; place-items: center;
   width: var(--tile);
   height: calc(var(--tile) * 1.6);
+  margin: 0 1.5px;
   border-radius: 4px;
   background: linear-gradient(#24201d 50%, #1c1917 50%);
   color: var(--ink);
   font: 700 calc(var(--tile) * .88) / 1 var(--sans);
   box-shadow: 0 2px 0 #000;
+  transition: width .16s ease, height .16s ease, margin .16s ease, opacity .16s ease, font-size .16s ease;
 }
+.openerTileOff { width: 0; margin: 0; opacity: 0; }
 .openerTile::after {
   content: "";
   position: absolute;

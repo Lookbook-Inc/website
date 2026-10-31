@@ -16,6 +16,7 @@ import { AllIcon, CameraIcon, CheckIcon, ChevronDownIcon, GlassIcon, LibraryIcon
 import { Lightbox } from './Lightbox'
 import { BoardOpener, revealDuration, revealIndex } from './BoardOpener'
 import { PhotoCard, toneOf } from './PhotoCard'
+import { OtherSpotsFeed } from './OtherSpotsFeed'
 import { UploadSheet } from './UploadSheet'
 import styles from './halloween.module.css'
 
@@ -369,7 +370,7 @@ export function HalloweenFeed({
 
   const onDelete = async (photo: HalloweenPhoto) => {
     const token = myTokens[photo.id]
-    if (!token || !window.confirm("Delete your photo from the feed? This can't be undone.")) return
+    if (!token || !window.confirm("Delete your photo from the feed? This can't be undone.")) return false
     if (debugMode) {
       debugUploads.current = debugUploads.current.filter((item) => item.id !== photo.id)
       setMyTokens((prev) => {
@@ -379,7 +380,7 @@ export function HalloweenFeed({
       })
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id))
       showToast('Preview photo removed')
-      return
+      return true
     }
     setDeletingId(photo.id)
     try {
@@ -390,8 +391,10 @@ export function HalloweenFeed({
       setPhotos((prev) => prev.filter((p) => p.id !== photo.id))
       posthog?.capture('halloween_photo_deleted', { photo_id: photo.id })
       showToast('Photo deleted')
+      return true
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Couldn't delete that")
+      return false
     } finally {
       setDeletingId(null)
     }
@@ -565,6 +568,20 @@ export function HalloweenFeed({
           )
         )}
 
+        {filter !== ALL && !nextCursor && status === 'idle' && (
+          <OtherSpotsFeed
+            key={filter}
+            location={filter}
+            locations={locationBySlug}
+            cols={cols}
+            now={now}
+            myTokens={myTokens}
+            deletingId={deletingId}
+            onOpen={setLightboxPhoto}
+            onDelete={onDelete}
+            debugMode={debugMode}
+          />
+        )}
       </main>
 
       {pending && (

@@ -92,10 +92,12 @@ export async function getPhotos(
  *
  * @param input - The prepared JPEG plus its details
  * @param onProgress - Called with 0–1 as the photo uploads
+ * @param signal - Aborts the upload
  */
 export function uploadPhoto(
   input: HalloweenUploadInput,
-  onProgress?: (fraction: number) => void
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal
 ): Promise<HalloweenUploadResponse> {
   const formData = new FormData()
   formData.append('photo', input.photo, 'photo.jpg')
@@ -120,7 +122,9 @@ export function uploadPhoto(
     }
     xhr.onerror = () => reject(friendlyError(0, null, 'Upload failed — try again.'))
     xhr.ontimeout = () => reject(friendlyError(0, null, 'Upload failed — try again.'))
+    xhr.onabort = () => reject(new HalloweenApiError('Upload canceled', -1))
     xhr.timeout = 60_000
+    signal?.addEventListener('abort', () => xhr.abort(), { once: true })
 
     xhr.send(formData)
   })

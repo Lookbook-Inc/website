@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePostHog } from 'posthog-js/react'
 import { deletePhoto, getLocations, getPhotos } from '@/lib/api/halloween'
 import { getDebugPhotos } from '@/lib/halloween/debug'
+import { PreparedPhoto } from '@/lib/halloween/image'
 import type { Weather } from '@/lib/halloween/weather'
 import { loadDeleteTokens, saveDeleteTokens } from '@/lib/halloween/storage'
 import {
@@ -12,12 +13,13 @@ import {
   HalloweenPhotoPage,
   HalloweenUploadResponse,
 } from '@/types/halloween-api'
-import { AllIcon, CameraIcon, CheckIcon, ChevronDownIcon, GlassIcon, LibraryIcon } from './icons'
+import { AllIcon, CheckIcon, ChevronDownIcon, GlassIcon, PlusIcon } from './icons'
 import { Lightbox } from './Lightbox'
 import { BoardOpener, revealDuration, revealIndex } from './BoardOpener'
-import { PhotoCard, toneOf } from './PhotoCard'
 import { OtherSpotsFeed } from './OtherSpotsFeed'
-import { UploadSheet } from './UploadSheet'
+import { PendingCard, PhotoCard, toneOf } from './PhotoCard'
+import { PHOTO_ACCEPT, UploadSheet, UploadSheetStart } from './UploadSheet'
+import { PostDraft, usePhotoPost } from './usePhotoPost'
 import styles from './halloween.module.css'
 
 const ALL = 'all'
@@ -27,6 +29,8 @@ const todayFormat = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 
 const NEW_PHOTO_POLL_MS = 20_000
 /** Only drop new photos straight in when the visitor is looking at the top of the feed. */
 const NEAR_TOP_PX = 120
+const UNDO_MS = 6_000
+const PENDING_ID = 'pending-post'
 
 type LoadStatus = 'idle' | 'loading' | 'error'
 
@@ -80,9 +84,10 @@ export function HalloweenFeed({
   const [now, setNow] = useState(() => Date.now())
   const [ready, setReady] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [sheetOpen, setSheetOpen] = useState(false)
-  /** A photo already picked from the header buttons; the sheet opens straight on its details. */
-  const [sheetFile, setSheetFile] = useState<File | null>(null)
+  /** What the "check your card" screen opens with, while it's open. */
+  const [sheet, setSheet] = useState<UploadSheetStart | null>(null)
+  /** Just posted: the window for undoing it. */
+  const [posted, setPosted] = useState<{ photo: HalloweenPhoto; token: string | null } | null>(null)
   const [showFab, setShowFab] = useState(false)
   const [lightboxPhoto, setLightboxPhoto] = useState<HalloweenPhoto | null>(null)
   const [toast, setToast] = useState<{ key: number; node: React.ReactNode } | null>(null)
@@ -96,14 +101,14 @@ export function HalloweenFeed({
   const filterRef = useRef(filter)
   filterRef.current = filter
   const overlayOpenRef = useRef(false)
-  overlayOpenRef.current = sheetOpen || !!lightboxPhoto
+  overlayOpenRef.current = !!sheet || !!lightboxPhoto
 
   const filterBtnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLUListElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const uploadRowRef = useRef<HTMLDivElement>(null)
   const debugUploads = useRef<HalloweenPhoto[]>([])
-  const debugObjectUrls = useRef<string[]>([])
+  const objectUrls = useRef<string[]>([])
 
   const locationBySlug = useMemo(() => new Map(locations.map((l) => [l.slug, l])), [locations])
   const scannedLocation = scanSpot && locationBySlug.has(scanSpot) ? scanSpot : null
@@ -136,7 +141,7 @@ export function HalloweenFeed({
     return () => clearTimeout(t)
   }, [])
 
-  useEffect(() => () => debugObjectUrls.current.forEach((url) => URL.revokeObjectURL(url)), [])
+  useEffect(() => () => objectUrls.current.forEach((url) => URL.revokeObjectURL(url)), [])
 
   const viewTracked = useRef(false)
   useEffect(() => {
@@ -169,13 +174,13 @@ export function HalloweenFeed({
 
   // No scrolling the feed behind an open sheet or lightbox.
   useEffect(() => {
-    if (!sheetOpen && !lightboxPhoto) return
+    if (!sheet && !lightboxPhoto) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = prev
     }
-  }, [sheetOpen, lightboxPhoto])
+  }, [sheet, lightboxPhoto])
 
   /* ───────────── Loading ───────────── */
   const loadFirstPage = useCallback(async (location: string) => {
@@ -291,15 +296,18 @@ export function HalloweenFeed({
   }, [applyPending, debugMode])
 
   /* ───────────── Filter ───────────── */
-  const chooseFilter = (slug: string) => {
-    setMenuOpen(false)
-    filterBtnRef.current?.focus()
-    if (slug === filter) return
+  const switchFilter = (slug: string) => {
     setFilter(slug)
     setPhotos([])
     setNextCursor(null)
     loadFirstPage(slug)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const chooseFilter = (slug: string) => {
+    setMenuOpen(false)
+    filterBtnRef.current?.focus()
+    if (slug !== filter) switchFilter(slug)
   }
 
   useEffect(() => {
@@ -333,10 +341,45 @@ export function HalloweenFeed({
   }
 
   /* ───────────── Upload / delete ───────────── */
-  const openSheet = (file: File | null) => {
+  const onPosted = (photo: HalloweenUploadResponse, { draft }: PostDraft) => {
+    const { delete_token, ...saved } = photo
+    let token: string | null = delete_token ?? null
+    if (debugMode) {
+      debugUploads.current.unshift(saved)
+      if (saved.image_url.startsWith('blob:')) objectUrls.current.push(saved.image_url)
+      token = 'debug'
+      setMyTokens((prev) => ({ ...prev, [saved.id]: 'debug' }))
+    } else if (token) {
+      const tokens = { ...loadDeleteTokens(), [saved.id]: token }
+      saveDeleteTokens(tokens)
+      setMyTokens(tokens)
+    }
+    // Keep showing the local copy so the card doesn't blink while the hosted one loads.
+    objectUrls.current.push(draft.previewUrl)
+    const shown = { ...saved, thumb_url: draft.previewUrl }
+    setNewId(saved.id)
+    if (filterRef.current === ALL || filterRef.current === saved.location_slug) {
+      setPhotos((prev) => mergeUnique([shown], prev))
+    }
+    setPosted({ photo: shown, token })
+  }
+
+  const { post, start: startPost, retry: retryPost, stop: stopPost } = usePhotoPost({
+    scanSpot: scannedLocation,
+    debugMode,
+    onPosted,
+  })
+
+  useEffect(() => {
+    if (!posted) return
+    const t = setTimeout(() => setPosted(null), UNDO_MS)
+    return () => clearTimeout(t)
+  }, [posted])
+
+  const openSheet = (file: File) => {
     setMenuOpen(false)
-    setSheetFile(file)
-    setSheetOpen(true)
+    setPosted(null)
+    setSheet({ file })
   }
 
   const onPicked = (input: HTMLInputElement) => {
@@ -345,32 +388,25 @@ export function HalloweenFeed({
     if (file) openSheet(file)
   }
 
-  const onUploaded = ({ delete_token, ...photo }: HalloweenUploadResponse) => {
-    if (debugMode) {
-      debugUploads.current.unshift(photo)
-      if (photo.image_url.startsWith('blob:')) debugObjectUrls.current.push(photo.image_url)
-      setMyTokens((prev) => ({ ...prev, [photo.id]: 'debug' }))
-    } else if (delete_token) {
-      const tokens = { ...loadDeleteTokens(), [photo.id]: delete_token }
-      saveDeleteTokens(tokens)
-      setMyTokens(tokens)
-    }
-    setNewId(photo.id)
-
-    if (filter === ALL || filter === photo.location_slug) {
-      setPhotos((prev) => mergeUnique([photo], prev))
-    } else {
-      setFilter(ALL)
-      setPhotos([photo])
-      setNextCursor(null)
-      loadFirstPage(ALL)
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  const onPost = (draft: PreparedPhoto, locationSlug: string, displayName: string) => {
+    setSheet(null)
+    if (filter !== ALL && filter !== locationSlug) switchFilter(locationSlug)
+    else window.scrollTo({ top: 0, behavior: 'smooth' })
+    startPost({ draft, locationSlug, displayName, changedFromScan: !!uploadTarget && uploadTarget !== locationSlug })
   }
 
-  const onDelete = async (photo: HalloweenPhoto) => {
-    const token = myTokens[photo.id]
-    if (!token || !window.confirm("Delete your photo from the feed? This can't be undone.")) return false
+  // Back to the card with everything kept.
+  const cancelPost = () => {
+    const stopped = stopPost()
+    if (stopped) setSheet({ draft: stopped.draft, locationSlug: stopped.locationSlug, displayName: stopped.displayName })
+  }
+
+  const discardPost = () => {
+    const stopped = stopPost()
+    if (stopped) URL.revokeObjectURL(stopped.draft.previewUrl)
+  }
+
+  const removeMine = async (photo: HalloweenPhoto, token: string, doneMessage: string) => {
     if (debugMode) {
       debugUploads.current = debugUploads.current.filter((item) => item.id !== photo.id)
       setMyTokens((prev) => {
@@ -379,7 +415,7 @@ export function HalloweenFeed({
         return next
       })
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id))
-      showToast('Preview photo removed')
+      showToast(doneMessage)
       return true
     }
     setDeletingId(photo.id)
@@ -390,7 +426,7 @@ export function HalloweenFeed({
       setMyTokens(rest)
       setPhotos((prev) => prev.filter((p) => p.id !== photo.id))
       posthog?.capture('halloween_photo_deleted', { photo_id: photo.id })
-      showToast('Photo deleted')
+      showToast(doneMessage)
       return true
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Couldn't delete that")
@@ -400,25 +436,53 @@ export function HalloweenFeed({
     }
   }
 
+  const onDelete = async (photo: HalloweenPhoto) => {
+    const token = myTokens[photo.id]
+    if (!token || !window.confirm("Delete your photo from the feed? This can't be undone.")) return false
+    return removeMine(photo, token, 'Photo deleted')
+  }
+
+  const undoPost = () => {
+    if (!posted?.token) return
+    removeMine(posted.photo, posted.token, 'Removed from the Lookbook')
+    setPosted(null)
+  }
+
   /* ───────────── Render ───────────── */
+  // The visitor's own photo holds the first slot while it posts, if it belongs in this feed.
+  const pendingDraft = post && (filter === ALL || filter === post.locationSlug) ? post.draft : null
+  const pendingSlug = post?.locationSlug
+  const pendingName = post?.displayName
+  const pendingPhoto = useMemo<HalloweenPhoto | null>(() => pendingDraft && pendingSlug ? {
+    id: PENDING_ID,
+    image_url: pendingDraft.previewUrl,
+    width: pendingDraft.width,
+    height: pendingDraft.height,
+    location_slug: pendingSlug,
+    display_name: pendingName || null,
+    created_at: '',
+  } : null, [pendingDraft, pendingSlug, pendingName])
+
   // Shortest-column-first masonry, measured in "width units" (image ratio + card chrome).
   const columns = useMemo(() => {
     const out = Array.from({ length: cols }, () => ({ h: 0, photos: [] as HalloweenPhoto[] }))
-    for (const p of photos) {
+    for (const p of pendingPhoto ? [pendingPhoto, ...photos] : photos) {
       const target = out.reduce((a, b) => (b.h < a.h ? b : a))
       target.photos.push(p)
       target.h += (p.height || 1) / (p.width || 1) + 0.2
     }
     return out
-  }, [photos, cols])
+  }, [photos, pendingPhoto, cols])
 
   const activeLocation = filter === ALL ? undefined : locationBySlug.get(filter)
   const venueLabel = activeLocation?.name ?? ALL_LABEL
-  const canPost = locations.length > 0
+  const canPost = locations.length > 0 && !post
+  const postSpot = post && locationBySlug.get(post.locationSlug)?.name
+  const postedSpot = posted && locationBySlug.get(posted.photo.location_slug)?.name
 
   const firstLoad = !photos.length && status === 'loading'
   const firstLoadFailed = !photos.length && status === 'error'
-  const isEmpty = !photos.length && status === 'idle'
+  const isEmpty = !photos.length && !pendingPhoto && status === 'idle'
 
   return (
     <div className={`${styles.root} ${opening === 'reveal' ? styles.revealing : ''}`}>
@@ -492,24 +556,12 @@ export function HalloweenFeed({
             <input
               className={styles.fileInput}
               type="file"
-              accept="image/*"
-              capture="environment"
+              accept={PHOTO_ACCEPT}
               disabled={!canPost}
               onChange={(e) => onPicked(e.currentTarget)}
             />
-            <CameraIcon />
+            <PlusIcon />
             <span>Add your look</span>
-          </label>
-          <label className={`${styles.libBtn} ${canPost ? '' : styles.isDisabled}`}>
-            <input
-              className={styles.fileInput}
-              type="file"
-              accept="image/*,.heic,.heif"
-              aria-label="Choose a photo from your library"
-              disabled={!canPost}
-              onChange={(e) => onPicked(e.currentTarget)}
-            />
-            <LibraryIcon />
           </label>
         </div>
       </header>
@@ -518,7 +570,9 @@ export function HalloweenFeed({
         <div className={`${styles.feed} ${ready ? styles.feedReady : ''}`} aria-live="polite" aria-busy={status === 'loading'}>
           {columns.map((col, i) => (
             <div key={i} className={styles.feedCol}>
-              {col.photos.map((p, row) => (
+              {col.photos.map((p, row) => p.id === PENDING_ID && post ? (
+                <PendingCard key={p.id} photo={p} phase={post.phase} progress={post.progress} />
+              ) : (
                 <PhotoCard
                   key={p.id}
                   photo={p}
@@ -596,30 +650,61 @@ export function HalloweenFeed({
         </button>
       )}
 
-      <button
-        className={`${styles.fab} ${showFab && !sheetOpen ? styles.fabShow : ''}`}
-        onClick={() => openSheet(null)}
-        disabled={!canPost}
+      <label
+        className={`${styles.fab} ${showFab && !sheet && !post && !posted ? styles.fabShow : ''}`}
         aria-hidden={!showFab}
-        tabIndex={showFab ? 0 : -1}
       >
-        <CameraIcon />
+        <input
+          className={styles.fileInput}
+          type="file"
+          accept={PHOTO_ACCEPT}
+          disabled={!canPost || !showFab}
+          onChange={(e) => onPicked(e.currentTarget)}
+        />
+        <PlusIcon />
         <span>Add your look</span>
-      </button>
+      </label>
 
-      {sheetOpen && (
+      {post && !sheet && (
+        <div className={styles.postBar} role="status">
+          {post.phase === 'failed' ? (
+            <>
+              <span className={styles.postBarText}>Nothing was shared. {post.error}</span>
+              <button className={styles.postBarQuiet} onClick={discardPost}>Discard</button>
+              <button className={styles.postBarBtn} onClick={retryPost}>Try again</button>
+            </>
+          ) : (
+            <>
+              <span className={styles.postBarText}>
+                {post.phase === 'waiting'
+                  ? 'No signal. It will post once you’re back online. Keep this page open.'
+                  : `Posting to ${postSpot ?? 'your spot'}. Keep this page open.`}
+              </span>
+              {/* Once the whole photo is sent the post may already be live, so it's too late to cancel. */}
+              {post.phase !== 'finishing' && (
+                <button className={styles.postBarQuiet} onClick={cancelPost}>Cancel</button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {posted && !post && !sheet && (
+        <div className={styles.postBar} role="status">
+          <span className={styles.postBarText}>Posted to {postedSpot ?? 'your spot'}.</span>
+          {posted.token && <button className={styles.postBarBtn} onClick={undoPost}>Undo</button>}
+        </div>
+      )}
+
+      {sheet && (
         <UploadSheet
           locations={locations}
           defaultLocation={uploadTarget}
-          scanSpot={scannedLocation}
-          initialFile={sheetFile}
-          onClose={() => {
-            setSheetOpen(false)
-            setSheetFile(null)
-          }}
-          onUploaded={onUploaded}
+          scannedLocation={scannedLocation}
+          start={sheet}
+          onClose={() => setSheet(null)}
+          onPost={onPost}
           onToast={showToast}
-          debugMode={debugMode}
         />
       )}
 

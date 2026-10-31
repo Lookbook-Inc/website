@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { HalloweenPhoto } from '@/types/halloween-api'
 import { CloseIcon } from './icons'
+import { nameOf } from './PhotoCard'
 import styles from './halloween.module.css'
 
 interface LightboxProps {
@@ -20,7 +21,7 @@ export function Lightbox({ photo, spotName, onClose }: LightboxProps) {
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const name = photo.display_name || 'Someone'
+  const name = nameOf(photo)
 
   return (
     <div

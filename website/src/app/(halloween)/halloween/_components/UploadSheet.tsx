@@ -1,282 +1,249 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { usePostHog } from 'posthog-js/react'
-import { HalloweenApiError, uploadPhoto } from '@/lib/api/halloween'
 import { PreparedPhoto, preparePhoto } from '@/lib/halloween/image'
 import { loadName, saveName } from '@/lib/halloween/storage'
-import { HalloweenLocation, HalloweenUploadResponse } from '@/types/halloween-api'
-import { ArrowRightIcon, CameraIcon, GlassIcon, LibraryIcon } from './icons'
+import { HalloweenLocation } from '@/types/halloween-api'
+import { CheckIcon, ChevronDownIcon, GlassIcon, PencilIcon } from './icons'
 import { toneOf } from './PhotoCard'
 import styles from './halloween.module.css'
 
-type Step = 'choose' | 'preparing' | 'details'
+/** No `capture`, so the phone offers its own menu of photo library and camera. */
+export const PHOTO_ACCEPT = 'image/*,.heic,.heif'
+
+export interface UploadSheetStart {
+  /** A photo just picked with an "Add your look" button. */
+  file?: File
+  /** A post that was canceled, reopened as it was. */
+  draft?: PreparedPhoto
+  locationSlug?: string
+  displayName?: string
+}
 
 interface UploadSheetProps {
   locations: HalloweenLocation[]
-  /** Location matching the scanned QR code, if any. */
+  /** Location the post goes to unless they change it, if any. */
   defaultLocation: string | null
-  scanSpot: string | null
-  /** A photo already picked outside the sheet; skips the take-or-upload step. */
-  initialFile?: File | null
+  /** Location matching the scanned QR code, if any. */
+  scannedLocation: string | null
+  start: UploadSheetStart
   onClose: () => void
-  onUploaded: (photo: HalloweenUploadResponse) => void
+  onPost: (draft: PreparedPhoto, locationSlug: string, displayName: string) => void
   onToast: (message: React.ReactNode) => void
-  debugMode?: boolean
 }
 
-export function UploadSheet({
-  locations,
-  defaultLocation,
-  scanSpot,
-  initialFile = null,
-  onClose,
-  onUploaded,
-  onToast,
-  debugMode = false,
-}: UploadSheetProps) {
-  const posthog = usePostHog()
-  const [step, setStep] = useState<Step>(initialFile ? 'preparing' : 'choose')
+/** The "check your card" screen: the photo as it will appear, its name, its venue, and Post. */
+export function UploadSheet({ locations, defaultLocation, scannedLocation, start, onClose, onPost, onToast }: UploadSheetProps) {
   const [closing, setClosing] = useState(false)
-  const [draft, setDraft] = useState<PreparedPhoto | null>(null)
-  const [location, setLocation] = useState<string | null>(defaultLocation)
-  const [name, setName] = useState('')
-  const [progress, setProgress] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const sheetRef = useRef<HTMLElement>(null)
+  const [draft, setDraft] = useState<PreparedPhoto | null>(start.draft ?? null)
+  const [preparing, setPreparing] = useState(false)
+  const [location, setLocation] = useState<string | null>(start.locationSlug ?? defaultLocation)
+  const [name, setName] = useState(start.displayName ?? '')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const screenRef = useRef<HTMLElement>(null)
+  const navRef = useRef<HTMLDivElement>(null)
+  const prepareId = useRef(0)
 
-  const uploading = progress !== null
   const chosen = locations.find((l) => l.slug === location)
 
   // Prefill the name people used last time.
-  useEffect(() => setName(loadName()), [])
-
-  // Free the preview's memory when it's replaced or the sheet goes away.
   useEffect(() => {
-    if (!draft) return
-    return () => URL.revokeObjectURL(draft.previewUrl)
-  }, [draft])
+    if (start.displayName === undefined) setName(loadName())
+  }, [start.displayName])
 
-  const dismiss = () => {
-    setClosing(true)
-    setTimeout(onClose, 260)
-  }
+  // The keyboard shrinks only the visual viewport on iOS. Follow it so Post stays above the keyboard.
+  useEffect(() => {
+    const viewport = window.visualViewport
+    const el = screenRef.current
+    if (!viewport || !el) return
+    const sync = () => {
+      el.style.setProperty('--viewport-h', `${viewport.height}px`)
+      el.style.setProperty('--viewport-top', `${viewport.offsetTop}px`)
+    }
+    sync()
+    viewport.addEventListener('resize', sync)
+    viewport.addEventListener('scroll', sync)
+    return () => {
+      viewport.removeEventListener('resize', sync)
+      viewport.removeEventListener('scroll', sync)
+    }
+  }, [])
 
   const close = () => {
-    if (uploading || closing) return
-    dismiss()
+    if (closing) return
+    setClosing(true)
+    prepareId.current += 1
+    setTimeout(() => {
+      // Posting keeps the preview; closing without posting is the end of it.
+      if (draft) URL.revokeObjectURL(draft.previewUrl)
+      onClose()
+    }, 260)
   }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
+      if (e.key !== 'Escape') return
+      if (menuOpen) setMenuOpen(false)
+      else close()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   })
 
-  useEffect(() => {
-    sheetRef.current?.scrollTo({ top: 0 })
-  }, [step])
-
   const prepare = async (file: File) => {
-    setStep('preparing')
-    setError(null)
+    const id = ++prepareId.current
+    setPreparing(true)
     try {
-      setDraft(await preparePhoto(file))
-      setStep('details')
+      const prepared = await preparePhoto(file)
+      if (id !== prepareId.current) {
+        URL.revokeObjectURL(prepared.previewUrl)
+        return
+      }
+      if (draft) URL.revokeObjectURL(draft.previewUrl)
+      setDraft(prepared)
     } catch {
-      setStep('choose')
+      if (id !== prepareId.current) return
       onToast("Couldn't read that photo — try another.")
+      if (!draft) onClose()
+    } finally {
+      if (id === prepareId.current) setPreparing(false)
     }
-  }
-
-  const onFile = (input: HTMLInputElement) => {
-    const file = input.files?.[0]
-    input.value = ''
-    if (file) prepare(file)
   }
 
   // Runs once per picked file, even when development mode mounts effects twice.
   const preparedInitial = useRef<File | null>(null)
   useEffect(() => {
-    if (!initialFile || preparedInitial.current === initialFile) return
-    preparedInitial.current = initialFile
-    prepare(initialFile)
+    if (!start.file || preparedInitial.current === start.file) return
+    preparedInitial.current = start.file
+    prepare(start.file)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFile])
+  }, [start.file])
 
-  const post = async () => {
-    if (!draft || !chosen || uploading) return
-    setError(null)
-    setProgress(0)
-    saveName(name.trim())
-
-    const analytics = {
-      location_slug: chosen.slug,
-      scan_spot: scanSpot,
-      changed_from_scan: !!defaultLocation && defaultLocation !== chosen.slug,
+  const post = () => {
+    if (!draft || preparing) return
+    if (!chosen) {
+      setMenuOpen(true)
+      return
     }
-    if (!debugMode) posthog?.capture('halloween_upload_started', analytics)
-
-    try {
-      const photo = debugMode ? await new Promise<HalloweenUploadResponse>((resolve) => {
-        setTimeout(() => resolve({
-          id: `debug-upload-${crypto.randomUUID()}`,
-          image_url: URL.createObjectURL(draft.blob),
-          width: draft.width,
-          height: draft.height,
-          location_slug: chosen.slug,
-          display_name: name.trim() || null,
-          created_at: new Date().toISOString(),
-        }), 350)
-      }) : await uploadPhoto(
-        {
-          photo: draft.blob,
-          locationSlug: chosen.slug,
-          scanSpot,
-          displayName: name.trim(),
-        },
-        setProgress
-      )
-      if (!debugMode) posthog?.capture('halloween_uploaded', { ...analytics, photo_id: photo.id })
-      onUploaded(photo)
-      onToast(<>Posted to <em>{chosen.name}</em></>)
-      setProgress(null)
-      dismiss()
-    } catch (err) {
-      const status = err instanceof HalloweenApiError ? err.status : -1
-      if (!debugMode) posthog?.capture('halloween_upload_failed', { ...analytics, status })
-      // Keep the draft so they can just tap Post again.
-      setError(err instanceof Error ? err.message : 'Upload failed — try again.')
-      setProgress(null)
-    }
+    const trimmed = name.trim()
+    saveName(trimmed)
+    onPost(draft, chosen.slug, trimmed)
   }
 
-  let postLabel = 'Choose a spot to post'
-  if (progress !== null) postLabel = progress < 1 ? `Uploading ${Math.round(progress * 100)}%` : 'Finishing up'
-  else if (error && chosen) postLabel = 'Try again'
-  else if (chosen) postLabel = `Post to ${chosen.name}`
+  const chooseSpot = (slug: string) => {
+    setLocation(slug)
+    setMenuOpen(false)
+  }
 
   return (
     <>
       <div className={styles.scrim} onClick={close} />
       <section
-        ref={sheetRef}
-        className={`${styles.sheet} ${closing ? styles.sheetClosing : ''}`}
+        ref={screenRef}
+        className={`${styles.compose} ${closing ? styles.composeClosing : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="halloweenSheetTitle"
+        aria-label="Check your card"
+        onClick={(e) => {
+          if (menuOpen && !navRef.current?.contains(e.target as Node)) setMenuOpen(false)
+        }}
       >
-        <div className={styles.sheetGrab} aria-hidden="true" />
-
-        {step === 'choose' && (
-          <div className={styles.step}>
-            <h2 className={styles.sheetTitle} id="halloweenSheetTitle">Add to the feed</h2>
-            <p className={styles.sheetSub}>Snap one now, or pick one you already took.</p>
-
-            <div className={styles.choices}>
-              <label className={styles.choice}>
-                <input
-                  className={styles.fileInput}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => onFile(e.currentTarget)}
-                />
-                <span className={styles.choiceIcon}><CameraIcon strokeWidth={1.6} /></span>
-                <span className={styles.choiceText}>
-                  <span className={styles.choiceLabel}>Take a photo</span>
-                  <span className={styles.choiceHint}>Opens your camera</span>
-                </span>
-                <ArrowRightIcon className={styles.choiceArrow} />
-              </label>
-
-              <label className={styles.choice}>
-                <input
-                  className={styles.fileInput}
-                  type="file"
-                  accept="image/*,.heic,.heif"
-                  onChange={(e) => onFile(e.currentTarget)}
-                />
-                <span className={styles.choiceIcon}><LibraryIcon /></span>
-                <span className={styles.choiceText}>
-                  <span className={styles.choiceLabel}>Upload from library</span>
-                  <span className={styles.choiceHint}>Choose from your camera roll</span>
-                </span>
-                <ArrowRightIcon className={styles.choiceArrow} />
-              </label>
-            </div>
-
-            <button className={styles.linkBtn} onClick={close}>Not now</button>
+        <div ref={navRef} className={styles.composeNav}>
+          <button className={styles.composeSide} onClick={close}>Cancel</button>
+          <div className={styles.composeTitle}>
+            <span className={styles.composePre}>Lookbook at</span>
+            <button
+              className={styles.composeVenue}
+              aria-haspopup="listbox"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <span>{chosen?.name ?? 'Choose a spot'}</span>
+              <span className="sr-only">, change spot</span>
+              <ChevronDownIcon className={styles.venueChev} />
+            </button>
           </div>
-        )}
-
-        {step === 'preparing' && (
-          <div className={styles.preparing} role="status">
-            <span className={styles.spinner} />
-            Getting your photo ready…
-          </div>
-        )}
-
-        {step === 'details' && draft && (
-          <div className={styles.step}>
-            <h2 className="sr-only" id="halloweenSheetTitle">Post your photo</h2>
-            <div className={styles.preview}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={draft.previewUrl} alt="Your photo" />
-              <button className={styles.previewRetake} onClick={() => setStep('choose')} disabled={uploading}>
-                Retake
-              </button>
-            </div>
-
-            <h3 className={styles.fieldTitle}>Where are you tonight?</h3>
-            <div className={styles.spots} role="radiogroup" aria-label="Choose your spot">
+          <label className={`${styles.composeSide} ${styles.composeReplace}`}>
+            <input
+              className={styles.fileInput}
+              type="file"
+              accept={PHOTO_ACCEPT}
+              aria-label="Replace this photo"
+              onChange={(e) => {
+                const file = e.currentTarget.files?.[0]
+                e.currentTarget.value = ''
+                if (file) prepare(file)
+              }}
+            />
+            Replace
+          </label>
+          {menuOpen && (
+            <ul className={`${styles.menu} ${styles.composeMenu}`} role="listbox" aria-label="Choose a spot">
               {locations.map((l) => (
-                <button
+                <li
                   key={l.slug}
-                  type="button"
-                  className={styles.spotOpt}
-                  role="radio"
-                  aria-checked={location === l.slug}
-                  onClick={() => setLocation(l.slug)}
-                  disabled={uploading}
+                  className={styles.menuItem}
+                  role="option"
+                  tabIndex={0}
+                  aria-selected={location === l.slug}
+                  onClick={() => chooseSpot(l.slug)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      chooseSpot(l.slug)
+                    }
+                  }}
                 >
                   <span className={styles.menuDot} style={{ background: toneOf(l) }}><GlassIcon /></span>
-                  <span className={styles.spotOptName}>{l.name}</span>
-                </button>
+                  <span className={styles.menuName}>{l.name}</span>
+                  {l.slug === scannedLocation && <span className={styles.menuHere}>You’re here</span>}
+                  <CheckIcon className={styles.menuCheck} />
+                </li>
               ))}
-            </div>
+            </ul>
+          )}
+        </div>
 
-            <div className={styles.fields}>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Your name</span>
+        <div className={styles.composeStage}>
+          {draft ? (
+            <div className={styles.composeCard}>
+              <div
+                className={styles.composePhoto}
+                style={{ aspectRatio: `${draft.width} / ${draft.height}` }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={draft.previewUrl} alt="Your photo" />
+              </div>
+              <label className={styles.composeName}>
                 <input
                   type="text"
                   maxLength={24}
-                  placeholder="Optional"
+                  placeholder="Your name, or Anonymous"
+                  aria-label="Your name, optional"
                   autoComplete="given-name"
+                  enterKeyHint="done"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  disabled={uploading}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur()
+                  }}
                 />
+                <PencilIcon />
               </label>
             </div>
+          ) : (
+            <div className={styles.preparing} role="status">
+              <span className={styles.spinner} />
+              Getting your photo ready…
+            </div>
+          )}
+        </div>
 
-            <p className={styles.publicNote}>Your photo and name, if provided, will be visible to everyone on this page.</p>
+        <p className={styles.publicLine}><b>Public.</b> Anyone can see your photo and name.</p>
 
-            {error && <p className={styles.uploadError} role="alert">{error}</p>}
-
-            <button
-              className={`${styles.primary} ${uploading ? styles.primaryLoading : ''}`}
-              onClick={post}
-              disabled={!chosen || uploading}
-            >
-              {progress !== null && <span className={styles.primaryProgress} style={{ width: `${progress * 100}%` }} />}
-              <span className={styles.primaryLabel} aria-live="polite">{postLabel}</span>
-            </button>
-          </div>
-        )}
+        <button className={styles.primary} onClick={post} disabled={!draft || preparing}>
+          {chosen ? `Post to ${chosen.name}` : 'Choose a spot to post'}
+        </button>
       </section>
     </>
   )

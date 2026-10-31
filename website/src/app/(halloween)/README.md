@@ -14,6 +14,10 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
 
 ## What a visitor can do
 
+- **See the opening board.** The first load in a tab starts on a departure board: venue names
+  flip across it, it lands on "your fits at Westwood" and holds for 0.8s. Then "Lookbook at
+  Westwood" fades in, followed by the cards one at a time, left then right down the rows.
+  Reloads in the same tab skip it; `?debug=1` always plays it.
 - **Land on their spot's lookbook.** The header reads "Lookbook at Westwood" for
   `?spot=westwood`, and the feed shows that spot's photos. Without a known spot it reads
   "Lookbook at every spot" and shows everything.
@@ -86,13 +90,14 @@ we add a thumbnail rendition. Errors are read from FastAPI's `detail`.
 | `src/app/(halloween)/layout.tsx` | Page metadata and PostHog provider |
 | `src/app/(halloween)/halloween/page.tsx` | Server component: reads `?spot=`, fetches locations and that spot's first page |
 | `.../_components/HalloweenFeed.tsx` | "Lookbook at" header and spot switcher, upload buttons, feed, infinite scroll, polling, delete |
+| `.../_components/BoardOpener.tsx` | The opening departure board and the page fade's timing |
 | `.../_components/UploadSheet.tsx` | The photo, venue and details flow |
 | `.../_components/PhotoCard.tsx`, `Lightbox.tsx`, `icons.tsx` | Card, full-size view, icons |
 | `.../_components/halloween.module.css` | All styling for the page |
 | `src/lib/api/halloween.ts` | The four backend calls and error messages |
 | `src/lib/halloween/image.ts` | Resizes to JPEG in the browser and converts HEIC |
 | `src/lib/halloween/spot.ts` | Validates the `?spot=` value |
-| `src/lib/halloween/storage.ts` | Remembers the visitor's name and delete tokens in `localStorage` |
+| `src/lib/halloween/storage.ts` | Remembers the visitor's name and delete tokens in `localStorage`, and whether this tab has seen the board |
 | `src/types/halloween-api.ts` | Request and response types |
 
 ## Analytics

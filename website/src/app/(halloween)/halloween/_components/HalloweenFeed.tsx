@@ -13,6 +13,7 @@ import {
 } from '@/types/halloween-api'
 import { AllIcon, CameraIcon, CheckIcon, ChevronDownIcon, GlassIcon, GlobeIcon, LibraryIcon } from './icons'
 import { Lightbox } from './Lightbox'
+import { BoardOpener, revealDuration, revealIndex } from './BoardOpener'
 import { PhotoCard, toneOf } from './PhotoCard'
 import { UploadSheet } from './UploadSheet'
 import styles from './halloween.module.css'
@@ -77,6 +78,8 @@ export function HalloweenFeed({
   const [showFab, setShowFab] = useState(false)
   const [lightboxPhoto, setLightboxPhoto] = useState<HalloweenPhoto | null>(null)
   const [toast, setToast] = useState<{ key: number; node: React.ReactNode } | null>(null)
+  /** The departure board, then the page fading in, then the page as normal. */
+  const [opening, setOpening] = useState<'board' | 'reveal' | 'done'>('board')
 
   // Bumped on every list request so a slow response for an old filter can't overwrite a newer one.
   const requestId = useRef(0)
@@ -98,6 +101,16 @@ export function HalloweenFeed({
   const scannedLocation = scanSpot && locationBySlug.has(scanSpot) ? scanSpot : null
   // Posts go to the spot being viewed; on "every spot" they default to the scanned one.
   const uploadTarget = filter !== ALL && locationBySlug.has(filter) ? filter : scannedLocation
+
+  /* ───────────── Opener ───────────── */
+  const initialVenue = initialLocations?.find((l) => l.slug === initialFilter)?.name ?? 'every spot'
+  const revealPage = useCallback(() => setOpening('reveal'), [])
+  const skipOpener = useCallback(() => setOpening('done'), [])
+  useEffect(() => {
+    if (opening !== 'reveal') return
+    const t = setTimeout(() => setOpening('done'), revealDuration(cols))
+    return () => clearTimeout(t)
+  }, [opening, cols])
 
   /* ───────────── Toast ───────────── */
   const showToast = useCallback((node: React.ReactNode) => setToast({ key: Date.now(), node }), [])
@@ -399,7 +412,17 @@ export function HalloweenFeed({
   const isEmpty = !photos.length && status === 'idle'
 
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} ${opening === 'reveal' ? styles.revealing : ''}`}>
+      {opening !== 'done' && (
+        <BoardOpener
+          venue={initialVenue}
+          locations={initialLocations}
+          alwaysPlay={debugMode}
+          leaving={opening === 'reveal'}
+          onReveal={revealPage}
+          onSkip={skipOpener}
+        />
+      )}
       {debugMode && <div className={styles.debugBanner}>Preview mode · sample photos · uploads stay in this tab</div>}
       <header className={styles.top}>
         <p className={styles.live}>
@@ -494,7 +517,7 @@ export function HalloweenFeed({
         <div className={`${styles.feed} ${ready ? styles.feedReady : ''}`} aria-live="polite" aria-busy={status === 'loading'}>
           {columns.map((col, i) => (
             <div key={i} className={styles.feedCol}>
-              {col.photos.map((p) => (
+              {col.photos.map((p, row) => (
                 <PhotoCard
                   key={p.id}
                   photo={p}
@@ -502,6 +525,7 @@ export function HalloweenFeed({
                   showSpot={filter === ALL}
                   now={now}
                   isNew={p.id === newId}
+                  revealIndex={revealIndex(row, i, cols)}
                   canDelete={!!myTokens[p.id]}
                   deleting={deletingId === p.id}
                   onOpen={setLightboxPhoto}

@@ -28,12 +28,17 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
 - **Browse the feed.** A dark, two-column (up to four on wide screens) masonry grid, newest
   first. The photo is the card, with the poster's name and time under it. On "San Francisco" each
   photo carries a small label with its venue. More photos load as you scroll.
-- **Post a photo.** "Add your look" sits right under the title and opens the camera; the round
-  button next to it opens the photo library. Either one goes straight to the details sheet:
-  the spot being viewed is preselected (on "San Francisco", the scanned spot), and the name is
-  optional. The sheet tells them their photo and name will be visible to everyone. An upload
-  progress bar is shown, and a failed upload keeps the draft so they can tap again. Once the
-  header scrolls away, a floating "Add your look" button opens the same sheet.
+- **Post a photo.** "Add your look" sits right under the title and opens the phone's own menu,
+  which offers the photo library and the camera. Once the header scrolls away, a floating
+  button does the same. The photo then opens on the "check your card" screen, showing it as it
+  will appear. The spot being viewed is preselected (on "San Francisco", the scanned spot), the
+  name is optional and remembered, and a line above Post says the photo and name are public.
+- **Keep browsing while it posts.** Post returns straight to the feed, where the photo sits first
+  and fills with progress. A bar at the bottom shows the status. If the connection drops, the
+  post keeps trying until it works or the visitor cancels; any other failure keeps the photo so
+  they can try again or discard it. Cancel returns to the card with everything kept, except once
+  the whole photo has been sent, when it may already be live.
+- **Undo.** The bar offers Undo for six seconds after posting.
 - **See new photos arrive.** The feed checks for new photos every 20 seconds. If the visitor
   is at the top they appear straight away; otherwise a "N new photos" pill appears.
 - **Open a photo.** Tapping a card opens the full-size image in a lightbox.
@@ -93,7 +98,8 @@ we add a thumbnail rendition. Errors are read from FastAPI's `detail`.
 | `src/app/(halloween)/halloween/page.tsx` | Server component: reads `?spot=`, fetches locations and that spot's first page |
 | `.../_components/HalloweenFeed.tsx` | "Lookbook at" header and spot switcher, upload buttons, feed, infinite scroll, polling, delete |
 | `.../_components/BoardOpener.tsx` | The opening departure board and the page fade's timing |
-| `.../_components/UploadSheet.tsx` | The photo, venue and details flow |
+| `.../_components/UploadSheet.tsx` | The "check your card" screen |
+| `.../_components/usePhotoPost.ts` | Posts in the background, with retries, cancel and status |
 | `.../_components/PhotoCard.tsx`, `Lightbox.tsx`, `icons.tsx` | Card, full-size view, icons |
 | `.../_components/halloween.module.css` | All styling for the page |
 | `src/lib/api/halloween.ts` | The four backend calls and error messages |
@@ -113,7 +119,8 @@ PostHog events: `halloween_viewed`, `halloween_upload_started`, `halloween_uploa
 
 To preview the page with sample photos at Westwood, Butter, and Jaxson, run the
 website locally and open `http://localhost:3000/halloween?debug=1&spot=westwood`. Preview
-uploads appear in the feed for that browser tab only; they never reach the backend. Preview
+uploads appear in the feed for that browser tab only; they never reach the backend. Add `&upload=signal` or
+`&upload=fail` to make a post's first try drop out. Preview
 mode is available automatically in development. For a deployed preview build, set the
 server-side `HALLOWEEN_DEMO_ENABLED=true` environment variable. Without that setting,
 `?debug=1` has no effect in production.

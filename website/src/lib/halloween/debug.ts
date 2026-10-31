@@ -1,4 +1,6 @@
-import type { HalloweenLocation, HalloweenPhoto, HalloweenPhotoPage } from '@/types/halloween-api'
+import { HalloweenApiError } from '@/lib/api/halloween'
+import type { PreparedPhoto } from '@/lib/halloween/image'
+import type { HalloweenLocation, HalloweenPhoto, HalloweenPhotoPage, HalloweenUploadResponse } from '@/types/halloween-api'
 
 // Existing public site imagery, used only for the Halloween preview.
 export const debugLocations: HalloweenLocation[] = [
@@ -33,4 +35,46 @@ export function getDebugPhotos(location?: string | null, uploads: HalloweenPhoto
     photos: [...uploads, ...photos].filter((photo) => !location || photo.location_slug === location),
     next_cursor: null,
   }
+}
+
+/**
+ * Stands in for the upload in preview mode, staying in this tab.
+ * Add `&upload=signal` or `&upload=fail` to the URL to make the first try drop out.
+ */
+export function debugUpload(
+  post: { draft: PreparedPhoto; locationSlug: string; displayName: string },
+  onProgress: (fraction: number) => void,
+  signal: AbortSignal,
+  attempt: number
+): Promise<HalloweenUploadResponse> {
+  const mode = new URLSearchParams(window.location.search).get('upload')
+  const dropsOut = attempt === 0 && (mode === 'signal' || mode === 'fail')
+
+  return new Promise((resolve, reject) => {
+    let fraction = 0
+    const tick = setInterval(() => {
+      fraction = Math.min(dropsOut ? 0.64 : 1, fraction + 0.03)
+      onProgress(fraction)
+      if (dropsOut && fraction >= 0.64) {
+        clearInterval(tick)
+        reject(mode === 'signal'
+          ? new HalloweenApiError('No connection — try again.', 0)
+          : new HalloweenApiError('Something went wrong on our end — try again.', 500))
+      } else if (fraction >= 1) {
+        clearInterval(tick)
+        setTimeout(() => {
+          resolve({
+            id: `debug-upload-${crypto.randomUUID()}`,
+            image_url: URL.createObjectURL(post.draft.blob),
+            width: post.draft.width,
+            height: post.draft.height,
+            location_slug: post.locationSlug,
+            display_name: post.displayName || null,
+            created_at: new Date().toISOString(),
+          })
+        }, 500)
+      }
+    }, 70)
+    signal.addEventListener('abort', () => clearInterval(tick), { once: true })
+  })
 }

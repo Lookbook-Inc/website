@@ -282,6 +282,15 @@
 }
 
 /* Empty / error state */
+.otherSpotsTitle {
+  margin: 40px 0 20px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--ink);
+}
 .empty { text-align: center; padding: 80px 20px; }
 .emptyTitle { font-family: var(--serif); font-size: 28px; margin: 0 0 6px; color: var(--ink); }
 .emptySub { margin: 0; color: var(--muted); font-size: 15px; }

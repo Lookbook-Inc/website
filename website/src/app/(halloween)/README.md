@@ -15,20 +15,22 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
 ## What a visitor can do
 
 - **See the opening board.** The first load in a tab starts on a departure board: venue names
-  flip across it, it lands on "your fits at Westwood" and holds for 0.8s. Then "Lookbook at
+  flip across it, with one tile per character of each name, and it lands on "your fits at
+  Westwood" and holds for 1.2s. Then "Lookbook at
   Westwood" fades in, followed by the cards one at a time, left then right down the rows.
   Reloads in the same tab skip it; `?debug=1` always plays it.
 - **Land on their spot's lookbook.** The header reads "Lookbook at Westwood" for
   `?spot=westwood`, and the feed shows that spot's photos. Without a known spot it reads
-  "Lookbook at every spot" and shows everything.
+  "Lookbook at San Francisco" and shows everything. The top corner shows today's date and San
+  Francisco's current weather.
 - **Switch spots.** The spot name in the header is the switcher: tap it for a menu of the
-  spots plus "Every spot". The scanned spot is marked "You're here".
+  spots plus "San Francisco". The scanned spot is marked "You're here".
 - **Browse the feed.** A dark, two-column (up to four on wide screens) masonry grid, newest
-  first. The photo is the card, with the poster's name and time under it. On "Every spot" each
+  first. The photo is the card, with the poster's name and time under it. On "San Francisco" each
   photo carries a small label with its venue. More photos load as you scroll.
 - **Post a photo.** "Add your look" sits right under the title and opens the camera; the round
   button next to it opens the photo library. Either one goes straight to the details sheet:
-  the spot being viewed is preselected (on "Every spot", the scanned spot), and the name is
+  the spot being viewed is preselected (on "San Francisco", the scanned spot), and the name is
   optional. The sheet tells them their photo and name will be visible to everyone. An upload
   progress bar is shown, and a failed upload keeps the draft so they can tap again. Once the
   header scrolls away, a floating "Add your look" button opens the same sheet.
@@ -97,6 +99,7 @@ we add a thumbnail rendition. Errors are read from FastAPI's `detail`.
 | `src/lib/api/halloween.ts` | The four backend calls and error messages |
 | `src/lib/halloween/image.ts` | Resizes to JPEG in the browser and converts HEIC |
 | `src/lib/halloween/spot.ts` | Validates the `?spot=` value |
+| `src/lib/halloween/weather.ts` | Current San Francisco weather from the National Weather Service, cached for 10 minutes |
 | `src/lib/halloween/storage.ts` | Remembers the visitor's name and delete tokens in `localStorage`, and whether this tab has seen the board |
 | `src/types/halloween-api.ts` | Request and response types |
 

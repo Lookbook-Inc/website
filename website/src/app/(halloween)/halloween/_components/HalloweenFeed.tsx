@@ -16,6 +16,7 @@ import {
 import { AllIcon, CheckIcon, ChevronDownIcon, GlassIcon, PlusIcon } from './icons'
 import { Lightbox } from './Lightbox'
 import { BoardOpener, revealDuration, revealIndex } from './BoardOpener'
+import { OtherSpotsFeed } from './OtherSpotsFeed'
 import { PendingCard, PhotoCard, toneOf } from './PhotoCard'
 import { PHOTO_ACCEPT, UploadSheet, UploadSheetStart } from './UploadSheet'
 import { PostDraft, usePhotoPost } from './usePhotoPost'
@@ -415,7 +416,7 @@ export function HalloweenFeed({
       })
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id))
       showToast(doneMessage)
-      return
+      return true
     }
     setDeletingId(photo.id)
     try {
@@ -426,17 +427,19 @@ export function HalloweenFeed({
       setPhotos((prev) => prev.filter((p) => p.id !== photo.id))
       posthog?.capture('halloween_photo_deleted', { photo_id: photo.id })
       showToast(doneMessage)
+      return true
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Couldn't delete that")
+      return false
     } finally {
       setDeletingId(null)
     }
   }
 
-  const onDelete = (photo: HalloweenPhoto) => {
+  const onDelete = async (photo: HalloweenPhoto) => {
     const token = myTokens[photo.id]
-    if (!token || !window.confirm("Delete your photo from the feed? This can't be undone.")) return
-    removeMine(photo, token, 'Photo deleted')
+    if (!token || !window.confirm("Delete your photo from the feed? This can't be undone.")) return false
+    return removeMine(photo, token, 'Photo deleted')
   }
 
   const undoPost = () => {
@@ -619,6 +622,20 @@ export function HalloweenFeed({
           )
         )}
 
+        {filter !== ALL && !nextCursor && status === 'idle' && (
+          <OtherSpotsFeed
+            key={filter}
+            location={filter}
+            locations={locationBySlug}
+            cols={cols}
+            now={now}
+            myTokens={myTokens}
+            deletingId={deletingId}
+            onOpen={setLightboxPhoto}
+            onDelete={onDelete}
+            debugMode={debugMode}
+          />
+        )}
       </main>
 
       {pending && (

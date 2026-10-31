@@ -27,7 +27,11 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
   spots plus "San Francisco". The scanned spot is marked "You're here".
 - **Browse the feed.** A dark, two-column (up to four on wide screens) masonry grid, newest
   first. The photo is the card, with the poster's name and time under it. On "San Francisco" each
-  photo carries a small label with its venue. More photos load as you scroll.
+  photo carries a small label with its venue. More photos load as you scroll. Once a
+  selected spot's last page is loaded (including an empty spot), the feed continues with
+  **From other spots**: photos from the other venues, newest first, with venue labels.
+  The selected spot and upload default stay the same. This continuation is omitted on the
+  all-spots feed, and has its own pagination and retry if a request fails.
 - **Post a photo.** "Add your look" sits right under the title and opens the phone's own menu,
   which offers the photo library and the camera. Once the header scrolls away, a floating
   button does the same. The photo then opens on the "check your card" screen, showing it as it

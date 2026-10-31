@@ -51,27 +51,9 @@
 .top {
   max-width: 1180px;
   margin: 0 auto;
-  padding: calc(22px + env(safe-area-inset-top)) 20px 8px;
+  padding: calc(28px + env(safe-area-inset-top)) 20px 8px;
 }
-.live {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 12.5px;
-  letter-spacing: .02em;
-  color: var(--muted);
-}
-.liveDot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(224, 124, 92, .25);
-  animation: livePulse 2.4s ease-in-out infinite;
-}
-@keyframes livePulse { 50% { box-shadow: 0 0 0 6px rgba(224, 124, 92, 0); } }
-
-.filter { position: relative; margin-top: 16px; }
+.filter { position: relative; }
 .title { margin: 0; font-family: var(--serif); font-weight: 400; line-height: 1; }
 .titlePre { display: block; font-size: 30px; color: var(--muted); }
 .venueBtn {
@@ -178,16 +160,6 @@
 .libBtn:active { transform: scale(.95); }
 .addBtn:focus-within, .libBtn:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
 .isDisabled { opacity: .45; cursor: default; pointer-events: none; }
-.fine {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 12px 0 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-.fine svg { width: 15px; height: 15px; flex: none; }
-.fine b { color: var(--ink-soft); font-weight: 600; }
 
 /* ───────────── Feed shell ───────────── */
 .feedWrap {

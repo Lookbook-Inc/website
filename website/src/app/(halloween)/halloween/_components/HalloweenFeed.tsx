@@ -11,7 +11,7 @@ import {
   HalloweenPhotoPage,
   HalloweenUploadResponse,
 } from '@/types/halloween-api'
-import { AllIcon, CameraIcon, CheckIcon, ChevronDownIcon, GlassIcon, GlobeIcon, LibraryIcon } from './icons'
+import { AllIcon, CameraIcon, CheckIcon, ChevronDownIcon, GlassIcon, LibraryIcon } from './icons'
 import { Lightbox } from './Lightbox'
 import { BoardOpener, revealDuration, revealIndex } from './BoardOpener'
 import { PhotoCard, toneOf } from './PhotoCard'
@@ -404,7 +404,6 @@ export function HalloweenFeed({
 
   const activeLocation = filter === ALL ? undefined : locationBySlug.get(filter)
   const venueLabel = activeLocation?.name ?? 'every spot'
-  const targetName = uploadTarget ? locationBySlug.get(uploadTarget)?.name : null
   const canPost = locations.length > 0
 
   const firstLoad = !photos.length && status === 'loading'
@@ -425,11 +424,6 @@ export function HalloweenFeed({
       )}
       {debugMode && <div className={styles.debugBanner}>Preview mode · sample photos · uploads stay in this tab</div>}
       <header className={styles.top}>
-        <p className={styles.live}>
-          <span className={styles.liveDot} aria-hidden="true" />
-          Live · Halloween night
-        </p>
-
         <div className={styles.filter}>
           <h1 className={styles.title}>
             <span className={styles.titlePre}>Lookbook at</span>{' '}
@@ -504,13 +498,6 @@ export function HalloweenFeed({
             <LibraryIcon />
           </label>
         </div>
-        <p className={styles.fine}>
-          <GlobeIcon />
-          <span>
-            Public, no account.{' '}
-            {targetName ? <>Posts to <b>{targetName}</b>.</> : 'You’ll pick the spot next.'}
-          </span>
-        </p>
       </header>
 
       <main className={styles.feedWrap}>

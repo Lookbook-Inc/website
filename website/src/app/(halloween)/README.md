@@ -29,7 +29,7 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
 - **Post a photo.** "Add your look" sits right under the title and opens the camera; the round
   button next to it opens the photo library. Either one goes straight to the details sheet:
   the spot being viewed is preselected (on "Every spot", the scanned spot), and the name is
-  optional. A line under the buttons says posts are public and where they'll go. An upload
+  optional. The sheet tells them their photo and name will be visible to everyone. An upload
   progress bar is shown, and a failed upload keeps the draft so they can tap again. Once the
   header scrolls away, a floating "Add your look" button opens the same sheet.
 - **See new photos arrive.** The feed checks for new photos every 20 seconds. If the visitor

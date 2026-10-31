@@ -26,18 +26,23 @@ interface PhotoCardProps {
   showSpot: boolean
   now: number
   isNew: boolean
+  /** Its place in the staggered fade after the opening board. */
+  revealIndex: number
   canDelete: boolean
   deleting: boolean
   onOpen: (photo: HalloweenPhoto) => void
   onDelete: (photo: HalloweenPhoto) => void
 }
 
-export function PhotoCard({ photo, location, showSpot, now, isNew, canDelete, deleting, onOpen, onDelete }: PhotoCardProps) {
+export function PhotoCard({ photo, location, showSpot, now, isNew, revealIndex, canDelete, deleting, onOpen, onDelete }: PhotoCardProps) {
   const name = photo.display_name || 'Someone'
   const spotName = location?.name ?? 'somewhere'
 
   return (
-    <article className={`${styles.card} ${isNew ? styles.cardNew : ''}`}>
+    <article
+      className={`${styles.card} ${isNew ? styles.cardNew : ''}`}
+      style={{ '--reveal-i': revealIndex } as React.CSSProperties}
+    >
       <button className={styles.cardPhoto} onClick={() => onOpen(photo)} aria-label={`View photo by ${name} at ${spotName}`}>
         {/* Backend-hosted thumbnails; next/image would re-optimize already-sized images. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

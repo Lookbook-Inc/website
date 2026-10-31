@@ -14,6 +14,10 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
 
 ## What a visitor can do
 
+- **See the opening board.** The first load in a tab starts on a departure board: venue names
+  flip across it, it lands on "your fits at Westwood" and holds for 0.8s. Then "Lookbook at
+  Westwood" fades in, followed by the cards one at a time, left then right down the rows.
+  Reloads in the same tab skip it; `?debug=1` always plays it.
 - **Land on their spot's lookbook.** The header reads "Lookbook at Westwood" for
   `?spot=westwood`, and the feed shows that spot's photos. Without a known spot it reads
   "Lookbook at every spot" and shows everything.
@@ -25,7 +29,7 @@ Fashion Wrapped Supabase project; this page just calls its `/halloween` endpoint
 - **Post a photo.** "Add your look" sits right under the title and opens the camera; the round
   button next to it opens the photo library. Either one goes straight to the details sheet:
   the spot being viewed is preselected (on "Every spot", the scanned spot), and the name is
-  optional. A line under the buttons says posts are public and where they'll go. An upload
+  optional. The sheet tells them their photo and name will be visible to everyone. An upload
   progress bar is shown, and a failed upload keeps the draft so they can tap again. Once the
   header scrolls away, a floating "Add your look" button opens the same sheet.
 - **See new photos arrive.** The feed checks for new photos every 20 seconds. If the visitor
@@ -86,13 +90,14 @@ we add a thumbnail rendition. Errors are read from FastAPI's `detail`.
 | `src/app/(halloween)/layout.tsx` | Page metadata and PostHog provider |
 | `src/app/(halloween)/halloween/page.tsx` | Server component: reads `?spot=`, fetches locations and that spot's first page |
 | `.../_components/HalloweenFeed.tsx` | "Lookbook at" header and spot switcher, upload buttons, feed, infinite scroll, polling, delete |
+| `.../_components/BoardOpener.tsx` | The opening departure board and the page fade's timing |
 | `.../_components/UploadSheet.tsx` | The photo, venue and details flow |
 | `.../_components/PhotoCard.tsx`, `Lightbox.tsx`, `icons.tsx` | Card, full-size view, icons |
 | `.../_components/halloween.module.css` | All styling for the page |
 | `src/lib/api/halloween.ts` | The four backend calls and error messages |
 | `src/lib/halloween/image.ts` | Resizes to JPEG in the browser and converts HEIC |
 | `src/lib/halloween/spot.ts` | Validates the `?spot=` value |
-| `src/lib/halloween/storage.ts` | Remembers the visitor's name and delete tokens in `localStorage` |
+| `src/lib/halloween/storage.ts` | Remembers the visitor's name and delete tokens in `localStorage`, and whether this tab has seen the board |
 | `src/types/halloween-api.ts` | Request and response types |
 
 ## Analytics

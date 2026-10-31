@@ -51,27 +51,9 @@
 .top {
   max-width: 1180px;
   margin: 0 auto;
-  padding: calc(22px + env(safe-area-inset-top)) 20px 8px;
+  padding: calc(28px + env(safe-area-inset-top)) 20px 8px;
 }
-.live {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 12.5px;
-  letter-spacing: .02em;
-  color: var(--muted);
-}
-.liveDot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(224, 124, 92, .25);
-  animation: livePulse 2.4s ease-in-out infinite;
-}
-@keyframes livePulse { 50% { box-shadow: 0 0 0 6px rgba(224, 124, 92, 0); } }
-
-.filter { position: relative; margin-top: 16px; }
+.filter { position: relative; }
 .title { margin: 0; font-family: var(--serif); font-weight: 400; line-height: 1; }
 .titlePre { display: block; font-size: 30px; color: var(--muted); }
 .venueBtn {
@@ -178,16 +160,6 @@
 .libBtn:active { transform: scale(.95); }
 .addBtn:focus-within, .libBtn:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
 .isDisabled { opacity: .45; cursor: default; pointer-events: none; }
-.fine {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 12px 0 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-.fine svg { width: 15px; height: 15px; flex: none; }
-.fine b { color: var(--ink-soft); font-weight: 600; }
 
 /* ───────────── Feed shell ───────────── */
 .feedWrap {
@@ -641,6 +613,58 @@
 .toast em { font-family: var(--serif); font-size: 17px; }
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, -16px); } }
 
+/* ───────────── Opening board ───────────── */
+.opener {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  padding: 0 16px;
+  background: var(--black);
+  touch-action: none;
+  /* If the page's script never runs, the board still gets out of the way. */
+  animation: openerGone .25s ease 8s forwards;
+}
+.openerLive { animation: none; }
+.openerOut { animation: openerGone .25s ease forwards; pointer-events: none; }
+@keyframes openerGone { to { opacity: 0; visibility: hidden; } }
+.openerWrap { display: grid; justify-items: center; gap: 14px; }
+.openerPre { font-family: var(--serif); font-size: 30px; line-height: 1; color: var(--muted); opacity: 0; }
+.openerBoard {
+  /* 25px tiles, narrower if a long venue name needs more of them than the screen fits. */
+  --tile: min(25px, (100vw - 32px - (var(--tiles) - 1) * 3px) / var(--tiles));
+  display: flex;
+  gap: 3px;
+  perspective: 300px;
+}
+.openerTile {
+  position: relative;
+  display: grid; place-items: center;
+  width: var(--tile);
+  height: calc(var(--tile) * 1.6);
+  border-radius: 4px;
+  background: linear-gradient(#24201d 50%, #1c1917 50%);
+  color: var(--ink);
+  font: 700 calc(var(--tile) * .88) / 1 var(--sans);
+  box-shadow: 0 2px 0 #000;
+}
+.openerTile::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 1px;
+  background: var(--black);
+}
+.openerTileHot { color: var(--accent); }
+
+/* After the board: the header, then the cards one at a time. Timings match BoardOpener.tsx. */
+.revealing .top { animation: revealFade .7s ease .2s both; }
+.revealing .empty, .revealing .more { animation: revealFade .7s ease .8s both; }
+.root.revealing .card {
+  animation: revealFade .7s ease both;
+  animation-delay: calc(.8s + var(--reveal-i, 0) * .2s);
+}
+@keyframes revealFade { from { opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   .root *, .root *::before, .root *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .revealing .top, .revealing .empty, .revealing .more, .root.revealing .card { animation-delay: 0s; }
 }

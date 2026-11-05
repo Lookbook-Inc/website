@@ -16,6 +16,13 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // Keep existing Monroe QR codes working for Jalebi St.
+        source: '/halloween',
+        has: [{ type: 'query', key: 'spot', value: 'monroe' }],
+        destination: '/halloween?spot=jalebist',
+        permanent: false,
+      },
+      {
         // Keep existing Balboa QR codes working for O’Reilly’s.
         source: '/halloween',
         has: [{ type: 'query', key: 'spot', value: 'balboa' }],

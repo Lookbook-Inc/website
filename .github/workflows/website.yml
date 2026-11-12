@@ -50,6 +50,8 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Generate Next.js types
+        run: npx --no-install next typegen
       - name: Typecheck
         run: npx --no-install tsc --noEmit --incremental false
       - name: Build

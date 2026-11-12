@@ -16,6 +16,13 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // Both April Jean QR slug spellings open the Westwood lookbook.
+        source: '/halloween',
+        has: [{ type: 'query', key: 'spot', value: '^april-?jean$' }],
+        destination: '/halloween?spot=westwood',
+        permanent: false,
+      },
+      {
         // Keep existing Monroe QR codes working for Jalebi St.
         source: '/halloween',
         has: [{ type: 'query', key: 'spot', value: 'monroe' }],
